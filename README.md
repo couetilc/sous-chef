@@ -46,7 +46,7 @@ us develop, manage and compile any files for our front-end project.
 
 ### Back-end
 
-The back-end package manager is [`pip](https://pypi.org/project/pip/), which
+The back-end package manager is [`pip`](https://pypi.org/project/pip/), which
 uses the `back-end/requirements.txt` file to re-construct this project's python
 dependencies and manage them in a "virtual environment" using
 [`venv`](https://docs.python.org/3/library/venv.html).
