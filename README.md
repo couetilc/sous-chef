@@ -9,18 +9,18 @@ You should only have to do this once.
 
 1. Install [`direnv`](https://direnv.net/)
 ```sh
-# In directory sous-chef/ now run
+# Once installed, in directory sous-chef/ now run
 direnv allow . # activates the .envrc file
 ```
 2. Install [`nodenv`](https://github.com/nodenv/nodenv)
 ```sh
-# In directory sous-chef/ now run
+# Once installed, in directory sous-chef/ now run
 nodenv install # installs this project's node version
 corepack enable # adds "pnpm" to your PATH
 ```
 3. Install [`pyenv`](https://github.com/pyenv/pyenv)
 ```sh
-# In directory sous-chef/ now run
+# Once installed, in directory sous-chef/ now run
 pyenv install # install's this project's python version
 ```
 
