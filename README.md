@@ -52,7 +52,7 @@ dependencies and manage them in a "virtual environment" using
 [`venv`](https://docs.python.org/3/library/venv.html).
 
 Run these commands to get started developing:
-```as
+```sh
 # in the sous-chef/back-end/ directory:
 docker compose -f $root/compose.yml up -d # starts the PostgreSQL container
 python manage.py migrate
