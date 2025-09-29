@@ -13,7 +13,8 @@ Run these commands to get started developing:
 ```
 pnpm install
 pnpm dev
-open http://localhost:5173 # opens a browser tab that connects to your dev server
+# opens a browser tab that connects to your front-end dev server
+open http://localhost:5173
 ```
 
 ### Back-end
@@ -22,6 +23,17 @@ The back-end package manager is [`pip](https://pypi.org/project/pip/), which
 uses the `back-end/requirements.txt` file to re-construct this project's python
 dependencies and manage them in a "virtual environment" using
 [`venv`](https://docs.python.org/3/library/venv.html).
+
+Run these commands to get started developing:
+```as
+# in the sous-chef/back-end/ directory:
+docker compose -f $root/compose.yml up -d # starts the PostgreSQL container
+python manage.py migrate
+python manage.py createsuperuser
+python manage.py runserver
+# opens a browser tab that connects to your back-end dev server
+open http://localhost:8000
+```
 
 ## Developer Setup
 
