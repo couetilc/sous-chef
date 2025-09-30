@@ -10,7 +10,7 @@ import requests
 from bs4 import BeautifulSoup
 
 # URL you want to scrape
-url = "https://news.ycombinator.com"
+url = "https://www.epicurious.com/recipes-menus/30-minute-meals-gallery"
 
 # Send HTTP request
 response = requests.get(url)
