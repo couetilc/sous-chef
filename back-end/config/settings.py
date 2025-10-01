@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+from os import environ as env
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -81,11 +82,11 @@ WSGI_APPLICATION = 'config.wsgi.application'
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": "api",
-        "USER": "dbuser",
-        "PASSWORD": "dbpass",
-        "HOST": "localhost",
-        "PORT": "5432",
+        "NAME": env.get("DJANGO_DB_NAME", "api"),
+        "USER": env.get("DJANGO_DB_USER", "dbuser"),
+        "PASSWORD": env.get("DJANGO_DB_PASSWORD", "dbpass"),
+        "HOST": env.get("DJANGO_DB_HOST", "0.0.0.0"),
+        "PORT": env.get("DJANGO_DB_PORT", "5432"),
     }
 }
 
