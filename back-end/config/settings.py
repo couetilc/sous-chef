@@ -144,7 +144,9 @@ OAUTH2_PROVIDER = {
     # Token expiration times
     'ACCESS_TOKEN_EXPIRE_SECONDS': 36000,  # 10 hours
     'REFRESH_TOKEN_EXPIRE_SECONDS': 86400,  # 24 hours
-    # Allow implicit grant for SPA
+    'AUTHORIZATION_CODE_EXPIRE_SECONDS': 600,  # 10 minutes
+    # PKCE settings - require PKCE for public clients (SPAs)
+    'PKCE_REQUIRED': True,
     'ALLOWED_REDIRECT_URI_SCHEMES': ['http', 'https'],
 }
 

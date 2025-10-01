@@ -1,11 +1,13 @@
 """
-Tests for OAuth2 Implicit Flow used by the React SPA.
+Tests for OAuth2 Authorization Code + PKCE Flow used by the React SPA.
 
 This test suite covers the complete authentication flow for the front-end:
-1. SPA redirects user to authorization endpoint
-2. User logs in and authorizes the application
-3. OAuth2 redirects back to SPA with access token in URL fragment
-4. SPA uses access token to make authenticated API requests
+1. SPA generates PKCE code_verifier and code_challenge
+2. SPA redirects user to authorization endpoint with code_challenge
+3. User logs in and authorizes the application
+4. OAuth2 redirects back to SPA with authorization code in query params
+5. SPA exchanges code + code_verifier for access token at token endpoint
+6. SPA uses access token to make authenticated API requests
 """
 import pytest
 from django.contrib.auth.models import User, Group
@@ -17,18 +19,39 @@ from rest_framework import status
 from rest_framework.test import APIClient
 from urllib.parse import urlparse, parse_qs, urlsplit
 import re
+import secrets
+import hashlib
+import base64
+
+
+def generate_pkce_pair():
+    """
+    Generate PKCE code_verifier and code_challenge pair.
+
+    Returns:
+        tuple: (code_verifier, code_challenge)
+    """
+    # Generate random code_verifier (43-128 characters)
+    code_verifier = base64.urlsafe_b64encode(secrets.token_bytes(32)).decode('utf-8').rstrip('=')
+
+    # Generate code_challenge using S256 (SHA256)
+    code_challenge = base64.urlsafe_b64encode(
+        hashlib.sha256(code_verifier.encode('utf-8')).digest()
+    ).decode('utf-8').rstrip('=')
+
+    return code_verifier, code_challenge
 
 
 @pytest.fixture
 def spa_oauth_application(db, test_user):
     """
-    Creates an OAuth2 application configured for implicit grant (SPA).
+    Creates an OAuth2 application configured for Authorization Code + PKCE (SPA).
     """
     return Application.objects.create(
         name='Sous Chef SPA',
         user=test_user,
         client_type=Application.CLIENT_PUBLIC,  # SPAs are public clients
-        authorization_grant_type=Application.GRANT_IMPLICIT,
+        authorization_grant_type=Application.GRANT_AUTHORIZATION_CODE,
         redirect_uris='http://localhost:5173/auth/callback\nhttp://localhost:5173/',
         client_id='spa-client-id-12345',
         skip_authorization=False,  # Require user authorization
@@ -38,7 +61,7 @@ def spa_oauth_application(db, test_user):
 @pytest.mark.django_db
 @pytest.mark.integration
 class TestSPAAuthorizationFlow:
-    """Test the OAuth2 authorization endpoint for SPA implicit flow.
+    """Test the OAuth2 authorization endpoint for SPA Authorization Code + PKCE flow.
 
     Note: OAuth2 authorization uses Django sessions, not REST tokens,
     so we use Django's test client and force_login() instead of APIClient.
@@ -56,12 +79,16 @@ class TestSPAAuthorizationFlow:
 
     def test_authorization_requires_authentication(self, client, spa_oauth_application):
         """Test that unauthenticated users are redirected to login."""
+        code_verifier, code_challenge = generate_pkce_pair()
+
         url = reverse('oauth2_provider:authorize')
         params = {
             'client_id': spa_oauth_application.client_id,
-            'response_type': 'token',
+            'response_type': 'code',
             'redirect_uri': 'http://localhost:5173/auth/callback',
             'scope': 'read write',
+            'code_challenge': code_challenge,
+            'code_challenge_method': 'S256',
         }
         response = client.get(url, params)
 
@@ -71,18 +98,21 @@ class TestSPAAuthorizationFlow:
 
     def test_authorization_shows_approval_form(self, client, test_user, spa_oauth_application):
         """Test that authenticated user sees authorization approval form."""
+        code_verifier, code_challenge = generate_pkce_pair()
         client.force_login(test_user)
 
         url = reverse('oauth2_provider:authorize')
         params = {
             'client_id': spa_oauth_application.client_id,
-            'response_type': 'token',
+            'response_type': 'code',
             'redirect_uri': 'http://localhost:5173/auth/callback',
             'scope': 'read write',
+            'code_challenge': code_challenge,
+            'code_challenge_method': 'S256',
         }
         response = client.get(url, params)
 
-        # Should show authorization form (200) or skip to token if skip_authorization=True (302)
+        # Should show authorization form (200) or skip to code if skip_authorization=True (302)
         assert response.status_code in [status.HTTP_200_OK, status.HTTP_302_FOUND]
 
         if response.status_code == status.HTTP_200_OK:
@@ -90,38 +120,58 @@ class TestSPAAuthorizationFlow:
             content = response.content.decode()
             assert 'Sous Chef SPA' in content or spa_oauth_application.name in content
 
-    def test_user_approves_authorization_gets_token(self, client, test_user, spa_oauth_application):
-        """Test the complete flow: user approves and receives token in URL fragment."""
+    def test_user_approves_authorization_gets_code(self, client, test_user, spa_oauth_application):
+        """Test the complete flow: user approves and receives authorization code."""
+        code_verifier, code_challenge = generate_pkce_pair()
         client.force_login(test_user)
 
         url = reverse('oauth2_provider:authorize')
         data = {
             'client_id': spa_oauth_application.client_id,
-            'response_type': 'token',
+            'response_type': 'code',
             'redirect_uri': 'http://localhost:5173/auth/callback',
             'scope': 'read write',
+            'code_challenge': code_challenge,
+            'code_challenge_method': 'S256',
             'allow': 'Authorize',
         }
         response = client.post(url, data)
 
-        # Should redirect to callback with token in fragment
+        # Should redirect to callback with code in query params
         assert response.status_code == status.HTTP_302_FOUND
-        assert response.url.startswith('http://localhost:5173/auth/callback#')
+        assert response.url.startswith('http://localhost:5173/auth/callback?')
 
-        # Parse fragment and verify token structure
-        fragment = response.url.split('#')[1]
-        assert 'access_token=' in fragment
-        assert 'token_type=Bearer' in fragment
-        assert 'expires_in=' in fragment
-        assert 'scope=' in fragment
+        # Parse query params and verify code structure
+        parsed_url = urlparse(response.url)
+        query_params = parse_qs(parsed_url.query)
 
-        # Extract and verify the token was created in database
-        token_match = re.search(r'access_token=([^&]+)', fragment)
-        assert token_match is not None
-        token_value = token_match.group(1)
+        assert 'code' in query_params
+        authorization_code = query_params['code'][0]
+        assert len(authorization_code) > 0
+
+        # Now exchange code for token at token endpoint
+        token_url = reverse('oauth2_provider:token')
+        token_data = {
+            'grant_type': 'authorization_code',
+            'code': authorization_code,
+            'redirect_uri': 'http://localhost:5173/auth/callback',
+            'client_id': spa_oauth_application.client_id,
+            'code_verifier': code_verifier,
+        }
+        token_response = client.post(token_url, token_data)
+
+        # Should receive access token
+        assert token_response.status_code == status.HTTP_200_OK
+        token_json = token_response.json()
+
+        assert 'access_token' in token_json
+        assert 'token_type' in token_json
+        assert token_json['token_type'] == 'Bearer'
+        assert 'expires_in' in token_json
+        assert 'scope' in token_json
 
         # Verify token exists in database
-        token = AccessToken.objects.get(token=token_value)
+        token = AccessToken.objects.get(token=token_json['access_token'])
         assert token.user == test_user
         assert token.application == spa_oauth_application
         assert 'read' in token.scope
@@ -129,14 +179,17 @@ class TestSPAAuthorizationFlow:
 
     def test_user_denies_authorization_gets_error(self, client, test_user, spa_oauth_application):
         """Test that user denial redirects with error."""
+        code_verifier, code_challenge = generate_pkce_pair()
         client.force_login(test_user)
 
         url = reverse('oauth2_provider:authorize')
         data = {
             'client_id': spa_oauth_application.client_id,
-            'response_type': 'token',
+            'response_type': 'code',
             'redirect_uri': 'http://localhost:5173/auth/callback',
             'scope': 'read write',
+            'code_challenge': code_challenge,
+            'code_challenge_method': 'S256',
             'cancel': 'Cancel',
         }
         response = client.post(url, data)
@@ -147,14 +200,17 @@ class TestSPAAuthorizationFlow:
 
     def test_invalid_redirect_uri_rejected(self, client, test_user, spa_oauth_application):
         """Test that unauthorized redirect URIs are rejected (prevents open redirect)."""
+        code_verifier, code_challenge = generate_pkce_pair()
         client.force_login(test_user)
 
         url = reverse('oauth2_provider:authorize')
         params = {
             'client_id': spa_oauth_application.client_id,
-            'response_type': 'token',
+            'response_type': 'code',
             'redirect_uri': 'http://evil-site.com/steal-tokens',
             'scope': 'read write',
+            'code_challenge': code_challenge,
+            'code_challenge_method': 'S256',
         }
         response = client.get(url, params)
 
@@ -163,14 +219,17 @@ class TestSPAAuthorizationFlow:
 
     def test_invalid_client_id_rejected(self, client, test_user):
         """Test that invalid client IDs are rejected."""
+        code_verifier, code_challenge = generate_pkce_pair()
         client.force_login(test_user)
 
         url = reverse('oauth2_provider:authorize')
         params = {
             'client_id': 'non-existent-client-id',
-            'response_type': 'token',
+            'response_type': 'code',
             'redirect_uri': 'http://localhost:5173/auth/callback',
             'scope': 'read write',
+            'code_challenge': code_challenge,
+            'code_challenge_method': 'S256',
         }
         response = client.get(url, params)
 
@@ -179,6 +238,7 @@ class TestSPAAuthorizationFlow:
 
     def test_missing_required_parameters_rejected(self, client, test_user, spa_oauth_application):
         """Test that missing required OAuth2 parameters are rejected."""
+        code_verifier, code_challenge = generate_pkce_pair()
         client.force_login(test_user)
 
         url = reverse('oauth2_provider:authorize')
@@ -187,6 +247,8 @@ class TestSPAAuthorizationFlow:
         response = client.get(url, {
             'client_id': spa_oauth_application.client_id,
             'redirect_uri': 'http://localhost:5173/auth/callback',
+            'code_challenge': code_challenge,
+            'code_challenge_method': 'S256',
         })
         assert response.status_code in [status.HTTP_400_BAD_REQUEST, status.HTTP_302_FOUND]
         if response.status_code == status.HTTP_302_FOUND:
@@ -194,61 +256,96 @@ class TestSPAAuthorizationFlow:
 
         # Missing client_id
         response = client.get(url, {
-            'response_type': 'token',
+            'response_type': 'code',
             'redirect_uri': 'http://localhost:5173/auth/callback',
+            'code_challenge': code_challenge,
+            'code_challenge_method': 'S256',
         })
         assert response.status_code in [status.HTTP_400_BAD_REQUEST, status.HTTP_302_FOUND]
 
     def test_scope_parameter_in_token(self, client, test_user, spa_oauth_application):
         """Test that requested scopes appear in the issued token."""
+        code_verifier, code_challenge = generate_pkce_pair()
         client.force_login(test_user)
 
+        # Step 1: Get authorization code
         url = reverse('oauth2_provider:authorize')
         data = {
             'client_id': spa_oauth_application.client_id,
-            'response_type': 'token',
+            'response_type': 'code',
             'redirect_uri': 'http://localhost:5173/auth/callback',
             'scope': 'read groups',
+            'code_challenge': code_challenge,
+            'code_challenge_method': 'S256',
             'allow': 'Authorize',
         }
         response = client.post(url, data)
 
         assert response.status_code == status.HTTP_302_FOUND
-        fragment = response.url.split('#')[1]
+        parsed_url = urlparse(response.url)
+        query_params = parse_qs(parsed_url.query)
+        authorization_code = query_params['code'][0]
 
-        # Verify scope in URL fragment
-        scope_match = re.search(r'scope=([^&]+)', fragment)
-        assert scope_match is not None
-        scope_value = scope_match.group(1).replace('+', ' ')
-        assert 'read' in scope_value
-        assert 'groups' in scope_value
+        # Step 2: Exchange code for token
+        token_url = reverse('oauth2_provider:token')
+        token_data = {
+            'grant_type': 'authorization_code',
+            'code': authorization_code,
+            'redirect_uri': 'http://localhost:5173/auth/callback',
+            'client_id': spa_oauth_application.client_id,
+            'code_verifier': code_verifier,
+        }
+        token_response = client.post(token_url, token_data)
+        assert token_response.status_code == status.HTTP_200_OK
+        token_json = token_response.json()
+
+        # Verify scope in token response
+        assert 'scope' in token_json
+        assert 'read' in token_json['scope']
+        assert 'groups' in token_json['scope']
 
         # Verify scope in database token
-        token_match = re.search(r'access_token=([^&]+)', fragment)
-        token = AccessToken.objects.get(token=token_match.group(1))
+        token = AccessToken.objects.get(token=token_json['access_token'])
         assert 'read' in token.scope
         assert 'groups' in token.scope
 
     def test_token_from_authorization_works_immediately(self, client, test_user, spa_oauth_application):
         """Test that token received from authorization flow can immediately access API."""
-        # Step 1: Get token through authorization flow
+        code_verifier, code_challenge = generate_pkce_pair()
+
+        # Step 1: Get authorization code
         client.force_login(test_user)
         url = reverse('oauth2_provider:authorize')
         data = {
             'client_id': spa_oauth_application.client_id,
-            'response_type': 'token',
+            'response_type': 'code',
             'redirect_uri': 'http://localhost:5173/auth/callback',
             'scope': 'read write',
+            'code_challenge': code_challenge,
+            'code_challenge_method': 'S256',
             'allow': 'Authorize',
         }
         response = client.post(url, data)
 
-        # Extract token
-        fragment = response.url.split('#')[1]
-        token_match = re.search(r'access_token=([^&]+)', fragment)
-        token_value = token_match.group(1)
+        # Extract authorization code
+        parsed_url = urlparse(response.url)
+        query_params = parse_qs(parsed_url.query)
+        authorization_code = query_params['code'][0]
 
-        # Step 2: Use that token to access protected API
+        # Step 2: Exchange code for token
+        token_url = reverse('oauth2_provider:token')
+        token_data = {
+            'grant_type': 'authorization_code',
+            'code': authorization_code,
+            'redirect_uri': 'http://localhost:5173/auth/callback',
+            'client_id': spa_oauth_application.client_id,
+            'code_verifier': code_verifier,
+        }
+        token_response = client.post(token_url, token_data)
+        token_json = token_response.json()
+        token_value = token_json['access_token']
+
+        # Step 3: Use that token to access protected API
         api_client = APIClient()
         api_client.credentials(HTTP_AUTHORIZATION=f'Bearer {token_value}')
         response = api_client.get('/api/users/')
