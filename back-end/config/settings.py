@@ -134,13 +134,18 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 REST_FRAMEWORK = {
 'DEFAULT_RENDERER_CLASSES': ['rest_framework.renderers.JSONRenderer'],
-'DEFAULT_AUTHENTICATION_CLASSES': ('oauth2_provider.contrib.rest_framework.OAuth2Authentication'),
-'DEFAULT_PERMISSION_CLASSES': ('rest_framework.permissions.IsAuthenticated'),
+'DEFAULT_AUTHENTICATION_CLASSES': ['oauth2_provider.contrib.rest_framework.OAuth2Authentication'],
+'DEFAULT_PERMISSION_CLASSES': ['rest_framework.permissions.IsAuthenticated'],
 }
 
 OAUTH2_PROVIDER = {
     # this is the list of available scopes
-    'SCOPES': {'read': 'Read scope', 'write': 'Write scope', 'groups': 'Access to your groups'}
+    'SCOPES': {'read': 'Read scope', 'write': 'Write scope', 'groups': 'Access to your groups'},
+    # Token expiration times
+    'ACCESS_TOKEN_EXPIRE_SECONDS': 36000,  # 10 hours
+    'REFRESH_TOKEN_EXPIRE_SECONDS': 86400,  # 24 hours
+    # Allow implicit grant for SPA
+    'ALLOWED_REDIRECT_URI_SCHEMES': ['http', 'https'],
 }
 
 LOGIN_URL = '/admin/login'
