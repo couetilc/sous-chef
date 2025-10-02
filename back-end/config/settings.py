@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+from os import environ as env
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -39,6 +40,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'oauth2_provider',
     'rest_framework',
     'corsheaders',
     'api',
@@ -81,11 +83,11 @@ WSGI_APPLICATION = 'config.wsgi.application'
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": "api",
-        "USER": "dbuser",
-        "PASSWORD": "dbpass",
-        "HOST": "localhost",
-        "PORT": "5432",
+        "NAME": env.get("DJANGO_DB_NAME", "api"),
+        "USER": env.get("DJANGO_DB_USER", "dbuser"),
+        "PASSWORD": env.get("DJANGO_DB_PASSWORD", "dbpass"),
+        "HOST": env.get("DJANGO_DB_HOST", "0.0.0.0"),
+        "PORT": env.get("DJANGO_DB_PORT", "5432"),
     }
 }
 
@@ -133,4 +135,20 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 REST_FRAMEWORK = {
 'DEFAULT_RENDERER_CLASSES': ['rest_framework.renderers.JSONRenderer'],
+'DEFAULT_AUTHENTICATION_CLASSES': ['oauth2_provider.contrib.rest_framework.OAuth2Authentication'],
+'DEFAULT_PERMISSION_CLASSES': ['rest_framework.permissions.IsAuthenticated'],
 }
+
+OAUTH2_PROVIDER = {
+    # this is the list of available scopes
+    'SCOPES': {'read': 'Read scope', 'write': 'Write scope', 'groups': 'Access to your groups'},
+    # Token expiration times
+    'ACCESS_TOKEN_EXPIRE_SECONDS': 36000,  # 10 hours
+    'REFRESH_TOKEN_EXPIRE_SECONDS': 86400,  # 24 hours
+    'AUTHORIZATION_CODE_EXPIRE_SECONDS': 600,  # 10 minutes
+    # PKCE settings - require PKCE for public clients (SPAs)
+    'PKCE_REQUIRED': True,
+    'ALLOWED_REDIRECT_URI_SCHEMES': ['http', 'https'],
+}
+
+LOGIN_URL = '/admin/login'
