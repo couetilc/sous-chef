@@ -67,3 +67,25 @@ while the configuration for our Django server will primarily be in
 `sous-chef/back-end/config/`. Remember to activate/deactivate your virtual
 environment when you start/stop working, and to start/stop the PostgreSQL
 container as well.
+
+
+### Connect to Postgres
+
+```sh
+# run to view container_id
+docker ps
+
+# run with corresponding postgres container_id
+docker exec -it <container_id> bash
+
+# log into postgres
+psql -h localhost -p 5432 -U dbuser -d api
+
+# view tables in terminal
+\d
+```
+
+# GUI
+Install VSCode Extension "Database Client"
+
+Login to postgres using username and password
