@@ -1,0 +1,3 @@
+# Git-crypt encrypted files
+# These files will be automatically encrypted when committed
+terraform/terraform.tfvars filter=git-crypt diff=git-crypt

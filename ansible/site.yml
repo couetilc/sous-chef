@@ -1,0 +1,10 @@
+---
+# Site playbook - Complete setup (provision + deploy)
+# Run this for a complete installation from scratch
+# Usage: ansible-playbook site.yml
+
+- name: Complete Sous Chef Setup
+  import_playbook: provision.yml
+
+- name: Deploy Application
+  import_playbook: deploy.yml

@@ -1,0 +1,43 @@
+---
+# Deploy playbook - Deploy/update the application
+# Run this to deploy or update the Sous Chef application
+# Usage: ansible-playbook deploy.yml
+
+- name: Deploy Sous Chef Application
+  hosts: production
+  gather_facts: yes
+
+  vars_prompt:
+    - name: git_repo_url
+      prompt: "Git repository URL (leave empty to skip clone)"
+      private: no
+      default: ""
+
+    - name: git_branch
+      prompt: "Git branch to deploy"
+      private: no
+      default: "main"
+
+  roles:
+    - role: application
+      tags: [app, deploy]
+
+  post_tasks:
+    - name: Wait for backend to be healthy
+      uri:
+        url: "http://localhost/health"
+        status_code: 200
+      register: result
+      until: result.status == 200
+      retries: 30
+      delay: 10
+      tags: [healthcheck]
+
+    - name: Display deployment information
+      debug:
+        msg:
+          - "Deployment completed successfully!"
+          - "Application URL: http://{{ ansible_host }}"
+          - "API Health: http://{{ ansible_host }}/health"
+          - "Django Admin: http://{{ ansible_host }}/admin/"
+      tags: [info]

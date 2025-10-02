@@ -1,0 +1,139 @@
+---
+- name: Create application directory
+  file:
+    path: "{{ app_dir }}"
+    state: directory
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: '0755'
+  become: yes
+
+- name: Install git and build tools
+  apt:
+    name:
+      - git
+      - build-essential
+    state: present
+  become: yes
+
+- name: Install Node.js 24.x
+  block:
+    - name: Download Node.js setup script
+      get_url:
+        url: https://deb.nodesource.com/setup_24.x
+        dest: /tmp/nodesource_setup.sh
+        mode: '0755'
+
+    - name: Run Node.js setup script
+      command: bash /tmp/nodesource_setup.sh
+      become: yes
+
+    - name: Install Node.js
+      apt:
+        name: nodejs
+        state: present
+        update_cache: yes
+      become: yes
+  become: yes
+
+- name: Enable corepack for pnpm
+  command: corepack enable
+  become: yes
+  changed_when: false
+
+- name: Clone or update application repository
+  git:
+    repo: "{{ git_repo_url }}"
+    dest: "{{ app_dir }}"
+    version: "{{ git_branch | default('main') }}"
+    force: yes
+  become: yes
+  become_user: "{{ app_user }}"
+  when: git_repo_url is defined
+
+- name: Retrieve database credentials from Secrets Manager
+  shell: |
+    aws secretsmanager get-secret-value \
+      --secret-id "{{ db_secret_name }}" \
+      --region "{{ aws_region }}" \
+      --query SecretString \
+      --output text
+  register: db_credentials_json
+  changed_when: false
+  when: use_aws_secrets | default(true)
+
+- name: Retrieve Django secret key from Secrets Manager
+  shell: |
+    aws secretsmanager get-secret-value \
+      --secret-id "{{ django_secret_name }}" \
+      --region "{{ aws_region }}" \
+      --query SecretString \
+      --output text
+  register: django_secret_json
+  changed_when: false
+  when: use_aws_secrets | default(true)
+
+- name: Parse secrets
+  set_fact:
+    db_credentials: "{{ db_credentials_json.stdout | from_json }}"
+    django_secret: "{{ django_secret_json.stdout | from_json }}"
+  when: use_aws_secrets | default(true)
+
+- name: Create .env file for application
+  template:
+    src: env.j2
+    dest: "{{ app_dir }}/.env"
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: '0600'
+  become: yes
+
+- name: Create production docker-compose override
+  template:
+    src: docker-compose.prod.yml.j2
+    dest: "{{ app_dir }}/docker-compose.prod.yml"
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: '0644'
+  become: yes
+
+- name: Create production nginx configuration
+  template:
+    src: nginx.conf.j2
+    dest: "{{ app_dir }}/nginx/nginx.conf"
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: '0644'
+  become: yes
+
+- name: Install frontend dependencies
+  command: pnpm install
+  args:
+    chdir: "{{ app_dir }}/front-end"
+  become: yes
+  become_user: "{{ app_user }}"
+
+- name: Build frontend static files
+  command: pnpm build
+  args:
+    chdir: "{{ app_dir }}/front-end"
+  become: yes
+  become_user: "{{ app_user }}"
+
+- name: Create systemd service for application
+  template:
+    src: sous-chef.service.j2
+    dest: /etc/systemd/system/sous-chef.service
+    owner: root
+    group: root
+    mode: '0644'
+  become: yes
+  notify: Reload systemd
+
+- name: Enable and start application service
+  systemd:
+    name: sous-chef
+    enabled: yes
+    state: started
+    daemon_reload: yes
+  become: yes

@@ -1,0 +1,61 @@
+---
+# Update playbook - Quick application update without full provisioning
+# Use this for fast updates when only code changes
+# Usage: ansible-playbook update.yml
+
+- name: Update Sous Chef Application
+  hosts: production
+  gather_facts: no
+
+  tasks:
+    - name: Pull latest code
+      git:
+        repo: "{{ git_repo_url }}"
+        dest: "{{ app_dir }}"
+        version: "{{ git_branch | default('main') }}"
+        force: yes
+      become: yes
+      become_user: "{{ app_user }}"
+      when: git_repo_url is defined
+
+    - name: Rebuild frontend
+      block:
+        - name: Install frontend dependencies
+          command: pnpm install
+          args:
+            chdir: "{{ app_dir }}/front-end"
+          become: yes
+          become_user: "{{ app_user }}"
+
+        - name: Build frontend static files
+          command: pnpm build
+          args:
+            chdir: "{{ app_dir }}/front-end"
+          become: yes
+          become_user: "{{ app_user }}"
+      tags: [frontend]
+
+    - name: Rebuild and restart containers
+      command: docker compose -f compose.yml -f docker-compose.prod.yml up -d --build
+      args:
+        chdir: "{{ app_dir }}"
+      become: yes
+      become_user: "{{ app_user }}"
+
+    - name: Wait for services to be ready
+      pause:
+        seconds: 10
+
+    - name: Check application health
+      uri:
+        url: "http://localhost/health"
+        status_code: 200
+      register: result
+      until: result.status == 200
+      retries: 10
+      delay: 5
+      ignore_errors: yes
+
+    - name: Display update status
+      debug:
+        msg: "Application updated and restarted successfully!"

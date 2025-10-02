@@ -1,0 +1,31 @@
+---
+all:
+  children:
+    production:
+      hosts:
+        sous-chef-server:
+          ansible_host: "{{ lookup('env', 'TF_OUTPUT_INSTANCE_IP') | default('INSTANCE_IP_HERE') }}"
+          ansible_user: ubuntu
+          ansible_ssh_private_key_file: "~/.ssh/{{ ssh_key_name }}.pem"
+          ansible_python_interpreter: /usr/bin/python3
+
+  vars:
+    # Project configuration
+    project_name: sous-chef
+    environment: production
+
+    # Application settings
+    app_dir: /opt/sous-chef
+    app_user: ubuntu
+
+    # AWS configuration
+    aws_region: us-east-2
+    ssh_key_name: "{{ lookup('env', 'SSH_KEY_NAME') | default('your-key-name') }}"
+
+    # Database configuration (from RDS)
+    db_secret_name: "{{ project_name }}/{{ environment }}/db-credentials"
+    django_secret_name: "{{ project_name }}/{{ environment }}/django-secret-key"
+
+    # Nginx configuration
+    nginx_port: 80
+    nginx_ssl_port: 443

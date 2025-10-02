@@ -1,0 +1,28 @@
+[Unit]
+Description=Sous Chef Application
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory={{ app_dir }}
+User={{ app_user }}
+Group={{ app_user }}
+
+# Load environment variables
+EnvironmentFile={{ app_dir }}/.env
+
+# Start the application
+ExecStart=/usr/bin/docker compose -f compose.yml -f docker-compose.prod.yml up -d --build
+
+# Stop the application
+ExecStop=/usr/bin/docker compose -f compose.yml -f docker-compose.prod.yml down
+
+# Restart policy
+Restart=on-failure
+RestartSec=10s
+
+[Install]
+WantedBy=multi-user.target

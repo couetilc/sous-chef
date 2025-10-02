@@ -1,0 +1,43 @@
+---
+# Production override for docker-compose
+# This file removes the local database and frontend dev server
+# Frontend is built as static files and served by nginx
+services:
+  # Remove local database - using AWS RDS instead
+  db:
+    profiles:
+      - disabled
+
+  backend:
+    build:
+      context: ./back-end
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      DJANGO_DB_NAME: ${DJANGO_DB_NAME}
+      DJANGO_DB_USER: ${DJANGO_DB_USER}
+      DJANGO_DB_PASSWORD: ${DJANGO_DB_PASSWORD}
+      DJANGO_DB_HOST: ${DJANGO_DB_HOST}
+      DJANGO_DB_PORT: ${DJANGO_DB_PORT}
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}
+      DJANGO_DEBUG: ${DJANGO_DEBUG}
+      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS}
+      DJANGO_SERVER_IP: ${DJANGO_SERVER_IP}
+      DJANGO_SERVER_PORT: ${DJANGO_SERVER_PORT}
+    depends_on: []
+    volumes:
+      - ./back-end:/app:ro
+
+  # Frontend dev server disabled - using static build
+  frontend:
+    profiles:
+      - disabled
+
+  nginx:
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./front-end/dist:/usr/share/nginx/html:ro

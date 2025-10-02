@@ -1,0 +1,25 @@
+---
+# Global variables for all hosts
+
+# Project configuration
+project_name: sous-chef
+environment: production
+
+# Application settings
+app_dir: /opt/sous-chef
+app_user: ubuntu
+
+# AWS configuration
+aws_region: us-east-2
+
+# Database configuration
+db_secret_name: "{{ project_name }}/{{ environment }}/db-credentials"
+django_secret_name: "{{ project_name }}/{{ environment }}/django-secret-key"
+use_aws_secrets: true
+
+# Django settings
+allowed_hosts: "*"
+django_debug: "False"
+
+# Domain configuration (optional)
+# domain_name: "sous-chef.example.com"

@@ -1,0 +1,28 @@
+# AWS Configuration
+aws_region = "us-east-2"
+
+# Project Configuration
+project_name = "sous-chef"
+environment  = "production"
+
+# EC2 Instance Configuration
+instance_type     = "t2.micro"  # Free tier eligible
+root_volume_size  = 30          # GB
+ssh_key_name      = "your-ssh-key-name"  # REQUIRED: Name of your AWS key pair
+
+# Security Configuration
+# IMPORTANT: Replace with your actual IP address for SSH access
+# Get your IP: curl -s https://checkip.amazonaws.com
+allowed_ssh_cidr = ["YOUR.IP.ADDRESS.HERE/32"]
+
+# RDS Configuration
+rds_instance_class = "db.t2.micro"  # Free tier eligible
+
+# Optional: Domain Configuration
+# domain_name = "sous-chef.example.com"  # Uncomment and set if using custom domain
+
+# Optional: Additional Tags
+# tags = {
+#   Owner = "YourName"
+#   CostCenter = "Engineering"
+# }
