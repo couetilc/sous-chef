@@ -284,7 +284,7 @@ def main(argv):
 
   # Load + filter recipe URLs from sitemaps
   recipe_urls = load_recipe_urls_from_sitemaps(paths)
-  recipe_urls = recipe_urls[:50]
+  # recipe_urls = recipe_urls[:50]
   if not recipe_urls:
     print("No recipe URLs found in provided sitemaps (with 6-digit ID filter).")
     return
