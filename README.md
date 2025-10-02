@@ -81,6 +81,11 @@ docker exec -it <container_id> bash
 # log into postgres
 psql -h localhost -p 5432 -U dbuser -d api
 
-# view tables
+# view tables in terminal
 \d
 ```
+
+# GUI
+Install VSCode Extension "Database Client"
+
+Login to postgres using username and password
