@@ -69,7 +69,9 @@ environment when you start/stop working, and to start/stop the PostgreSQL
 container as well.
 
 
-### Connect to Postgres
+### Postgres Database
+
+The postgres database can be accessed via docker. Run these commands to access the database tables.
 
 ```sh
 # run to view container_id
@@ -85,7 +87,7 @@ psql -h localhost -p 5432 -U dbuser -d api
 \d
 ```
 
-# GUI
+#### Database GUI
 Install VSCode Extension "Database Client"
 
 Login to postgres using username and password
