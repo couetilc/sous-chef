@@ -1,8 +1,8 @@
-import './style.css'
-import { createRoot } from 'react-dom/client'
-import SousChefLogo from './souschef-logo.png';
+import "./style.css";
+import { createRoot } from "react-dom/client";
+import SousChefLogo from "./souschef-logo.png";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router";
-import Login from './login.jsx';
+import Login from "./login.jsx";
 
 export default function App(props) {
   return (
@@ -17,10 +17,8 @@ export default function App(props) {
         <Route path="/" element={<Navigate to="/login" />} />
       </Routes>
     </BrowserRouter>
-  )
+  );
 }
 
-const root = createRoot(document.getElementById('root'))
-root.render(
-    <App />
-)
+const root = createRoot(document.getElementById("root"));
+root.render(<App />);

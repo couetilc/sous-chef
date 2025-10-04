@@ -2,7 +2,6 @@ from django.urls import path, include
 from django.contrib import admin
 from . import views
 from oauth2_provider import urls as oauth2_urls
-from oauth2_provider.contrib.rest_framework import TokenHasReadWriteScope, TokenHasScope
 
 urlpatterns = [
     path('', views.index, name="index"),
