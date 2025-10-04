@@ -40,6 +40,9 @@
         "python.analysis.autoImportCompletions": true,
         "python.analysis.diagnosticMode": "workspace",
 
+        // Mypy settings
+        "mypy-type-checker.args": ["--config-file=/workspace/back-end/mypy.ini"],
+
         // JavaScript/React settings
         "editor.defaultFormatter": "esbenp.prettier-vscode",
         "editor.formatOnSave": true,
