@@ -61,6 +61,29 @@ services:
       - backend
       - frontend
 
+  devcontainer:
+    hostname: devcontainer
+    build:
+      context: .
+      dockerfile: .devcontainer/Dockerfile
+    volumes:
+      # Mount entire workspace for editing
+      - .:/workspace:cached
+      # Use named volumes for dependencies (performance optimization)
+      - pip-cache:/root/.cache/pip
+      - pnpm-store:/root/.local/share/pnpm/store
+    command: sleep infinity
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # Make services discoverable
+      DATABASE_URL: "postgresql://dbuser:dbpass@db:5432/api"
+      BACKEND_URL: "http://backend:8000"
+      FRONTEND_URL: "http://frontend:5173"
+
 volumes:
   pgdata:
   node_modules:
+  pip-cache:
+  pnpm-store:
