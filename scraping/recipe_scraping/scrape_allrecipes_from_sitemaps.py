@@ -320,7 +320,7 @@ def main(argv):
     }
     rows.append(row)
 
-    if idx % 25 == 0:
+    if idx % 100 == 0:
       print(f"...processed {idx} recipes")
 
   if rows:
