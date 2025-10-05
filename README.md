@@ -87,6 +87,13 @@ psql -h localhost -p 5432 -U dbuser -d api
 \d
 ```
 
+Run load_data.py
+```sh
+chmod +x scraping/load_data.py
+
+./scraping/load_data.py
+```
+
 #### Database GUI
 Install VSCode Extension "Database Client"
 
