@@ -4,13 +4,12 @@ import SousChefLogo from './souschef-logo.png';
 import PasswordComponent from './settingsPassword';
 import DeleteComponent from './settingsDeleteAccount';
 import DietComponent from './settingsDietPreference';
+import SettingsPage from './settingsPage';
 
 export default function App(props) {
   return (
-    <div className='settingsGrid'>
-      <PasswordComponent />
-      <DeleteComponent />
-      <DietComponent />
+    <div>
+      <SettingsPage />
     </div>
   );
 }
