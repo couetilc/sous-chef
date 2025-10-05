@@ -81,6 +81,5 @@ export default function Login(props) {
         </button>
         </div>
     </div>
-  )
+  );
 }
-

@@ -1,0 +1,93 @@
+{
+  "name": "Sous Chef Dev Environment",
+
+  // Use docker-compose to orchestrate services
+  "dockerComposeFile": "../compose.yml",
+  "service": "devcontainer",
+  "workspaceFolder": "/workspace",
+
+  // Shutdown all services when VSCode closes
+  "shutdownAction": "stopCompose",
+
+  // VSCode customizations
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        // Python development
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-python.mypy-type-checker",
+
+        // JavaScript/React development
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+
+        // Database tools
+        "mtxr.sqltools",
+        "mtxr.sqltools-driver-pg",
+
+        // Docker
+        "ms-azuretools.vscode-docker",
+
+        // General utilities
+        "editorconfig.editorconfig"
+      ],
+
+      "settings": {
+        // Python settings
+        "python.defaultInterpreterPath": "/usr/local/bin/python3",
+        "python.analysis.typeCheckingMode": "basic",
+        "python.analysis.autoImportCompletions": true,
+        "python.analysis.diagnosticMode": "workspace",
+
+        // Mypy settings
+        "mypy-type-checker.args": ["--config-file=/workspace/back-end/mypy.ini"],
+
+        // JavaScript/React settings
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+          "source.fixAll.eslint": "explicit"
+        },
+        "eslint.workingDirectories": ["front-end"],
+
+        // File associations
+        "[python]": {
+          "editor.defaultFormatter": "ms-python.black-formatter",
+          "editor.formatOnSave": true
+        },
+        "[javascript]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "[javascriptreact]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+
+        // Terminal
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
+    }
+  },
+
+  // Ports are already exposed by docker-compose, no need to forward from devcontainer
+
+  // Run after container is created
+  "postCreateCommand": "echo 'Installing dependencies...' && cd /workspace/back-end && pip install -r requirements.txt && cd /workspace/front-end && pnpm install && echo 'Dev environment ready!'",
+
+  // Features to add (alternative to custom Dockerfile additions)
+  "features": {
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "installZsh": false,
+      "installOhMyZsh": false
+    }
+  },
+
+  // Increase shared memory for browser-based testing if needed
+  "runArgs": ["--shm-size=2gb"],
+
+  // Environment variables accessible in the dev container
+  "remoteEnv": {
+    "DJANGO_SETTINGS_MODULE": "backend.settings",
+    "DATABASE_URL": "postgresql://dbuser:dbpass@db:5432/api"
+  }
+}
