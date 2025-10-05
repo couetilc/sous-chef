@@ -5,7 +5,7 @@ import PasswordComponent from './settingsPassword';
 import DeleteComponent from './settingsDeleteAccount';
 import DietComponent from './settingsDietPreference';
 
-const SettingsPage = () => {
+const SettingsPage = (props) => {
     return (
         <div>
             <div>
