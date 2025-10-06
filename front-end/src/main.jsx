@@ -5,7 +5,6 @@ import { useEffect, useState } from 'react'
 import SousChefLogo from './souschef-logo.png';
 import Login from './login.jsx';
 import Home from './home.jsx';
-import './main.css';
 
 import { BrowserRouter, Routes, Route, Navigate } from "react-router";
 import { Link } from 'react-router';

@@ -1,5 +1,25 @@
+.app-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background-colo: #f0f0f0;
+}
+
+.centered-div {
+  padding: 20px;
+  border-radius: 8px;
+  height: 60vh;
+  width: 60vh;
+}
 .inline-div {
   display: flex;
   flex-direction: row;
   justify-content: center;
+}
+.home-grid {
+  display: grid;
+  grid-template-columns: 35vh 35vh;
+  grid-template-rows: 35vh 35vh;
 }
