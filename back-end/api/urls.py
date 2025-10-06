@@ -5,6 +5,7 @@ from . import views
 urlpatterns = [
     path('', views.index, name="index"),
     path('admin/', admin.site.urls),
+    path('register/', views.UserRegistrationView.as_view(), name='user-register'),
     path('users/', views.UserList.as_view()),
     path('users/<pk>/', views.UserDetails.as_view()),
     path('groups/', views.GroupList.as_view()),
