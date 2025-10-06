@@ -34,7 +34,6 @@ export default function App(props) {
   return (
     <>
       <div className="app-container">
-          <img height="300px" src={SousChefLogo} />
         <div className="centered-div">
           <Routes>
             <Route path="login" element={<Login user={curUser} setUser={setUser}/>} />
