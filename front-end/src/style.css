@@ -6,6 +6,7 @@
   height: 100vh;
   background-color: #f0f0f0;
 }
+
 .centered-div {
   padding: 20px;
   border-radius: 8px;
@@ -65,4 +66,14 @@
   border-width: 2px;
   border-style: solid;
   z-index: 2;
+}
+
+.settingsGrid > div.delete{
+  grid-area: delete;
+}
+
+.home-grid {
+  display: grid;
+  grid-template-columns: 35vh 35vh;
+  grid-template-rows: 35vh 35vh;
 }
