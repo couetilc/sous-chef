@@ -1,6 +1,10 @@
 import React from 'react';
 import { useNavigate, Navigate } from 'react-router';
 import './style.css';
+import ChefHat from './chefhat.png';
+import Nutrition from './nutrition.png';
+import Recipe from './recipe.png';
+import Inventory from './inventory.png';
 
 // home page, only accesssed after a user has logged in
 
@@ -12,7 +16,7 @@ export default function Home(props) {
   // if user is null, no user is logged in, redirect to the login page
   if ( user == null ) {
     console.log("null user, redirecting to login page");
-    alert("You are not logged in! Click ok to go to the Login Page");
+    //alert("You are not logged in! Click ok to go to the Login Page");
     //return navigate("/login");
     return (
       <Navigate to="/login"/>
@@ -21,12 +25,24 @@ export default function Home(props) {
   return (
   <>
    <div>
-     <p> Hello {user} ! </p>
+     <p> Hello {user}! </p>
      <div className="home-grid">
-       <button className="button"> AI Sous Chef </button>
-       <button className="button"> Nutritionist </button>
-       <button className="button"> Recipes </button>
-       <button className="button"> Inventory </button>
+       <div className="img-button-cont">
+         <img src={ChefHat}/>
+         <button className="btn"> AI Sous Chef </button>
+       </div>
+       <div className="img-button-cont">
+         <img src={Nutrition}/>
+         <button className="btn"> Nutritionist </button>
+       </div>
+       <div className="img-button-cont">
+         <img src={Recipe}/>
+         <button className="btn"> Recipes </button>
+       </div>
+       <div className="img-button-cont">
+         <img src={Inventory}/>
+         <button className="btn"> Inventory </button>
+       </div>
      </div>
    </div>
    </>
