@@ -24,7 +24,7 @@ export default function Home(props) {
   }
   return (
   <>
-   <div>
+   <div className="centered-div">
      <p> Hello {user}! </p>
      <div className="home-grid">
        <div className="img-button-cont">

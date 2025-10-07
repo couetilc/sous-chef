@@ -3,15 +3,15 @@
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  height: 100vh;
+  height: 100%;
   background-color: #f0f0f0;
 }
 
 .centered-div {
   padding: 20px;
   border-radius: 8px;
-  height: 60vh;
-  width: 60vh;
+  height: 60%;
+  width: 60%;
 }
 
 .inline-div {
@@ -120,4 +120,19 @@
   border-width: 2px;
   border-style: solid;
   z-index: 2;
+}
+
+.header-banner {
+  display: flex;
+  flex-direction: row;
+}
+.header-banner ul {
+  list-style: none;
+  padding: 0;
+  margins: 0;
+}
+
+.header-banner li {
+  display: inline-block;
+  margin-right: 10px;
 }
