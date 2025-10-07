@@ -34,14 +34,12 @@ export default function App(props) {
   return (
     <>
       <div className="app-container">
-        <div className="centered-div">
           <Routes>
             <Route path="login" element={<Login user={curUser} setUser={setUser}/>} />
             <Route path="home" element={<Home user={curUser} setUser={setUser}/>} />
             // check if user is already logged in
             <Route path="/" element={<Login user={curUser} setUser={setUser}/>} />
           </ Routes>
-        </div>
       </div>
     </>
   )
