@@ -8,8 +8,8 @@
 
 import pandas as pd
 
-INPUT_CSV = "scraping/ingredient_scraping/scraped_ingredients.csv"      
-OUTPUT_CSV = "scraping/ingredient_scraping/cleaned_ingredients.csv"
+INPUT_CSV = "scraping/ingredient_scraping/ingredient_csv_files/foundation_scraped_ingredients.csv"      
+OUTPUT_CSV = "scraping/ingredient_scraping/ingredient_csv_files/foundation_cleaned_ingredients.csv"
 
 # Load the combined dataset
 df = pd.read_csv(INPUT_CSV)

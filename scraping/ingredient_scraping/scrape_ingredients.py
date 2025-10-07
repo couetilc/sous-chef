@@ -12,7 +12,7 @@ import pandas as pd
 FOODS_CSV = "scraping/ingredient_scraping/usda_csv_files/legacy_food.csv"
 FOOD_NUTRIENT_CSV = "scraping/ingredient_scraping/usda_csv_files/legacy_food_nutrient.csv"
 NUTRIENT_CSV = "scraping/ingredient_scraping/usda_csv_files/legacy_nutrient.csv"
-OUTPUT_CSV = "scraping/ingredient_scraping/legacy_scraped_ingredients.csv"
+OUTPUT_CSV = "scraping/ingredient_scraping/ingredient_csv_files/legacy_scraped_ingredients.csv"
 
 # Load CSVs
 foods_df = pd.read_csv(FOODS_CSV, dtype=str)
@@ -20,7 +20,6 @@ fn_df = pd.read_csv(FOOD_NUTRIENT_CSV, dtype=str)
 nutrient_df = pd.read_csv(NUTRIENT_CSV, dtype=str)
 
 # For clarity, rename columns if needed:
-# e.g. in nutrient_df, rename "id" → "nutrient_id", etc.
 nutrient_df = nutrient_df.rename(columns={"id": "nutrient_id", "name": "nutrient_name", "unit_name": "unit"})
 fn_df = fn_df.rename(columns={"id": "food_nutrient_id"})
 
