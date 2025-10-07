@@ -1,26 +1,111 @@
 from django.shortcuts import render
 from django.http import HttpResponse
-from rest_framework import generics, permissions
-from oauth2_provider.contrib.rest_framework import TokenHasReadWriteScope, TokenHasScope
+from django.contrib.auth import authenticate, login, logout
+from django.middleware.csrf import get_token
+from django.views.decorators.csrf import ensure_csrf_cookie
+from django.utils.decorators import method_decorator
+from rest_framework import generics, permissions, status
+from rest_framework.response import Response
+from rest_framework.views import APIView
 from django.contrib.auth.models import User, Group
-from .serializers import UserSerializer, GroupSerializer
+from .serializers import UserSerializer, GroupSerializer, UserRegistrationSerializer
 
 # Create your views here.
 def index(request):
     return HttpResponse("<h1>Hello, World!</h1>")
 
+class UserRegistrationView(generics.CreateAPIView):
+    """Public endpoint for user registration"""
+    permission_classes = [permissions.AllowAny]
+    serializer_class = UserRegistrationSerializer
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        return Response({
+            'username': user.username,
+            'email': user.email,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+        }, status=status.HTTP_201_CREATED)
+
+
+class LoginView(APIView):
+    """Public endpoint for user login"""
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        username = request.data.get('username')
+        password = request.data.get('password')
+
+        if not username or not password:
+            return Response(
+                {'error': 'Username and password are required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        user = authenticate(request, username=username, password=password)
+
+        if user is not None:
+            login(request, user)
+            return Response({
+                'id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+            }, status=status.HTTP_200_OK)
+        else:
+            return Response(
+                {'error': 'Invalid credentials'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
+
+class LogoutView(APIView):
+    """Endpoint for user logout"""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        logout(request)
+        return Response({'message': 'Successfully logged out'}, status=status.HTTP_200_OK)
+
+
+class CurrentUserView(APIView):
+    """Get current authenticated user"""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        return Response({
+            'id': user.id,
+            'username': user.username,
+            'email': user.email,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+        }, status=status.HTTP_200_OK)
+
+
+@method_decorator(ensure_csrf_cookie, name='dispatch')
+class CSRFTokenView(APIView):
+    """Public endpoint to get CSRF token"""
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        return Response({'csrfToken': get_token(request)}, status=status.HTTP_200_OK)
+
 class UserList(generics.ListCreateAPIView):
-    permission_classes = [permissions.IsAuthenticated, TokenHasReadWriteScope]
+    permission_classes = [permissions.IsAuthenticated]
     queryset = User.objects.all()
     serializer_class = UserSerializer
 
 class UserDetails(generics.RetrieveAPIView):
-    permission_classes = [permissions.IsAuthenticated, TokenHasReadWriteScope]
+    permission_classes = [permissions.IsAuthenticated]
     queryset = User.objects.all()
     serializer_class = UserSerializer
 
 class GroupList(generics.ListAPIView):
-    permission_classes = [permissions.IsAuthenticated, TokenHasScope]
-    required_scopes = ['groups']
+    permission_classes = [permissions.IsAuthenticated]
     queryset = Group.objects.all()
     serializer_class = GroupSerializer

@@ -6,7 +6,6 @@ import SousChefLogo from './souschef-logo.png';
 import Login from './login.jsx';
 import Home from './home.jsx';
 import SettingsPage from './settingsPage.jsx';
-import './main.css';
 
 import { BrowserRouter, Routes, Route, Navigate } from "react-router";
 import { Link } from 'react-router';
@@ -36,7 +35,6 @@ export default function App(props) {
   return (
     <>
       <div className="app-container">
-          <img height="300px" src={SousChefLogo} />
         <div className="centered-div">
           <Routes>
             <Route path="login" element={<Login user={curUser} setUser={setUser}/>} />
