@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import SousChefLogo from './souschef-logo.png';
 import Login from './login.jsx';
 import Home from './home.jsx';
+import SettingsPage from './settingsPage.jsx';
 import './main.css';
 
 import { BrowserRouter, Routes, Route, Navigate } from "react-router";
@@ -40,6 +41,7 @@ export default function App(props) {
           <Routes>
             <Route path="login" element={<Login user={curUser} setUser={setUser}/>} />
             <Route path="home" element={<Home user={curUser} setUser={setUser}/>} />
+            <Route path="settings" element={<SettingsPage user={curUser} setUser={setUser}/>} />
             // check if user is already logged in
             <Route path="/" element={<Login user={curUser} setUser={setUser}/>} />
           </ Routes>
