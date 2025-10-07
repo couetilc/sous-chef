@@ -65,7 +65,6 @@ export default function App(props) {
   return (
     <>
       <div className="app-container">
-<<<<<<< HEAD
         <div className="centered-div">
           <Routes>
             <Route path="login" element={<Login user={curUser} setUser={setUser}/>} />
@@ -75,15 +74,6 @@ export default function App(props) {
             <Route path="/" element={<Login user={curUser} setUser={setUser}/>} />
           </ Routes>
         </div>
-=======
-        <HeaderBanner />
-        <Routes>
-          <Route path="login" element={<Login user={curUser} setUser={setUser}/>} />
-          <Route path="home" element={<Home user={curUser} setUser={setUser}/>} />
-          // check if user is already logged in
-          <Route path="/" element={<Login user={curUser} setUser={setUser}/>} />
-        </ Routes>
->>>>>>> 1cba4ee513d1dd75daf2f14488e1838bfdcec1ff
       </div>
     </>
   )

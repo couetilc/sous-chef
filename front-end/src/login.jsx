@@ -4,10 +4,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import './style.css';
 import SousChefLogo from './souschef-logo.png';
-<<<<<<< HEAD
-=======
 import { useApi } from './useApi.jsx'
->>>>>>> 1cba4ee513d1dd75daf2f14488e1838bfdcec1ff
 
 // constants for username and password testing
 const userCheck = "user";
