@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import './style.css';
 import SousChefLogo from './souschef-logo.png';
-import * as oauth from 'oauth4webapi'
 
 // constants for username and password testing
 const userCheck = "user";
