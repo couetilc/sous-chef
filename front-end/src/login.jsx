@@ -63,7 +63,8 @@ export default function Login(props) {
     textAlign: 'center'
   };
   return (
-    <div style={loginDiv}>
+    <div className="centered-div">
+      <div style={loginDiv}>
         <h1>Log In</h1>
         <label>Username: <input name="userIn" id="userId" /> </label>
         <br />
@@ -86,6 +87,7 @@ export default function Login(props) {
           Continue
         </button>
         </div>
+      </div>
     </div>
   );
 }
