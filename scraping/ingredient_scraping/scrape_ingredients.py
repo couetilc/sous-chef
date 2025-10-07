@@ -19,16 +19,10 @@ foods_df = pd.read_csv(FOODS_CSV, dtype=str)
 fn_df = pd.read_csv(FOOD_NUTRIENT_CSV, dtype=str)
 nutrient_df = pd.read_csv(NUTRIENT_CSV, dtype=str)
 
-# If your CSVs use different column names, you may need to rename columns
-# Common in USDA full downloads:
-# foods.csv has: fdc_id, description, data_type, food_category_id, publication_date, etc.
-# food_nutrient.csv has: id, fdc_id, nutrient_id, amount, data_points, derivation_id, etc.
-# nutrient.csv has: id, name, unit_name, nutrient_nbr, rank, etc.
-
 # For clarity, rename columns if needed:
 # e.g. in nutrient_df, rename "id" → "nutrient_id", etc.
 nutrient_df = nutrient_df.rename(columns={"id": "nutrient_id", "name": "nutrient_name", "unit_name": "unit"})
-fn_df = fn_df.rename(columns={"id": "food_nutrient_id"})  # optional
+fn_df = fn_df.rename(columns={"id": "food_nutrient_id"})
 
 # Merge food_nutrient with nutrient definitions
 fn_with_defs = fn_df.merge(nutrient_df, how="left", on="nutrient_id")
@@ -60,7 +54,6 @@ pivot = fn_with_defs.pivot_table(
 # Merge with foods_df to bring in description etc.
 combined = foods_df.merge(pivot, how="left", on="fdc_id")
 
-# Optionally, you can rename columns
 combined = combined.rename(columns={
     "Energy": "calories",
     "Protein": "protein_g",
@@ -70,7 +63,6 @@ combined = combined.rename(columns={
     "Sugars, total": "sugar_g",
 })
 
-# Select columns order you like
 columns_to_keep = [
     "fdc_id",
     "description",
