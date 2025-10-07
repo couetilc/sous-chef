@@ -9,9 +9,9 @@ import SettingsPage from './settingsPage.jsx';
 
 import { BrowserRouter, Routes, Route, Navigate } from "react-router";
 import { Link } from 'react-router';
-import { useNavigate } from 'react-router';
+import { useNavigate, useLocation } from 'react-router';
 import { StrictMode } from 'react';
-
+import { ApiProvider } from './useApi';
 
 
 export default function App(props) {
@@ -32,9 +32,40 @@ export default function App(props) {
     return navigate("/login");
   }
 
+  //find the url path at which the user is at, so that the navigation banner
+  //can be hidden on login pages: "/login" and "/" ("/" redirects to login component)
+  const curLocation = useLocation();
+
+  function HeaderBanner() {
+    
+    if ( curLocation.pathname.localeCompare("/") == 0 ||
+         curLocation.pathname.localeCompare("/login") == 0 ) {
+      return (
+        <img src={SousChefLogo} height="300px"/>
+      )
+    }
+    return (
+      <header className="header-banner">
+        <img src={SousChefLogo} width="150px"/>
+        <nav>
+          <ul>
+            <li><a href="/home">Home</a></li>
+            <li><a href="/sous-chef">Sous Chef</a></li>
+            <li><a href="/nutritionist">Nutritionist</a></li>
+            <li><a href="/recipes">Recipes</a></li>
+            <li><a href="/inventory">Inventory</a></li>
+            <li><a href="/account">Account Settings</a></li>
+          </ul>
+        </nav>
+      </header>
+    )
+  }
+
+
   return (
     <>
       <div className="app-container">
+<<<<<<< HEAD
         <div className="centered-div">
           <Routes>
             <Route path="login" element={<Login user={curUser} setUser={setUser}/>} />
@@ -44,6 +75,15 @@ export default function App(props) {
             <Route path="/" element={<Login user={curUser} setUser={setUser}/>} />
           </ Routes>
         </div>
+=======
+        <HeaderBanner />
+        <Routes>
+          <Route path="login" element={<Login user={curUser} setUser={setUser}/>} />
+          <Route path="home" element={<Home user={curUser} setUser={setUser}/>} />
+          // check if user is already logged in
+          <Route path="/" element={<Login user={curUser} setUser={setUser}/>} />
+        </ Routes>
+>>>>>>> 1cba4ee513d1dd75daf2f14488e1838bfdcec1ff
       </div>
     </>
   )
@@ -53,7 +93,9 @@ const root = createRoot(document.getElementById('root'))
 root.render(
   <StrictMode>
   <BrowserRouter>
+  <ApiProvider>
     <App />
+  </ApiProvider>
   </BrowserRouter>
   </StrictMode>
 )
