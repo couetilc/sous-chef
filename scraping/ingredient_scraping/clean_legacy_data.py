@@ -15,16 +15,43 @@ CAL_PER_GRAM_PROTEIN = 4
 CAL_PER_GRAM_CARBS = 4
 CAL_PER_GRAM_FAT = 9
 
+food_category_map = {
+    1: "Dairy and Egg Products",
+    2: "Spices and Herbs",
+    3: "Baby Foods",
+    4: "Fats and Oils",
+    5: "Poultry Products",
+    6: "Soups, Sauces, and Gravies",
+    7: "Sausages and Luncheon Meats",
+    8: "Breakfast Cereals",
+    9: "Fruits and Fruit Juices",
+    10: "Pork Products",
+    11: "Vegetables and Vegetable Products",
+    12: "Nut and Seed Products",
+    13: "Beef Products",
+    14: "Beverages",
+    15: "Finfish and Shellfish Products",
+    16: "Legumes and Legume Products",
+    17: "Lamb, Veal, and Game Products",
+    18: "Baked Products",
+    19: "Sweets",
+    20: "Cereal Grains and Pasta",
+    21: "Fast Foods",
+    22: "Meals, Entrees, and Side Dishes",
+    23: "Snacks",
+    24: "American Indian/Alaska Native Foods",
+    25: "Restaurant Foods",
+    26: "Branded Food Products Database",
+    27: "Quality Control Materials",
+    28: "Alcoholic Beverages",
+}
+
 def main():
     df = pd.read_csv(INPUT_CSV)
 
-    # Ensure numeric types for macros
-    for col in ["protein_g", "fat_g", "carbs_g"]:
-        if col in df.columns:
-            df[col] = pd.to_numeric(df[col], errors="coerce")
-        else:
-            print(f"⚠️ Missing column: {col}")
-            return
+    # Replace food_category ID with name
+    df["food_category"] = df["food_category_id"].map(food_category_map)
+    df.drop(columns=["food_category_id"], inplace=True, errors="ignore")
 
     # Recalculate and round calories
     df["calories"] = (
@@ -33,9 +60,9 @@ def main():
         (df["carbs_g"].fillna(0) * CAL_PER_GRAM_CARBS)
     ).round(1)
 
-    # Remove fiber column if present
-    if "fiber_g" in df.columns:
-        df = df.drop(columns=["fiber_g"])
+    # Drop unneeded columns
+    columns_to_remove = ["fiber_g", "data_type", "publication_date"]
+    df.drop(columns=[c for c in columns_to_remove if c in df.columns], inplace=True)
 
     # Reorder columns: put calories before macros
     col_order = df.columns.tolist()
