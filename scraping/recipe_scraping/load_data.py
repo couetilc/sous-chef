@@ -11,7 +11,7 @@ import psycopg
 import csv
 from pathlib import Path
 
-path = Path("./scraping/recipes50.csv")
+path = Path("./scraping/recipes_clean.csv")
 
 conn_info = os.getenv("DATABASE_URL", "postgresql://dbuser:dbpass@localhost:5432/api")
 

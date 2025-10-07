@@ -25,10 +25,25 @@ SECRET_KEY = 'django-insecure-g5kt_ez1(+i$ru&a0*)wamwgvcp^6&t-&zb#^@#+*h2j-@0%z+
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
-# SECURITY WARNING: don't run with CORS_ALLOW_ALL_ORIGINS turned on in production!
-CORS_ALLOW_ALL_ORIGINS = True
 # SECURITY WARNING: don't allow all hosts in production!
 ALLOWED_HOSTS = ['*']
+
+# CORS configuration for SPA
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://localhost:5173",  # Vite default
+]
+CORS_ALLOW_CREDENTIALS = True  # Required for session cookies
+
+# Session configuration for cross-origin requests
+SESSION_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_HTTPONLY = True  # Protect against XSS
+SESSION_COOKIE_SECURE = False  # Set to True in production with HTTPS
+
+# CSRF configuration for SPA
+CSRF_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_HTTPONLY = False  # Allow JavaScript to read CSRF token
+CSRF_COOKIE_SECURE = False  # Set to True in production with HTTPS
 
 
 # Application definition
@@ -40,7 +55,6 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'oauth2_provider',
     'rest_framework',
     'corsheaders',
     'api',
@@ -91,6 +105,11 @@ DATABASES = {
     }
 }
 
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:3000",
+    "http://localhost:8000"
+]
+
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
@@ -135,20 +154,6 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 REST_FRAMEWORK = {
 'DEFAULT_RENDERER_CLASSES': ['rest_framework.renderers.JSONRenderer'],
-'DEFAULT_AUTHENTICATION_CLASSES': ['oauth2_provider.contrib.rest_framework.OAuth2Authentication'],
+'DEFAULT_AUTHENTICATION_CLASSES': ['rest_framework.authentication.SessionAuthentication'],
 'DEFAULT_PERMISSION_CLASSES': ['rest_framework.permissions.IsAuthenticated'],
 }
-
-OAUTH2_PROVIDER = {
-    # this is the list of available scopes
-    'SCOPES': {'read': 'Read scope', 'write': 'Write scope', 'groups': 'Access to your groups'},
-    # Token expiration times
-    'ACCESS_TOKEN_EXPIRE_SECONDS': 36000,  # 10 hours
-    'REFRESH_TOKEN_EXPIRE_SECONDS': 86400,  # 24 hours
-    'AUTHORIZATION_CODE_EXPIRE_SECONDS': 600,  # 10 minutes
-    # PKCE settings - require PKCE for public clients (SPAs)
-    'PKCE_REQUIRED': True,
-    'ALLOWED_REDIRECT_URI_SCHEMES': ['http', 'https'],
-}
-
-LOGIN_URL = '/admin/login'
