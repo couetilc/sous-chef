@@ -10,7 +10,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router";
 import { Link } from 'react-router';
 import { useNavigate } from 'react-router';
 import { StrictMode } from 'react';
-
+import { ApiProvider } from './useApi';
 
 
 export default function App(props) {
@@ -51,7 +51,9 @@ const root = createRoot(document.getElementById('root'))
 root.render(
   <StrictMode>
   <BrowserRouter>
+  <ApiProvider>
     <App />
+  </ApiProvider>
   </BrowserRouter>
   </StrictMode>
 )

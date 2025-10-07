@@ -1,16 +1,14 @@
 // /src/login
 import home from './home.jsx'
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import './style.css';
 import SousChefLogo from './souschef-logo.png';
-import * as oauth from 'oauth4webapi'
+import { useApi } from './useApi.jsx'
 
 // constants for username and password testing
 const userCheck = "user";
 const pwCheck = "pw";
-
-
 
 function navToCreate() {
   //navigate to Create Account page
@@ -18,11 +16,17 @@ function navToCreate() {
   return navigate("/create-account");
 }
 
-
 export default function Login(props) {
   let user = props.user;
   let setUser = props.setUser;
   const navigate = useNavigate();
+  const api = useApi();
+
+  useEffect(() => {
+    api.login({ username: 'testuser', password: 'boo12345' }).then(userData => {
+      setUser(userData);
+    })
+  }, [])
 
   function checkLogin() {
     function navToHome() {
