@@ -9,10 +9,10 @@
 import pandas as pd
 
 # Filenames — adjust as needed to match your actual file names
-FOODS_CSV = "scraping/ingredient_scraping/usda_csv_files/food.csv"
-FOOD_NUTRIENT_CSV = "scraping/ingredient_scraping/usda_csv_files/food_nutrient.csv"
-NUTRIENT_CSV = "scraping/ingredient_scraping/usda_csv_files/nutrient.csv"
-OUTPUT_CSV = "scraping/ingredient_scraping/scraped_ingredients.csv"
+FOODS_CSV = "scraping/ingredient_scraping/usda_csv_files/legacy_food.csv"
+FOOD_NUTRIENT_CSV = "scraping/ingredient_scraping/usda_csv_files/legacy_food_nutrient.csv"
+NUTRIENT_CSV = "scraping/ingredient_scraping/usda_csv_files/legacy_nutrient.csv"
+OUTPUT_CSV = "scraping/ingredient_scraping/legacy_scraped_ingredients.csv"
 
 # Load CSVs
 foods_df = pd.read_csv(FOODS_CSV, dtype=str)
