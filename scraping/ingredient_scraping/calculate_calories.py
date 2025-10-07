@@ -50,8 +50,8 @@ def main():
 
     # Save new CSV
     df.to_csv(OUTPUT_CSV, index=False)
-    print(f"✅ Recalculated and reformatted CSV saved to {OUTPUT_CSV}")
-    print(f"   Total rows: {len(df)}")
+    print(f"Recalculated and reformatted CSV saved to {OUTPUT_CSV}")
+    print(f"Total rows: {len(df)}")
 
 if __name__ == "__main__":
     main()
