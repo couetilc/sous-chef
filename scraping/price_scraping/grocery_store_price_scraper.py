@@ -3,13 +3,36 @@
 # requires-python = ">=3.10"
 # dependencies = ["requests>=2.31"]
 # ///
-import os, sys, csv, time, requests
-from typing import Dict, Any, List, Optional
+"""
+Generate ingredient_prices.csv by attaching Kroger prices to a canonical ingredient list.
+
+Usage:
+  ./gen_prices.py --canonical /path/to/canonical.csv --out ingredient_prices.csv
+
+Environment variables:
+  KROGER_CLIENT_ID (required)
+  KROGER_CLIENT_SECRET (required)
+  PAYLESS_ZIP (default: 47906)
+  PAGE_LIMIT (default: 5)
+  OUT (fallback if --out not provided)
+
+Notes:
+- Every row from the canonical CSV is written to the output.
+- If no price is available, quantity fields and price are left blank on that row.
+
+Output columns:
+- ingredient_name
+- quantity_other    # non-oz portion (e.g., "9 in", "12 ct")
+- quantity_oz       # numeric ounces if found or derivable (e.g., "6" or "16")
+- price
+"""
+
+import os, sys, csv, time, argparse, requests, re
+from typing import Dict, Any, List, Optional, Tuple
 
 BASE = "https://api.kroger.com/v1"
 ZIP_NEAR = os.getenv("PAYLESS_ZIP", "47906")
-OUT = os.getenv("OUT", "ingredient_prices.csv")
-PAGE_LIMIT = int(os.getenv("PAGE_LIMIT", "5"))  # fetch a few to choose a sane match
+PAGE_LIMIT = int(os.getenv("PAGE_LIMIT", "5"))
 
 CLIENT_ID = os.getenv("KROGER_CLIENT_ID")
 CLIENT_SECRET = os.getenv("KROGER_CLIENT_SECRET")
@@ -72,14 +95,17 @@ def search_products(token: str, location_id: str, term: str) -> List[Dict[str, A
     headers = {"Accept":"application/json","Authorization": f"Bearer {token}"}
     params = {
         "filter.term": term,
-        "filter.locationId": location_id,   # required to get price
+        "filter.locationId": location_id,
         "filter.limit": PAGE_LIMIT,
-        # do NOT set filter.fulfillment; it can over-restrict at some banners
     }
     r = requests.get(f"{BASE}/products", headers=headers, params=params, timeout=30)
-    # Some inputs can 400 if Kroger rejects the term; handle gracefully
     if r.status_code == 400:
         return []
+    if r.status_code in (429, 500, 502, 503, 504):
+        time.sleep(0.7)
+        r = requests.get(f"{BASE}/products", headers=headers, params=params, timeout=30)
+        if r.status_code == 400:
+            return []
     r.raise_for_status()
     return r.json().get("data", []) or []
 
@@ -87,81 +113,241 @@ def good_match(term: str, product: Dict[str, Any]) -> bool:
     desc = (product.get("description") or "").lower()
     if term.lower() not in desc:
         return False
-    for bad in EXCLUDE_BY_TERM.get(term, []):
+    for bad in EXCLUDE_BY_TERM.get(term.lower(), []):
         if bad in desc:
             return False
     items = product.get("items") or []
     if items:
         size = (items[0].get("size") or "").lower()
-        prefs = PREFERRED_UNITS.get(term, [])
+        prefs = PREFERRED_UNITS.get(term.lower(), [])
         if prefs and not any(u in size for u in prefs):
             return False
     return True
 
 def pick_product(term: str, products: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
-    # 1) first "good" match by heuristics
     for p in products:
         if good_match(term, p):
             return p
-    # 2) fallback: first result
     return products[0] if products else None
 
-def extract_qty_and_price(p: Dict[str, Any]) -> tuple[Optional[str], Optional[str]]:
+# ---------- NEW: size parsing helpers ----------
+
+_U_RE = re.compile(
+    r"""^\s*
+        (?P<num>\d+(?:\.\d+)?)
+        \s*
+        (?P<unit>
+            lb|lbs|
+            oz|fl\s*oz|
+            ct|count|
+            in|inch|inches|
+            qt|pt|gal|gallon|litre|liter|l|
+            ml|g|kg
+        )
+        s?      # optional plural
+        \s*$
+    """,
+    re.IGNORECASE | re.VERBOSE,
+)
+
+def _parse_piece(piece: str) -> Tuple[Optional[float], Optional[str], str]:
+    """
+    Returns (oz_value, normalized_unit_or_none, original_piece_trimmed).
+    - If piece is '6 oz' -> (6.0, 'oz', '6 oz')
+    - If piece is '1 lb' -> (16.0, 'lb', '1 lb')  # converted to oz
+    - If piece is '9 in' -> (None, 'in', '9 in')
+    - If unrecognized -> (None, None, '...original...')
+    """
+    s = piece.strip()
+    m = _U_RE.match(s.replace(".", "."))
+    if not m:
+        return None, None, s
+    num = float(m.group("num"))
+    unit = m.group("unit").lower().replace(" ", "")
+    # Normalize a few units
+    if unit in ("lb", "lbs"):
+        return num * 16.0, "lb", s
+    if unit in ("oz",):
+        return num, "oz", s
+    if unit in ("floz", "flozs"):
+        return num, "fl oz", s
+    # Not an ounce-bearing unit
+    return None, unit, s
+
+def split_size_to_other_and_oz(size: Optional[str]) -> Tuple[Optional[str], Optional[str]]:
+    """
+    Examples:
+      "9 in / 6 oz"      -> ("9 in", "6")
+      "1 lb / 16 oz"     -> ("1 lb", "16")    # prefers explicit oz piece
+      "1 lb"             -> (None, "16")      # converts lb if oz not present
+      "12 ct"            -> ("12 ct", None)
+      None or ""         -> (None, None)
+    """
+    if not size:
+        return None, None
+    pieces = [p.strip() for p in size.split("/") if p.strip()]
+    oz_explicit: Optional[float] = None
+    oz_from_lb: Optional[float] = None
+    other_parts: List[str] = []
+
+    for p in pieces:
+        oz_val, unit, original = _parse_piece(p)
+        if unit in ("oz", "fl oz") and oz_val is not None:
+            # Treat fluid oz as "oz" numerically; caller knows it's ounces.
+            oz_explicit = oz_val
+        elif unit == "lb" and oz_val is not None:
+            oz_from_lb = oz_val
+            other_parts.append(original)  # keep the lb fragment as "other"
+        else:
+            other_parts.append(original)
+
+    oz_final = oz_explicit if oz_explicit is not None else oz_from_lb
+    other = " / ".join(other_parts) if other_parts else None
+    oz_str = f"{oz_final:g}" if oz_final is not None else None
+    return other, oz_str
+
+def extract_qty_and_price(p: Dict[str, Any]) -> Tuple[Optional[str], Optional[str], Optional[str]]:
+    """
+    Returns (quantity_other, quantity_oz, price)
+    """
     items = p.get("items") or []
     if not items:
-        return None, None
+        return None, None, None
     it0 = items[0]
     size = it0.get("size")
-    price_obj = it0.get("price") or {}
-    price = price_obj.get("regular")  # regular only
-    if price is None:
-        return size, None
-    try:
-        return size, f"{float(price):.2f}"
-    except Exception:
-        return size, None
+    quantity_other, quantity_oz = split_size_to_other_and_oz(size)
 
-def main(ingredients: List[str]) -> None:
+    price_obj = it0.get("price") or {}
+    price = price_obj.get("regular")
+    if price is not None:
+        try:
+            price_str = f"{float(price):.2f}"
+        except Exception:
+            price_str = None
+    else:
+        price_str = None
+
+    return quantity_other, quantity_oz, price_str
+
+# --- Canonical list handling ---
+
+LIKELY_NAME_COLUMNS = ["ingredient_name","canonical_name","ingredient","name","item","description"]
+
+def detect_name_column(header: List[str]) -> str:
+    lower = [h.strip().lower() for h in header]
+    for cand in LIKELY_NAME_COLUMNS:
+        if cand in lower:
+            return header[lower.index(cand)]
+    if len(header) > 1 and header[0].strip().lower() in {"fdc_id","id"}:
+        return header[1]
+    return header[0]
+
+def read_canonical_list(path: str) -> List[Tuple[str, str]]:
+    """
+    Returns a list of (food_id, ingredient_name) pairs.
+    If no numeric ID is found in the first column, id = "".
+    """
+    with open(path, newline="", encoding="utf-8") as f:
+        r = csv.reader(f)
+        rows = list(r)
+    if not rows:
+        return []
+    header, data_rows = rows[0], rows[1:]
+    name_col = detect_name_column(header)
+    name_idx = header.index(name_col)
+    # Usually first column = FDC ID in USDA files
+    id_idx = 0 if header[0].strip().lower() in {"fdc_id", "id"} else None
+
+    pairs: List[Tuple[str, str]] = []
+    for row in data_rows:
+        if len(row) <= name_idx:
+            continue
+        name = (row[name_idx] or "").strip()
+        if not name:
+            continue
+        food_id = row[id_idx].strip() if (id_idx is not None and len(row) > id_idx) else ""
+        pairs.append((food_id, name))
+    return pairs
+
+
+def make_search_term(name: str) -> str:
+    parts = [p.strip() for p in name.split(",") if p.strip()]
+    if not parts:
+        return name.strip()
+    if len(parts) == 1:
+        return parts[0]
+    return f"{parts[0]}, {parts[1]}"
+
+def write_prices(canonical_rows: List[Tuple[str, str]],
+                 price_cache: Dict[str, Tuple[Optional[str], Optional[str], Optional[str]]],
+                 out_path: str) -> None:
+    with open(out_path, "w", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(
+            f,
+            fieldnames=["food_id","ingredient_name","quantity_other","quantity_oz","price"]
+        )
+        w.writeheader()
+        for food_id, name in canonical_rows:
+            q_other, q_oz, price = price_cache.get(name, (None, None, None))
+            w.writerow({
+                "food_id": food_id,
+                "ingredient_name": name,
+                "quantity_other": q_other,
+                "quantity_oz": q_oz,
+                "price": price
+            })
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--canonical", required=True, help="Path to canonical ingredients CSV")
+    ap.add_argument("--out", default=os.getenv("OUT", "ingredient_prices.csv"), help="Output CSV path")
+    args = ap.parse_args()
+
+    canonical_rows = read_canonical_list(args.canonical)
+    if not canonical_rows:
+        print(f"No ingredients found in {args.canonical}", file=sys.stderr)
+        sys.exit(2)
+
     token = get_token("product.compact")
     loc = find_payless_location(token)
     if not loc:
-        print(f"No Pay Less/Kroger-family location found near ZIP {ZIP_NEAR}", file=sys.stderr)
-        sys.exit(2)
-
+        print(f"No Kroger-family location found near ZIP {ZIP_NEAR}", file=sys.stderr)
+        sys.exit(3)
     location_id = loc["locationId"]
     store_name = loc.get("name", "Unknown Store")
-    print(f"Using {store_name} (locationId={location_id})")
+    print(f"Using {store_name} (locationId={location_id})", file=sys.stderr)
 
-    with open(OUT, "w", newline="", encoding="utf-8") as f:
-        w = csv.DictWriter(f, fieldnames=["ingredient_name","quantity","price"])
-        w.writeheader()
-        for term in ingredients:
-            prods = search_products(token, location_id, term)
-            chosen = pick_product(term, prods)
-            if not chosen:
-                # write a blank price row so downstream joins still work
-                w.writerow({"ingredient_name": term, "quantity": None, "price": None})
-                continue
-            qty, price = extract_qty_and_price(chosen)
-            w.writerow({"ingredient_name": term, "quantity": qty, "price": price})
-            time.sleep(0.12)  # be polite
+    # Dedup lookups but preserve per-row output via cache
+    unique_terms = []
+    seen = set()
+    for name in canonical_rows:
+        key = name
+        if key not in seen:
+            unique_terms.append(name)
+            seen.add(key)
 
-    print(f"Wrote {OUT}")
+    price_cache: Dict[str, Tuple[Optional[str], Optional[str], Optional[str]]] = {}
+
+    for i, (food_id, canonical_name) in enumerate(unique_terms, 1):
+        search_term = make_search_term(canonical_name)
+        print(search_term)  # debug visibility of actual query term
+
+        prods = search_products(token, location_id, search_term)
+        chosen = pick_product(search_term.lower(), prods)
+        if not chosen:
+            price_cache[canonical_name] = (None, None, None)
+        else:
+            q_other, q_oz, price = extract_qty_and_price(chosen)
+            price_cache[canonical_name] = (q_other, q_oz, price)
+        time.sleep(0.12)  # polite pacing
+
+        if i % 100 == 0 or i == len(unique_terms):
+            pct = (i / len(unique_terms)) * 100
+            print(f"[{i}/{len(unique_terms)}] ({pct:.1f}%) ingredients processed", file=sys.stderr)
+
+    write_prices(canonical_rows, price_cache, args.out)
+    print(f"Wrote {args.out}", file=sys.stderr)
 
 if __name__ == "__main__":
-    # Replace this list or pass terms on the CLI
-    ingredients = [
-        "onion",
-        "garlic",
-        "boneless skinless chicken breast",
-        "ground beef",
-        "olive oil",
-        "all purpose flour",
-        "eggs",
-        "whole milk",
-        "cheddar cheese",
-        "rice",
-    ]
-    if len(sys.argv) > 1:
-        ingredients = sys.argv[1:]
-    main(ingredients)
+    main()

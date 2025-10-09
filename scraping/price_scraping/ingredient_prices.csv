@@ -1,11 +1,20 @@
-ingredient_name,quantity,price
-onion,1 lb,1.49
-garlic,5 ct,1.99
-boneless skinless chicken breast,1 lb,2.69
-ground beef,3 lb,19.95
-olive oil,32 fl oz,14.49
-all purpose flour,5 lb,3.29
-eggs,12 ct / 24 oz,4.29
-whole milk,1 gal,7.49
-cheddar cheese,8 oz,2.49
-rice,14 oz,2.99
+food_id,ingredient_name,quantity_other,quantity_oz,price
+167512,"Pillsbury Golden Layer Buttermilk Biscuits, Artificial Flavor, refrigerated dough",10 biscuits,20.4,4.79
+167513,"Pillsbury, Cinnamon Rolls with Icing, refrigerated dough",16 rolls,24.8,5.99
+167514,"Kraft Foods, Shake N Bake Original Recipe, Coating for Pork, dry",12 ct,2.75,16.49
+167515,"George Weston Bakeries, Thomas English Muffins",6 ct,13,3.99
+167516,"Waffles, buttermilk, frozen, ready-to-heat",24 ct,1.23,6.79
+167517,"Waffle, buttermilk, frozen, ready-to-heat, toasted",24 ct,1.23,6.79
+167518,"Waffle, buttermilk, frozen, ready-to-heat, microwaved",24 ct,1.23,6.79
+167519,"Waffle, plain, frozen, ready-to-heat, microwave",24 ct,1.23,6.79
+167520,"Pie Crust, Cookie-type, Graham Cracker, Ready Crust",9 in,6,3.69
+167521,"Pie Crust, Cookie-type, Chocolate, Ready Crust",,,
+167522,"Pie, Dutch Apple, Commercially Prepared",,37.01,7.49
+167523,"Pie crust, deep dish, frozen, unbaked, made with enriched flour",2 ct,6,3.99
+167524,"Waffles, chocolate chip, frozen, ready-to-heat",10 ct,1.23,5.79
+167525,"Tostada shells, corn",30 ct,,2.49
+167526,"Bread, salvadoran sweet cheese (quesadilla salvadorena)",,,
+167527,"Bread, pound cake type, pan de torta salvadoran",,,
+167528,"Pastry, Pastelitos de Guava (guava pastries)",,,
+167529,"Crackers, snack, Goya Crackers",8 ct,1.42,3.99
+167530,"Crackers, cream, Gamesa Sabrosas",10 ct,1,6.99

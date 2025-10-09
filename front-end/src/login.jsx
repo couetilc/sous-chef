@@ -22,12 +22,6 @@ export default function Login(props) {
   const navigate = useNavigate();
   const api = useApi();
 
-  useEffect(() => {
-    api.login({ username: 'testuser', password: 'boo12345' }).then(userData => {
-      setUser(userData);
-    })
-  }, [])
-
   function checkLogin() {
     function navToHome() {
       return navigate("/home");
@@ -44,18 +38,17 @@ export default function Login(props) {
       alert("Please enter your password!");
       return;
     }
-    const pwText = pwElement.value;
+    api.login({username: userText, password: pwElement.value}).then((response) =>{
+      if (!response.error) {
+        alert(JSON.stringify(response))
+        setUser(response);
+        navToHome();
+      }
+      else {
+        alert("Invalid Credentials!");
+      }
+    })
 
-    if ( !userCheck.localeCompare(userText) && !pwCheck.localeCompare(pwText) ) {
-      alert("login successful!");
-      setUser(userText);
-      navToHome();
-    }
-    else {
-      alert("login failed, incorrect username-password pair!");
-      console.log(userText);
-      console.log(pwText);
-    }
   }
   const loginDiv = {
     border: '5px solid black',

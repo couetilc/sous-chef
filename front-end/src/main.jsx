@@ -5,6 +5,10 @@ import { useEffect, useState } from 'react'
 import SousChefLogo from './souschef-logo.png';
 import Login from './login.jsx';
 import Home from './home.jsx';
+import SousChef from './souschefPage.jsx';
+import Nutritionist from './nutritionPage.jsx';
+import Recipes from './recipesPage.jsx';
+import Inventory from './inventory.jsx';
 import SettingsPage from './settingsPage.jsx';
 
 import { BrowserRouter, Routes, Route, Navigate } from "react-router";
@@ -54,7 +58,7 @@ export default function App(props) {
             <li><a href="/nutritionist">Nutritionist</a></li>
             <li><a href="/recipes">Recipes</a></li>
             <li><a href="/inventory">Inventory</a></li>
-            <li><a href="/account">Account Settings</a></li>
+            <li><a href="/settings">Account Settings</a></li>
           </ul>
         </nav>
       </header>
@@ -65,15 +69,18 @@ export default function App(props) {
   return (
     <>
       <div className="app-container">
-        <div className="centered-div">
-          <Routes>
-            <Route path="login" element={<Login user={curUser} setUser={setUser}/>} />
-            <Route path="home" element={<Home user={curUser} setUser={setUser}/>} />
-            <Route path="settings" element={<SettingsPage user={curUser} setUser={setUser}/>} />
-            // check if user is already logged in
-            <Route path="/" element={<Login user={curUser} setUser={setUser}/>} />
-          </ Routes>
-        </div>
+        <HeaderBanner />
+        <Routes>
+          <Route path="login" element={<Login user={curUser} setUser={setUser}/>} />
+          <Route path="home" element={<Home user={curUser} setUser={setUser}/>} />
+          <Route path="sous-chef" element={<SousChef user={curUser} setUser={setUser}/>} />
+          <Route path="nutritionist" element={<Nutritionist user={curUser} setUser={setUser}/>} />
+          <Route path="recipes" element={<Recipes user={curUser} setUser={setUser}/>} />
+          <Route path="inventory" element={<Inventory user={curUser} setUser={setUser} />} />
+          <Route path="settings" element={<SettingsPage user={curUser} setUser={setUser} />} />
+          // check if user is already logged in
+          <Route path="/" element={<Login user={curUser} setUser={setUser}/>} />
+        </ Routes>
       </div>
     </>
   )
