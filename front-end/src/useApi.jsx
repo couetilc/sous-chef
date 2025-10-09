@@ -51,12 +51,31 @@ class Api {
         'X-CSRFToken': this.csrfToken,
       },
       credentials: 'include',
-    })).then(res => res.json())
+    })).then(async (res) => {
+      const data = await res.json();
+      if (!res.ok) {
+        throw { status: res.status, data };
+      }
+      return data;
+    })
   }
 
   async login({ username, password }) {
-    return this.fetch('http://localhost:3000/api/login/', {
+    return this.fetch('/api/login/', {
       body: JSON.stringify({ username, password }),
+    })
+  }
+
+  async register({ username, email, password, password_confirm, first_name, last_name }) {
+    return this.fetch('/api/register/', {
+      body: JSON.stringify({
+        username,
+        email,
+        password,
+        password_confirm,
+        first_name,
+        last_name
+      }),
     })
   }
 }
