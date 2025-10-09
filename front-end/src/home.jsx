@@ -11,6 +11,23 @@ import Inventory from './inventory.png';
 export default function Home(props) {
   const navigate = useNavigate();
 
+  // navigation elements
+  function navToSousChef() {
+    return navigate("/sous-chef");
+  }
+
+  function navToNutritionist() {
+    return navigate("/nutritionist");
+  }
+
+  function navToRecipes() {
+    return navigate("/recipes");
+  }
+ 
+  function navToInventory() {
+    return navigate("/inventory");
+  }
+
   let user = props.user;
   let setUser = props.setUser;
   // if user is null, no user is logged in, redirect to the login page
@@ -22,26 +39,43 @@ export default function Home(props) {
       <Navigate to="/login"/>
     )
   }
+  console.log({user});
   return (
   <>
    <div className="centered-div">
-     <p> Hello {user}! </p>
+     <p> Hello {user.username}! </p>
      <div className="home-grid">
        <div className="img-button-cont">
          <img src={ChefHat}/>
-         <button className="btn"> AI Sous Chef </button>
+         <button
+             className="btn"
+             onClick={navToSousChef}>
+           AI Sous Chef
+         </button>
        </div>
        <div className="img-button-cont">
          <img src={Nutrition}/>
-         <button className="btn"> Nutritionist </button>
+         <button
+             className="btn"
+             onClick={navToNutritionist}>
+           Nutritionist
+       </button>
        </div>
        <div className="img-button-cont">
          <img src={Recipe}/>
-         <button className="btn"> Recipes </button>
+         <button
+             className="btn"
+             onClick={navToRecipes}>
+           Recipes
+       </button>
        </div>
        <div className="img-button-cont">
          <img src={Inventory}/>
-         <button className="btn"> Inventory </button>
+         <button
+             className="btn"
+             onClick={navToInventory}>
+           Inventory
+         </button>
        </div>
      </div>
    </div>
