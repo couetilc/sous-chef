@@ -34,6 +34,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Install Node.js 24.9.0 from official binaries
 RUN ARCH="$(dpkg --print-architecture)" \
+    && case "${ARCH}" in \
+        amd64) ARCH="x64" ;; \
+        arm64) ARCH="arm64" ;; \
+        *) echo "Unsupported architecture: ${ARCH}" && exit 1 ;; \
+    esac \
     && curl -fsSL https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-${ARCH}.tar.xz -o node.tar.xz \
     && tar -xJf node.tar.xz -C /usr/local --strip-components=1 \
     && rm node.tar.xz
