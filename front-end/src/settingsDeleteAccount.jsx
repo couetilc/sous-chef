@@ -15,7 +15,14 @@ const DeleteComponent = () => {
 
 
         api.login({username, password})
-        .then((result) => alert(`${result.ok}`))
+        .then((result) => {
+            console.log(result);
+            if (result.id) {
+                alert('Successful login: Deleting account...');
+            } else {
+                alert('Invalid Credentials');
+            }
+        })
         .catch((error) => console.error(error))
 
         dialog.close();
