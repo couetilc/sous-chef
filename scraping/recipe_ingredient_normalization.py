@@ -15,44 +15,57 @@ from rapidfuzz import process, fuzz
 from nltk.stem import WordNetLemmatizer
 from pathlib import Path
 
-try:
-    nltk.data.find("corpora/wordnet")
-except LookupError:
-    nltk.download("wordnet")
-
-# File paths
+# --- CONFIGURATION ---
 RECIPE_FILE = Path("scraping/recipe_scraping/recipe_csv_files/recipes.csv")
 INGREDIENT_FILE = Path("scraping/ingredient_scraping/ingredient_csv_files/legacy_cleaned_ingredients.csv")
 OUTPUT_FILE = Path("scraping/recipe_ingredient_matches.csv")
-N_RECIPES = 20  # only process the first 20
+N_RECIPES = 20
+MIN_SCORE = 0
 
-# Normalizer
 lemmatizer = WordNetLemmatizer()
 
-def normalize(text):
-    if pd.isna(text):
+STOPWORDS = [
+    "cup", "cups", "tablespoon", "tablespoons", "tbsp", "teaspoon", "teaspoons", "tsp",
+    "ounce", "ounces", "oz", "gram", "grams", "g", "kg", "pound", "pounds", "lb", "lbs",
+    "liter", "liters", "ml", "quart", "quarts", "gallon", "gallons",
+    "chopped", "minced", "diced", "sliced", "thinly", "boneless", "skinless", "fresh",
+    "ground", "large", "small", "medium", "raw", "frozen", "cooked", "dry", "dried",
+    "whole", "peeled", "seeded", "grated", "crushed", "drained", "to", "taste", "and", "of", "with", "the"
+]
+
+def normalize(text: str) -> str:
+    """Normalize text by cleaning and lemmatizing."""
+    if pd.isna(text) or not isinstance(text, str):
         return ""
     text = text.lower()
-    text = re.sub(r'\([^)]*\)', '', text)       # remove parentheses
-    text = re.sub(r'[^a-z\s]', '', text)        # remove punctuation/numbers
-    text = re.sub(r'\b(?:cup|cups|tablespoon|tablespoons|teaspoon|teaspoons|ounce|ounces|pound|pounds|large|small|medium|chopped|sliced|fresh|organic|dried|boneless|skinless|ground|of|and|with|the)\b', '', text)
-    tokens = [lemmatizer.lemmatize(w.strip()) for w in text.split() if w.strip()]
+    text = re.sub(r'\([^)]*\)', '', text)
+    text = re.sub(r'\d+(\.\d+)?|\d+/\d+|½|¼|¾', '', text)
+    text = re.sub(r'[^a-z\s]', ' ', text)
+    tokens = [
+        lemmatizer.lemmatize(w.strip())
+        for w in text.split()
+        if w.strip() and w.strip() not in STOPWORDS
+    ]
     return " ".join(sorted(tokens))
+
+def core_phrase(ingredient_name: str) -> str:
+    """Return only the first two comma-separated parts for matching context."""
+    parts = [p.strip() for p in ingredient_name.split(",") if p.strip()]
+    return ", ".join(parts[:2])  # Keep only first two components
 
 # --- LOAD DATA ---
 recipes_df = pd.read_csv(RECIPE_FILE)
 ingredients_df = pd.read_csv(INGREDIENT_FILE)
 
-# Get only the first 20 recipes
 recipes_df = recipes_df.head(N_RECIPES)
 
-# Extract ingredient descriptions
 ingredient_names = ingredients_df["description"].astype(str).tolist()
-ingredient_norms = [normalize(n) for n in ingredient_names]
+ingredient_core = [core_phrase(name) for name in ingredient_names]
+ingredient_norms = [normalize(n) for n in ingredient_core]
 
-print(f"Loaded {len(recipes_df)} recipes and {len(ingredient_names)} ingredient descriptions.")
+print(f"Loaded {len(recipes_df)} recipes and {len(ingredient_names)} ingredients.")
 
-# --- MATCHING FUNCTION ---
+# --- MATCH FUNCTION ---
 def find_best_match(ingredient):
     normalized = normalize(ingredient)
     if not normalized:
@@ -60,11 +73,12 @@ def find_best_match(ingredient):
     match, score, _ = process.extractOne(
         normalized,
         ingredient_norms,
-        scorer=fuzz.token_sort_ratio
+        scorer=fuzz.token_set_ratio
     )
-    return pd.Series([ingredient_names[ingredient_norms.index(match)], score])
+    matched_name = ingredient_names[ingredient_norms.index(match)] if score >= MIN_SCORE else ""
+    return pd.Series([matched_name, score])
 
-# --- PROCESS EACH RECIPE ---
+# --- PROCESS ---
 matches = []
 for i, row in recipes_df.iterrows():
     recipe_ingredients = str(row.get("ingredients", "")).split("|")
@@ -81,9 +95,9 @@ for i, row in recipes_df.iterrows():
             "match_score": score
         })
 
-# --- SAVE RESULTS ---
+# --- SAVE ---
 matches_df = pd.DataFrame(matches)
 matches_df.to_csv(OUTPUT_FILE, index=False)
 
-print(f"\n✅ Matching complete! Saved results to '{OUTPUT_FILE}'")
+print(f"\n✅ Matching complete! Saved to '{OUTPUT_FILE}'")
 print(matches_df.head(10))
