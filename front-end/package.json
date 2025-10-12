@@ -9,7 +9,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "vitest"
+    "test": "vitest",
+    "test:integration": "vitest --run src/useApi.integration.test.jsx"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.9.1",
