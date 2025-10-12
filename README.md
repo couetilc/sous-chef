@@ -44,6 +44,18 @@ The React files will live in `.jsx` files in `sous-chef/front-end/src/`. Our
 front-end assets are managed by [Vite](https://vite.dev/), a program that helps
 us develop, manage and compile any files for our front-end project.
 
+**Testing:**
+```bash
+# Run unit tests
+docker compose run frontend pnpm test
+
+# Run integration tests (requires backend running)
+docker compose up -d backend db
+docker compose run frontend pnpm test:integration
+```
+
+See [front-end/README.md](front-end/README.md) for detailed testing documentation.
+
 ### Back-end
 
 The back-end package manager is [`pip`](https://pypi.org/project/pip/), which

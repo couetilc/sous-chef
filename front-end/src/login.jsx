@@ -10,12 +10,6 @@ import { useApi } from './useApi.jsx'
 const userCheck = "user";
 const pwCheck = "pw";
 
-function navToCreate() {
-  //navigate to Create Account page
-  const navigate = useNavigate;
-  return navigate("/create-account");
-}
-
 export default function Login(props) {
   let user = props.user;
   let setUser = props.setUser;
@@ -69,7 +63,7 @@ export default function Login(props) {
         <button className="button"
                 type="button"
                 style={{backgroundColor: 'tomato', color: 'white'}}
-                onClick={navToCreate}>
+                onClick={() => navigate("/create-account")}>
           Create Account
         </button>
         <div style={{width: '10px'}}></div>
