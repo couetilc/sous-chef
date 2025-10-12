@@ -24,6 +24,7 @@ services:
       dockerfile: Dockerfile
     volumes:
       - ./back-end:/app
+      - ./scraping:/scraping
     ports:
       - "8000:8000"
     depends_on:
