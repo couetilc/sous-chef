@@ -2,7 +2,7 @@ import { createContext, useState, useEffect, useContext } from 'react';
 
 const ApiContext = createContext();
 
-class Api {
+export class Api {
   READY_STATES = {
     YES: 0,
     NO: 1,
@@ -12,38 +12,63 @@ class Api {
   constructor() {
     this.csrfToken = undefined;
     this.ready_state = this.READY_STATES.NO;
-    this.promise = new Promise((resolve, reject) => {
-      this.resolve = resolve;
-      this.reject = reject;
-    })
+    this.initializationPromise = null;
   }
 
   isReady() {
-    return this.ready_state == this.READY_STATES.YES;
+    return this.ready_state === this.READY_STATES.YES;
   }
 
   async becomeReady() {
-    if (this.ready_state == this.READY_STATES.NO) {
-      this.ready_state = this.READY_STATES.PENDING;
-      const response = await fetch('/api/csrf/', { credentials: 'include' })
-        .then(res => res.json());
+    // If already ready, do nothing
+    if (this.ready_state === this.READY_STATES.YES) {
+      return;
+    }
 
-      if (response.csrfToken) {
-        this.csrfToken = response.csrfToken;
-        this.ready_state = this.READY_STATES.YES;
-        this.resolve();
-      } else {
+    // If currently pending, wait for the existing initialization
+    if (this.ready_state === this.READY_STATES.PENDING && this.initializationPromise) {
+      return this.initializationPromise;
+    }
+
+    // Start new initialization
+    this.ready_state = this.READY_STATES.PENDING;
+    this.initializationPromise = (async () => {
+      try {
+        const response = await fetch('/api/csrf/', { credentials: 'include' })
+          .then(res => res.json());
+
+        if (response.csrfToken) {
+          this.csrfToken = response.csrfToken;
+          this.ready_state = this.READY_STATES.YES;
+        } else {
+          this.ready_state = this.READY_STATES.NO;
+        }
+      } catch (error) {
         this.ready_state = this.READY_STATES.NO;
-        this.reject();
+        throw error;
+      } finally {
+        this.initializationPromise = null;
       }
+    })();
+
+    return this.initializationPromise;
+  }
+
+  async ensureReady() {
+    if (!this.isReady()) {
+      await this.becomeReady();
     }
   }
 
   async fetch(resource, options) {
+    // Ensure we have a CSRF token before making the request
+    await this.ensureReady();
+
     if (options.body && !options.method) {
       options.method = 'POST'
     }
-    return this.promise.then(() => fetch(resource, {
+
+    return fetch(resource, {
       ...options,
       headers: {
         ...options.headers,
@@ -51,7 +76,7 @@ class Api {
         'X-CSRFToken': this.csrfToken,
       },
       credentials: 'include',
-    })).then(async (res) => {
+    }).then(async (res) => {
       const data = await res.json();
       if (!res.ok) {
         throw { status: res.status, data };
