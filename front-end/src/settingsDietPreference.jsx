@@ -20,7 +20,7 @@ const DietComponent = () => {
         api.listRestricted()
             .then((result) => {
                 console.log(result)
-                setSelectedIngredients(result)
+                setSelectedIngredients(result.map(({id, name}) => (id) ))
             })
     }, [])
 
@@ -32,8 +32,11 @@ const DietComponent = () => {
     function publishRestrictions(e) {
         e.preventDefault();
 
-        const form = e.target;
-        const formData = new FormData(form);
+        // There is probably some better way to create the maps but I don't know it
+        const newIngredientsMap = new Map();
+        selectedIngredients.forEach((ingredientId) => {
+            newIngredientsMap.set(ingredientId, true)
+        });
     }
 
     return (
@@ -70,6 +73,7 @@ const DietComponent = () => {
                                 const options = [...e.target.selectedOptions]
                                 const values = options.map(option => option.value)
                                 setSelectedIngredients(values)
+                                console.log(values)
                             }}
                         >
                             {
