@@ -1,9 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './style.css';
 import SousChefLogo from './souschef-logo.png';
-
+import { useApi } from './useApi';
 
 const DietComponent = () => {
+    const api = useApi();
+    // Fetch and populate ingredient list
+    const [ingredients, setIngredients] = useState([]);
+    useEffect(() => {
+        api.listIngredients()
+            .then((result) => {
+                setIngredients(result)
+            }).then(() => {
+                console.log(ingredients)
+            }
+            )
+    }, [])
+
     function publish(formData) {
 
     }
@@ -31,10 +44,11 @@ const DietComponent = () => {
                         {/*TODO use react mapping to list these items after fetching*/}
 
                         <select name="selectedIngredient" multiple={true}>
-                            <option value="chicken">Chicken</option>
-                            <option value="potatoes">Potatoes</option>
-                            <option value="milk">Milk</option>
-                            <option value="protein">Peanuts</option>
+                            {
+                                ingredients.map((ingredient) =>
+                                    <option>{ingredient.name}</option>
+                                )
+                            }
                         </select>
                     </label>
                 </p>
@@ -45,5 +59,5 @@ const DietComponent = () => {
         </div>
     );
 };
-
+// <option value="chicken">Chicken</option>
 export default DietComponent;

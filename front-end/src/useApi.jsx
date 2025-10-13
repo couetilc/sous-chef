@@ -103,7 +103,13 @@ export class Api {
       }),
     })
   }
+
+  async listIngredients() {
+    return this.fetch('/api/ingredients/', {});
+  }
 }
+
+
 
 const createApi = () => new Api();
 
@@ -116,11 +122,11 @@ export function ApiProvider(props) {
     }
   })
 
-	return (
-		<ApiContext value={context}>
+  return (
+    <ApiContext value={context}>
       {props.children}
-		</ApiContext>
-	)
+    </ApiContext>
+  )
 }
 
 export function useApi() {
