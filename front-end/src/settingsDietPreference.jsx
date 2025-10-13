@@ -5,32 +5,49 @@ import { useApi } from './useApi';
 
 const DietComponent = () => {
     const api = useApi();
-    // Fetch and populate ingredient list
+
+    // Fetch and populate ingredient list, selected diets/ingredients
     const [ingredients, setIngredients] = useState([]);
+    const [selectedDiets, setSelectedDiets] = useState([]);
+    const [selectedIngredients, setSelectedIngredients] = useState([]);
+
     useEffect(() => {
         api.listIngredients()
             .then((result) => {
+                console.log(result)
                 setIngredients(result)
-            }).then(() => {
-                console.log(ingredients)
-            }
-            )
+            });
+        api.listRestricted()
+            .then((result) => {
+                console.log(result)
+                setSelectedIngredients(result)
+            })
     }, [])
 
-    function publish(formData) {
 
+    function publishDiet(e) {
+
+    }
+
+    function publishRestrictions(e) {
+        e.preventDefault();
+
+        const form = e.target;
+        const formData = new FormData(form);
     }
 
     return (
         <div className="diet">
-            <form action={publish}>
+            <form onSubmit={publishDiet}>
                 <p>
                     <label>
                         Select diets: <br />
-
-                        {/*TODO use react mapping to list these items after fetching*/}
-
-                        <select name="selectedDiet" multiple={true}>
+                        <select
+                            name="dietSelect"
+                            multiple={true}
+                            value={selectedDiets}
+                            onChange={e => setSelectedDiets(e.target.value)}
+                        >
                             <option value="vegetarian">Vegetarian</option>
                             <option value="vegan">Vegan</option>
                             <option value="gf">Gluten-Free</option>
@@ -38,22 +55,33 @@ const DietComponent = () => {
                     </label>
                 </p>
                 <p>
+                    <button type='submit'>Update Diet</button>
+                </p>
+            </form>
+            <form onSubmit={publishRestrictions}>
+                <p>
                     <label>
                         Select ingredients: <br />
-
-                        {/*TODO use react mapping to list these items after fetching*/}
-
-                        <select name="selectedIngredient" multiple={true}>
+                        <select
+                            name="ingredientSelect"
+                            multiple={true}
+                            value={selectedIngredients}
+                            onChange={e => {
+                                const options = [...e.target.selectedOptions]
+                                const values = options.map(option => option.value)
+                                setSelectedIngredients(values)
+                            }}
+                        >
                             {
                                 ingredients.map((ingredient) =>
-                                    <option>{ingredient.name}</option>
+                                    <option value={ingredient.id}>{ingredient.name}</option>
                                 )
                             }
                         </select>
                     </label>
                 </p>
                 <p>
-                    <button type='submit'>Update Diet</button>
+                    <button type='submit'>Update Ingredients</button>
                 </p>
             </form>
         </div>

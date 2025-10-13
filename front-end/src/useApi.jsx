@@ -107,6 +107,10 @@ export class Api {
   async listIngredients() {
     return this.fetch('/api/ingredients/', {});
   }
+
+  async listRestricted() {
+    return this.fetch('/api/ingredients/restricted', {})
+  }
 }
 
 
