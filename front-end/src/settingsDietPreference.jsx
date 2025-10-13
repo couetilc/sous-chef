@@ -10,6 +10,7 @@ const DietComponent = () => {
     const [ingredients, setIngredients] = useState([]);
     const [selectedDiets, setSelectedDiets] = useState([]);
     const [selectedIngredients, setSelectedIngredients] = useState([]);
+    const [fetchedSelectedIngredients, setFetchedSelectedIngredients] = useState([]);
 
     useEffect(() => {
         api.listIngredients()
@@ -20,8 +21,10 @@ const DietComponent = () => {
         api.listRestricted()
             .then((result) => {
                 console.log(result)
-                setSelectedIngredients(result.map(({id, name}) => (id) ))
-            })
+                const fetchedList = result.map(({id, name}) => (id) )
+                setSelectedIngredients(fetchedList);
+                setFetchedSelectedIngredients(fetchedList);
+                })
     }, [])
 
 
@@ -32,11 +35,32 @@ const DietComponent = () => {
     function publishRestrictions(e) {
         e.preventDefault();
 
+        // Create maps for selected and fetched ingredients to find diff group
         // There is probably some better way to create the maps but I don't know it
         const newIngredientsMap = new Map();
         selectedIngredients.forEach((ingredientId) => {
             newIngredientsMap.set(ingredientId, true)
         });
+        const oldIngredientsMap = new Map();
+        fetchedSelectedIngredients.forEach((ingredientId) => {
+            oldIngredientsMap.set(ingredientId, true)
+        });
+
+        // Create diff lists
+        const addedIngredients = [];
+        selectedIngredients.forEach((ingredientId) => {
+            if (!oldIngredientsMap.has(ingredientId)) {
+                addedIngredients.concat(ingredientId);
+            }
+        });
+
+        const removedIngredients = []
+        fetchedSelectedIngredients.forEach((ingredientId) => {
+            if (!newIngredientsMap.has(ingredientId)) {
+                removedIngredients.concat(ingredientId);
+            }
+        });
+
     }
 
     return (
