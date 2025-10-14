@@ -16,4 +16,5 @@ urlpatterns = [
     # Ingredient endpoints
     path('ingredients/', views.IngredientList.as_view(), name='ingredient-list'),
     path('ingredients/restricted/', views.DietaryIngredientList.as_view(), name='restricted-ingredients'),
+    path('ingredients/updateRestricted/', views.UpdateDietaryIngredientList.as_view(), name='restricted-ingredients-update')
 ]

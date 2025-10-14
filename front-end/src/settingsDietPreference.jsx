@@ -20,7 +20,6 @@ const DietComponent = () => {
             });
         api.listRestricted()
             .then((result) => {
-                console.log(result)
                 const fetchedList = result.map(({id, name}) => (id) )
                 setSelectedIngredients(fetchedList);
                 setFetchedSelectedIngredients(fetchedList);
@@ -41,6 +40,7 @@ const DietComponent = () => {
         selectedIngredients.forEach((ingredientId) => {
             newIngredientsMap.set(ingredientId, true)
         });
+
         const oldIngredientsMap = new Map();
         fetchedSelectedIngredients.forEach((ingredientId) => {
             oldIngredientsMap.set(ingredientId, true)
@@ -50,16 +50,22 @@ const DietComponent = () => {
         const addedIngredients = [];
         selectedIngredients.forEach((ingredientId) => {
             if (!oldIngredientsMap.has(ingredientId)) {
-                addedIngredients.concat(ingredientId);
+                addedIngredients.push(ingredientId);
             }
         });
 
         const removedIngredients = []
         fetchedSelectedIngredients.forEach((ingredientId) => {
             if (!newIngredientsMap.has(ingredientId)) {
-                removedIngredients.concat(ingredientId);
+                removedIngredients.push(ingredientId);
             }
         });
+
+        // Forward diff lists to server
+        api.postDietIngredients({added: addedIngredients, removed: removedIngredients});
+
+
+        // Update selected items
 
     }
 
@@ -97,7 +103,6 @@ const DietComponent = () => {
                                 const options = [...e.target.selectedOptions]
                                 const values = options.map(option => option.value)
                                 setSelectedIngredients(values)
-                                console.log(values)
                             }}
                         >
                             {
