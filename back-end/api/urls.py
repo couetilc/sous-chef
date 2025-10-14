@@ -13,4 +13,7 @@ urlpatterns = [
     path('users/', views.UserList.as_view()),
     path('users/<pk>/', views.UserDetails.as_view()),
     path('groups/', views.GroupList.as_view()),
+    # Ingredient endpoints
+    path('ingredients/', views.IngredientList.as_view(), name='ingredient-list'),
+    path('ingredients/restricted/', views.DietaryIngredientList.as_view(), name='restricted-ingredients'),
 ]
