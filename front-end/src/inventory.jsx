@@ -10,6 +10,7 @@ export default function Inventory(props) {
 
   return (
     <div className="centered-div">
+      <h1> INVENTORY </h1>
       <p> Welcome to the Inventory Interface page!</p>
       <p> This is still under development, please come back later!</p>
     </div>
