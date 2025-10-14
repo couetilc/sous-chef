@@ -5,11 +5,13 @@ import ChefHat from './chefhat.png';
 import Nutrition from './nutrition.png';
 import Recipe from './recipe.png';
 import Inventory from './inventory.png';
+import { useUser } from './useUser.jsx'
 
 // home page, only accesssed after a user has logged in
 
 export default function Home(props) {
   const navigate = useNavigate();
+  const { user } = useUser();
 
   // navigation elements
   function navToSousChef() {
@@ -32,13 +34,8 @@ export default function Home(props) {
     return navigate("/logout/");
   }
 
-  let user = props.user;
-  let setUser = props.setUser;
   // if user is null, no user is logged in, redirect to the login page
-  if ( user == null ) {
-    console.log("null user, redirecting to login page");
-    //alert("You are not logged in! Click ok to go to the Login Page");
-    //return navigate("/login");
+  if (!user) {
     return (
       <Navigate to="/login"/>
     )

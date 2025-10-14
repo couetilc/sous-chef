@@ -1,12 +1,13 @@
 import { useEffect } from 'react';
 import { useApi } from './useApi';
 import { useNavigate } from 'react-router';
+import { useUser } from './useUser';
 
 export default function LogoutPage() {
-  const api = useApi();
+  const { logout } = useUser();
   const navigate = useNavigate();
   useEffect(() => {
-    api.logout().then(() => {
+    logout().then(() => {
       navigate('/');
     });
   }, [])
