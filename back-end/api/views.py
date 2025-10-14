@@ -139,8 +139,19 @@ class UpdateDietaryIngredientList(APIView):
         added = request.data.get('added')
         removed = request.data.get('removed')
 
+        print(added)
+        print(removed)
+
         addedIngredients = Ingredient.objects.filter(id__in=added)
-        # for ingredient in addedIngredients:
-            # DietaryIngredient.objects.create()
+        for ingredient in addedIngredients:
+            DietaryIngredient.objects.get_or_create(ingredient=ingredient, user=self.request.user)
         
+        removedIngredients = Ingredient.objects.filter(id__in=removed)
+        for ingredient in removedIngredients:
+            target = DietaryIngredient.objects.filter(ingredient=ingredient, user=self.request.user)
+            target.delete()
+
+
         print(DietaryIngredient.objects.all())
+
+        return Response({'message': 'Successfully updated ingredients'}, status=status.HTTP_200_OK)

@@ -20,10 +20,10 @@ const DietComponent = () => {
             });
         api.listRestricted()
             .then((result) => {
-                const fetchedList = result.map(({id, name}) => (id) )
+                const fetchedList = result.map(({ id, name }) => (id))
                 setSelectedIngredients(fetchedList);
                 setFetchedSelectedIngredients(fetchedList);
-                })
+            })
     }, [])
 
 
@@ -38,7 +38,7 @@ const DietComponent = () => {
         // There is probably some better way to create the maps but I don't know it
         const newIngredientsMap = new Map();
         selectedIngredients.forEach((ingredientId) => {
-            newIngredientsMap.set(ingredientId, true)
+            newIngredientsMap.set(parseInt(ingredientId, 10), true)
         });
 
         const oldIngredientsMap = new Map();
@@ -49,8 +49,10 @@ const DietComponent = () => {
         // Create diff lists
         const addedIngredients = [];
         selectedIngredients.forEach((ingredientId) => {
-            if (!oldIngredientsMap.has(ingredientId)) {
-                addedIngredients.push(ingredientId);
+            // IDs in selected ingredients are stored as strings
+            const intID = parseInt(ingredientId, 10)
+            if (!oldIngredientsMap.has(intID)) {
+                addedIngredients.push(intID);
             }
         });
 
@@ -61,11 +63,21 @@ const DietComponent = () => {
             }
         });
 
+        console.log(oldIngredientsMap)
+        console.log(newIngredientsMap)
+        console.log(addedIngredients)
+        console.log(removedIngredients)
+
         // Forward diff lists to server
-        api.postDietIngredients({added: addedIngredients, removed: removedIngredients});
-
-
-        // Update selected items
+        api.postDietIngredients({ added: addedIngredients, removed: removedIngredients })
+            .then((result) => {
+                return api.listRestricted()
+            })
+            .then((result) => {
+                const fetchedList = result.map(({ id, name }) => (id))
+                setSelectedIngredients(fetchedList);
+                setFetchedSelectedIngredients(fetchedList);
+            })
 
     }
 
