@@ -44,6 +44,18 @@ The React files will live in `.jsx` files in `sous-chef/front-end/src/`. Our
 front-end assets are managed by [Vite](https://vite.dev/), a program that helps
 us develop, manage and compile any files for our front-end project.
 
+**Testing:**
+```bash
+# Run unit tests
+docker compose run frontend pnpm test
+
+# Run integration tests (requires backend running)
+docker compose up -d backend db
+docker compose run frontend pnpm test:integration
+```
+
+See [front-end/README.md](front-end/README.md) for detailed testing documentation.
+
 ### Back-end
 
 The back-end package manager is [`pip`](https://pypi.org/project/pip/), which
@@ -87,7 +99,23 @@ psql -h localhost -p 5432 -U dbuser -d api
 \d
 ```
 
-Run load_data.py
+#### Loading Data
+
+**Load Ingredients:**
+```sh
+# Load canonical ingredients from CSV
+docker compose run backend python manage.py load_ingredients
+
+# Preview ingredients without loading (dry-run)
+docker compose run backend python manage.py load_ingredients --dry-run
+
+# Load from custom CSV path
+docker compose run backend python manage.py load_ingredients --csv-path /path/to/file.csv
+```
+
+This command loads 2,211 unique ingredients from `foundation_cleaned_ingredients.csv` with normalized names (title case, trimmed whitespace). The script is idempotent and can be run multiple times safely.
+
+**Load Other Data:**
 ```sh
 chmod +x scraping/load_data.py
 

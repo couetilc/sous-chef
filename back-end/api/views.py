@@ -8,7 +8,8 @@ from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.contrib.auth.models import User, Group
-from .serializers import UserSerializer, GroupSerializer, UserRegistrationSerializer
+from .models import Ingredient, DietaryIngredient
+from .serializers import UserSerializer, GroupSerializer, UserRegistrationSerializer, IngredientSerializer
 
 # Create your views here.
 def index(request):
@@ -109,3 +110,24 @@ class GroupList(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
     queryset = Group.objects.all()
     serializer_class = GroupSerializer
+
+class IngredientList(generics.ListAPIView):
+    """List all available ingredients in the database"""
+    permission_classes = [permissions.IsAuthenticated]
+    queryset = Ingredient.objects.all()
+    serializer_class = IngredientSerializer
+
+
+class DietaryIngredientList(generics.ListAPIView):
+    """List restricted ingredients for the authenticated user"""
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = IngredientSerializer
+
+    def get_queryset(self):
+        """Filter dietary ingredients to only those restricted by the current user"""
+        # Get the DietaryIngredient objects for the current user, then extract just the Ingredient objects
+        dietary_ingredient_ids = DietaryIngredient.objects.filter(
+            user=self.request.user
+        ).values_list('ingredient_id', flat=True)
+
+        return Ingredient.objects.filter(id__in=dietary_ingredient_ids)

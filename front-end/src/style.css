@@ -69,6 +69,38 @@
   z-index: 2;
 }
 
+
+.settingsGrid {
+  padding: 1em;
+  gap: 10px;
+  background-color:coral;
+  display: grid;
+  grid-template-areas: 
+  'diet pass pass'
+  'diet pass pass'
+  'diet delete delete'
+  ;
+}
+
+.settingsGrid > div {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color:white;
+  border: 3px solid black;
+  padding: 1em;
+}
+
+.settingsGrid > div.diet {
+  grid-area: diet;
+  justify-content: left;
+}
+
+.settingsGrid > div.pass{
+  grid-area: pass;
+}
+
+
 .settingsGrid > div.delete{
   grid-area: delete;
 }
@@ -120,6 +152,9 @@
   border-width: 2px;
   border-style: solid;
   z-index: 2;
+}
+.img-button-cont .btn:hover {
+  cursor: pointer;
 }
 
 .header-banner {
