@@ -23,9 +23,13 @@ export default function Home(props) {
   function navToRecipes() {
     return navigate("/recipes");
   }
- 
+
   function navToInventory() {
     return navigate("/inventory");
+  }
+
+  function navToLogout() {
+    return navigate("/logout/");
   }
 
   let user = props.user;

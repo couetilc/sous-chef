@@ -103,6 +103,10 @@ export class Api {
       }),
     })
   }
+
+  async logout() {
+    return this.fetch('/api/logout/', { method: "POST" })
+  }
 }
 
 const createApi = () => new Api();
