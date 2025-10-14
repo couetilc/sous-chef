@@ -34,7 +34,6 @@ export default function Login(props) {
     }
     api.login({username: userText, password: pwElement.value}).then((response) =>{
       if (!response.error) {
-        alert(JSON.stringify(response))
         setUser(response);
         navToHome();
       }
