@@ -8,7 +8,7 @@ import Home from './home';
 
 import { BrowserRouter, Routes, Route, Link } from 'react-router';
 
-const SettingsPage = (props) => {
+const SettingsPage = () => {
     return (
             <div>
                 <div>

@@ -1,4 +1,4 @@
-import { createContext, useState, useEffect, useContext } from 'react';
+import { createContext, useState, useEffect, useContext, useMemo } from 'react';
 
 const ApiContext = createContext();
 
@@ -60,7 +60,7 @@ export class Api {
     }
   }
 
-  async fetch(resource, options) {
+  async fetch(resource, options = {}) {
     // Ensure we have a CSRF token before making the request
     await this.ensureReady();
 
@@ -120,23 +120,33 @@ export class Api {
       })
     }) 
   }
+
+  async logout() {
+    return this.fetch('/api/logout/', { method: "POST" })
+  }
+
+  async getCurrentUser() {
+    return this.fetch('/api/user/')
+  }
 }
 
-
-
-const createApi = () => new Api();
-
 export function ApiProvider(props) {
-  const [context, setContext] = useState(createApi);
+  const api = useMemo(() => new Api(), []);
+  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    if (!context.isReady()) {
-      context.becomeReady();
+    if (!api.isReady()) {
+      api.becomeReady().then(() => { setIsReady(true) });
     }
   })
 
-  return (
-    <ApiContext value={context}>
+
+  const context = useMemo(() => {
+    return { api, isReady };
+  }, [isReady, api]);
+
+	return (
+		<ApiContext value={context}>
       {props.children}
     </ApiContext>
   )

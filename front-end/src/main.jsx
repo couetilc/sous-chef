@@ -11,18 +11,19 @@ import Recipes from './recipesPage.jsx';
 import Inventory from './inventory.jsx';
 import SettingsPage from './settingsPage.jsx';
 import CreateAccount from './createAccount.jsx';
+import HeaderBanner from './headerBanner.jsx';
+import LogoutPage from './logoutPage';
+import PrivatePage from './privatePage';
 
 import { BrowserRouter, Routes, Route, Navigate } from "react-router";
 import { Link } from 'react-router';
 import { useNavigate, useLocation } from 'react-router';
 import { StrictMode } from 'react';
 import { ApiProvider } from './useApi';
-
+import { UserProvider, useUser } from './useUser';
 
 export default function App(props) {
   const navigate = useNavigate();
-
-  const [curUser, setUser] = useState(null);
 
   function IsLoggedIn() {
     let isLogged = false;
@@ -37,52 +38,31 @@ export default function App(props) {
     return navigate("/login");
   }
 
-  //find the url path at which the user is at, so that the navigation banner
-  //can be hidden on login pages: "/login" and "/" ("/" redirects to login component)
-  const curLocation = useLocation();
-
-  function HeaderBanner() {
-
-    if ( curLocation.pathname.localeCompare("/") == 0 ||
-         curLocation.pathname.localeCompare("/login") == 0 ||
-         curLocation.pathname.localeCompare("/create-account") == 0 ) {
-      return (
-        <img src={SousChefLogo} height="300px"/>
-      )
-    }
-    return (
-      <header className="header-banner">
-        <img src={SousChefLogo} width="150px"/>
-        <nav>
-          <ul>
-            <li><a href="/home">Home</a></li>
-            <li><a href="/sous-chef">Sous Chef</a></li>
-            <li><a href="/nutritionist">Nutritionist</a></li>
-            <li><a href="/recipes">Recipes</a></li>
-            <li><a href="/inventory">Inventory</a></li>
-            <li><a href="/settings">Account Settings</a></li>
-          </ul>
-        </nav>
-      </header>
-    )
-  }
-
+  const home = <PrivatePage><Home /></PrivatePage>
+  const souschef = <PrivatePage><SousChef /></PrivatePage>
+  const nutritionist = <PrivatePage><Nutritionist /></PrivatePage>
+  const recipes = <PrivatePage><Recipes /></PrivatePage>
+  const inventory = <PrivatePage><Inventory /></PrivatePage>
+  const settings = <PrivatePage><SettingsPage /></PrivatePage>
 
   return (
     <>
       <div className="app-container">
         <HeaderBanner />
         <Routes>
-          <Route path="login" element={<Login user={curUser} setUser={setUser}/>} />
-          <Route path="create-account" element={<CreateAccount user={curUser} setUser={setUser}/>} />
-          <Route path="home" element={<Home user={curUser} setUser={setUser}/>} />
-          <Route path="sous-chef" element={<SousChef user={curUser} setUser={setUser}/>} />
-          <Route path="nutritionist" element={<Nutritionist user={curUser} setUser={setUser}/>} />
-          <Route path="recipes" element={<Recipes user={curUser} setUser={setUser}/>} />
-          <Route path="inventory" element={<Inventory user={curUser} setUser={setUser} />} />
-          <Route path="settings" element={<SettingsPage user={curUser} setUser={setUser} />} />
-          // check if user is already logged in
-          <Route path="/" element={<Login user={curUser} setUser={setUser}/>} />
+          {/* private pages */}
+          <Route path="home" element={home} />
+          <Route path="sous-chef" element={souschef} />
+          <Route path="nutritionist" element={nutritionist} />
+          <Route path="recipes" element={recipes} />
+          <Route path="inventory" element={inventory} />
+          <Route path="settings" element={settings} />
+
+          {/* public pages */}
+          <Route path="login" element={<Login />} />
+          <Route path="create-account" element={<CreateAccount />} />
+          <Route path="logout" element={<LogoutPage />} />
+          <Route path="/" element={<Login />} />
         </ Routes>
       </div>
     </>
@@ -94,7 +74,9 @@ root.render(
   <StrictMode>
   <BrowserRouter>
   <ApiProvider>
+  <UserProvider>
     <App />
+  </UserProvider>
   </ApiProvider>
   </BrowserRouter>
   </StrictMode>

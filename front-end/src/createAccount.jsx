@@ -6,7 +6,7 @@ import './style.css';
 
 export default function CreateAccount(props) {
   const navigate = useNavigate();
-  const api = useApi();
+  const { api } = useApi();
   const [serverError, setServerError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -29,8 +29,6 @@ export default function CreateAccount(props) {
         email: data.email,
         password: data.password,
         password_confirm: data.password_confirm,
-        first_name: data.first_name || '',
-        last_name: data.last_name || ''
       });
 
       // If registration successful, redirect to login page
@@ -165,40 +163,6 @@ export default function CreateAccount(props) {
               />
             </label>
             {errors.password_confirm && <div style={errorStyle}>{errors.password_confirm.message}</div>}
-          </div>
-
-          <div style={{ marginBottom: '15px' }}>
-            <label>
-              First Name:
-              <br />
-              <input
-                {...register('first_name', {
-                  maxLength: {
-                    value: 150,
-                    message: 'First name must be 150 characters or less'
-                  }
-                })}
-                style={{ marginTop: '5px' }}
-              />
-            </label>
-            {errors.first_name && <div style={errorStyle}>{errors.first_name.message}</div>}
-          </div>
-
-          <div style={{ marginBottom: '15px' }}>
-            <label>
-              Last Name:
-              <br />
-              <input
-                {...register('last_name', {
-                  maxLength: {
-                    value: 150,
-                    message: 'Last name must be 150 characters or less'
-                  }
-                })}
-                style={{ marginTop: '5px' }}
-              />
-            </label>
-            {errors.last_name && <div style={errorStyle}>{errors.last_name.message}</div>}
           </div>
 
           <div style={{ fontSize: '0.9em', marginBottom: '15px' }}>

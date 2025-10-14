@@ -16,13 +16,13 @@ df = pd.read_csv(INPUT_CSV)
 
 df.columns = df.columns.str.strip()
 
-# Columns that must all be present (non-empty)
+# Only choose columns with non-empty categories
 nutrient_cols = ["calories", "protein_g", "fat_g", "carbs_g"]
 
 for col in nutrient_cols:
     df[col] = pd.to_numeric(df[col], errors="coerce")
 
-# Option 1️⃣: Drop only rows missing *all* nutrients
+# Drop rows missing all ingredients
 clean_df = df.dropna(subset=nutrient_cols, how="all")
 
 # Save the cleaned dataset

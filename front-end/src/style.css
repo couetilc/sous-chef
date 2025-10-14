@@ -153,6 +153,9 @@
   border-style: solid;
   z-index: 2;
 }
+.img-button-cont .btn:hover {
+  cursor: pointer;
+}
 
 .header-banner {
   display: flex;

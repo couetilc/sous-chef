@@ -115,11 +115,13 @@ docker compose run backend python manage.py load_ingredients --csv-path /path/to
 
 This command loads 2,211 unique ingredients from `foundation_cleaned_ingredients.csv` with normalized names (title case, trimmed whitespace). The script is idempotent and can be run multiple times safely.
 
-**Load Other Data:**
-```sh
-chmod +x scraping/load_data.py
+**Load Ingredient Data:**
 
-./scraping/load_data.py
+Make sure you are connected to Postgres on Docker before running.
+```sh
+chmod +x scraping/ingredient_scraping/load_data.py
+
+./scraping/ingredient_scraping/load_data.py
 ```
 
 #### Database GUI
