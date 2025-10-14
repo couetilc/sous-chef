@@ -17,7 +17,7 @@ from pathlib import Path
 
 # --- CONFIGURATION ---
 RECIPE_FILE = Path("scraping/recipe_scraping/recipe_csv_files/recipes.csv")
-INGREDIENT_FILE = Path("scraping/ingredient_scraping/ingredient_csv_files/legacy_cleaned_ingredients.csv")
+INGREDIENT_FILE = Path("scraping/finalized_ingredients.csv")
 OUTPUT_FILE = Path("scraping/recipe_ingredient_matches.csv")
 N_RECIPES = 20
 MIN_SCORE = 0
