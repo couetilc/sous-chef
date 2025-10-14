@@ -4,7 +4,7 @@ import SousChefLogo from './souschef-logo.png';
 import { useApi } from './useApi';
 
 const DietComponent = () => {
-    const api = useApi();
+    const {api} = useApi();
 
     // Fetch and populate ingredient list, selected diets/ingredients
     const [ingredients, setIngredients] = useState([]);
