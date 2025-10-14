@@ -3,13 +3,12 @@ import { useNavigate } from 'react-router';
 
 import SousChefLogo from './souschef-logo.png';
 
-export default function SousChef(props) {
+export default function SousChef() {
   const navigate = useNavigate();
-  let user = props.user;
-  let setUser = props.setUser;
 
   return (
     <div className="centered-div">
+      <h1>AI SOUS CHEF</h1>
       <p> Welcome to the Sous Chef Interface page!</p>
       <p> This is still under development, please come back later!</p>
     </div>
