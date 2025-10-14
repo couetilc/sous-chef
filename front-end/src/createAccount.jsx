@@ -6,7 +6,7 @@ import './style.css';
 
 export default function CreateAccount(props) {
   const navigate = useNavigate();
-  const api = useApi();
+  const { api } = useApi();
   const [serverError, setServerError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 

@@ -5,11 +5,11 @@ import { useApi } from './useApi';
 
 
 const DeleteComponent = () => {
-    const api= useApi();
+    const { api } = useApi();
 
     function login(formData) {
         const dialog = document.getElementById("deleteAccountDialog")
-       
+
         const username = formData.get("user");
         const password = formData.get("password");
 
@@ -27,12 +27,12 @@ const DeleteComponent = () => {
 
         dialog.close();
     }
-    
+
     function showDeleteDialog() {
         const dialog = document.getElementById("deleteAccountDialog")
         dialog.showModal();
     }
-    
+
     return (
         <div className="delete">
             <dialog id="deleteAccountDialog">
@@ -44,7 +44,7 @@ const DeleteComponent = () => {
                     <button type='submit'>Submit</button>
                 </form>
             </dialog>
-            
+
             <form action={showDeleteDialog}>
                 <button type="submit">Delete Account</button>
             </form>

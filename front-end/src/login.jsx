@@ -4,14 +4,12 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import './style.css';
 import SousChefLogo from './souschef-logo.png';
-import { useApi } from './useApi.jsx'
 import { useUser } from './useUser.jsx'
 
 export default function Login(props) {
   let user = props.user;
   let setUser = props.setUser;
   const navigate = useNavigate();
-  const api = useApi();
   const { login } = useUser();
 
   async function checkLogin() {
