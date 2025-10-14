@@ -10,14 +10,7 @@ import os, csv
 import psycopg
 from pathlib import Path
 
-<<<<<<< HEAD
-path = Path("./canonical_ingredients.csv")
-=======
-# Path to your canonical ingredients CSV
 path = Path("./scraping/production/canonical_ingredients.csv")
-
-# Default to local Postgres if DATABASE_URL not set
->>>>>>> cfc79889f687a78f3016fa5ea59ebe56e45ff5cd
 conn_info = os.getenv("DATABASE_URL", "postgresql://dbuser:dbpass@localhost:5432/api")
 
 def f(x):
