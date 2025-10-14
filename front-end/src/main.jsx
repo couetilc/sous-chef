@@ -11,6 +11,8 @@ import Recipes from './recipesPage.jsx';
 import Inventory from './inventory.jsx';
 import SettingsPage from './settingsPage.jsx';
 import CreateAccount from './createAccount.jsx';
+import HeaderBanner from './headerBanner.jsx';
+import LogoutPage from './logoutPage';
 
 import { BrowserRouter, Routes, Route, Navigate } from "react-router";
 import { Link } from 'react-router';
@@ -37,36 +39,6 @@ export default function App(props) {
     return navigate("/login");
   }
 
-  //find the url path at which the user is at, so that the navigation banner
-  //can be hidden on login pages: "/login" and "/" ("/" redirects to login component)
-  const curLocation = useLocation();
-
-  function HeaderBanner() {
-
-    if ( curLocation.pathname.localeCompare("/") == 0 ||
-         curLocation.pathname.localeCompare("/login") == 0 ||
-         curLocation.pathname.localeCompare("/create-account") == 0 ) {
-      return (
-        <img src={SousChefLogo} height="300px"/>
-      )
-    }
-    return (
-      <header className="header-banner">
-        <img src={SousChefLogo} width="150px"/>
-        <nav>
-          <ul>
-            <li><a href="/home">Home</a></li>
-            <li><a href="/sous-chef">Sous Chef</a></li>
-            <li><a href="/nutritionist">Nutritionist</a></li>
-            <li><a href="/recipes">Recipes</a></li>
-            <li><a href="/inventory">Inventory</a></li>
-            <li><a href="/settings">Account Settings</a></li>
-          </ul>
-        </nav>
-      </header>
-    )
-  }
-
 
   return (
     <>
@@ -81,8 +53,9 @@ export default function App(props) {
           <Route path="recipes" element={<Recipes user={curUser} setUser={setUser}/>} />
           <Route path="inventory" element={<Inventory user={curUser} setUser={setUser} />} />
           <Route path="settings" element={<SettingsPage user={curUser} setUser={setUser} />} />
+          <Route path="logout" element={<LogoutPage user={curUser} setUser={setUser} />} />
           // check if user is already logged in
-          <Route path="/" element={<Login user={curUser} setUser={setUser}/>} />
+          <Route path="/" element={<Login user={curUser} setUser={setUser} />} />
         </ Routes>
       </div>
     </>
