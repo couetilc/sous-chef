@@ -13,18 +13,17 @@ import SettingsPage from './settingsPage.jsx';
 import CreateAccount from './createAccount.jsx';
 import HeaderBanner from './headerBanner.jsx';
 import LogoutPage from './logoutPage';
+import PrivatePage from './privatePage';
 
 import { BrowserRouter, Routes, Route, Navigate } from "react-router";
 import { Link } from 'react-router';
 import { useNavigate, useLocation } from 'react-router';
 import { StrictMode } from 'react';
 import { ApiProvider } from './useApi';
-
+import { UserProvider, useUser } from './useUser';
 
 export default function App(props) {
   const navigate = useNavigate();
-
-  const [curUser, setUser] = useState(null);
 
   function IsLoggedIn() {
     let isLogged = false;
@@ -39,23 +38,31 @@ export default function App(props) {
     return navigate("/login");
   }
 
+  const home = <PrivatePage><Home /></PrivatePage>
+  const souschef = <PrivatePage><SousChef /></PrivatePage>
+  const nutritionist = <PrivatePage><Nutritionist /></PrivatePage>
+  const recipes = <PrivatePage><Recipes /></PrivatePage>
+  const inventory = <PrivatePage><Inventory /></PrivatePage>
+  const settings = <PrivatePage><SettingsPage /></PrivatePage>
 
   return (
     <>
       <div className="app-container">
         <HeaderBanner />
         <Routes>
-          <Route path="login" element={<Login user={curUser} setUser={setUser}/>} />
-          <Route path="create-account" element={<CreateAccount user={curUser} setUser={setUser}/>} />
-          <Route path="home" element={<Home user={curUser} setUser={setUser}/>} />
-          <Route path="sous-chef" element={<SousChef user={curUser} setUser={setUser}/>} />
-          <Route path="nutritionist" element={<Nutritionist user={curUser} setUser={setUser}/>} />
-          <Route path="recipes" element={<Recipes user={curUser} setUser={setUser}/>} />
-          <Route path="inventory" element={<Inventory user={curUser} setUser={setUser} />} />
-          <Route path="settings" element={<SettingsPage user={curUser} setUser={setUser} />} />
-          <Route path="logout" element={<LogoutPage user={curUser} setUser={setUser} />} />
-          // check if user is already logged in
-          <Route path="/" element={<Login user={curUser} setUser={setUser} />} />
+          {/* private pages */}
+          <Route path="home" element={home} />
+          <Route path="sous-chef" element={souschef} />
+          <Route path="nutritionist" element={nutritionist} />
+          <Route path="recipes" element={recipes} />
+          <Route path="inventory" element={inventory} />
+          <Route path="settings" element={settings} />
+
+          {/* public pages */}
+          <Route path="login" element={<Login />} />
+          <Route path="create-account" element={<CreateAccount />} />
+          <Route path="logout" element={<LogoutPage />} />
+          <Route path="/" element={<Login />} />
         </ Routes>
       </div>
     </>
@@ -67,7 +74,9 @@ root.render(
   <StrictMode>
   <BrowserRouter>
   <ApiProvider>
+  <UserProvider>
     <App />
+  </UserProvider>
   </ApiProvider>
   </BrowserRouter>
   </StrictMode>

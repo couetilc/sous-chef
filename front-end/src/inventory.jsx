@@ -3,10 +3,8 @@ import { useNavigate } from 'react-router';
 
 import SousChefLogo from './souschef-logo.png';
 
-export default function Inventory(props) {
+export default function Inventory() {
   const navigate = useNavigate();
-  let user = props.user;
-  let setUser = props.setUser;
 
   return (
     <div className="centered-div">

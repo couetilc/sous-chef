@@ -5,21 +5,16 @@ import { useNavigate } from 'react-router';
 import './style.css';
 import SousChefLogo from './souschef-logo.png';
 import { useApi } from './useApi.jsx'
-
-// constants for username and password testing
-const userCheck = "user";
-const pwCheck = "pw";
+import { useUser } from './useUser.jsx'
 
 export default function Login(props) {
   let user = props.user;
   let setUser = props.setUser;
   const navigate = useNavigate();
   const api = useApi();
+  const { login } = useUser();
 
-  function checkLogin() {
-    function navToHome() {
-      return navigate("/home");
-    }
+  async function checkLogin() {
     const userElement = document.getElementById("userId");
     if ( userElement.value == '') {
       alert("Please enter your username!");
@@ -32,17 +27,15 @@ export default function Login(props) {
       alert("Please enter your password!");
       return;
     }
-    api.login({username: userText, password: pwElement.value}).then((response) =>{
-      if (!response.error) {
-        setUser(response);
-        navToHome();
-      }
-      else {
-        alert("Invalid Credentials!");
-      }
-    })
 
+    try {
+      await login({ username: userText, password: pwElement.value })
+      navigate("/home/");
+    } catch (error) {
+      alert("Invalid Credentials!");
+    }
   }
+
   const loginDiv = {
     border: '5px solid black',
     backgroundColor: 'goldenrod',

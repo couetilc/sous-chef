@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router';
 
 import SousChefLogo from './souschef-logo.png';
 
-export default function Recipes(props) {
+export default function Recipes() {
   return(
     <div className="centered=div">
       <p> Welcome to the Recipes Interface page!</p>
