@@ -12,7 +12,7 @@ import csv
 from pathlib import Path
 
 # Path to your canonical ingredients CSV
-path = Path("./canonical_ingredients.csv")
+path = Path("./scraping/production/canonical_ingredients.csv")
 
 # Default to local Postgres if DATABASE_URL not set
 conn_info = os.getenv("DATABASE_URL", "postgresql://dbuser:dbpass@localhost:5432/api")
