@@ -1,0 +1,17 @@
+"short_name": "SousChef",
+"name": "Sous Chef",
+"icons": [
+  {
+    "src": "/src/souschef-logo-192.png",
+    "type": "image/svg+xml",
+    "sizes": 192x192"
+  },
+  {
+    "src": "/src/souschef-logo-512.png",
+    "type": "img/svg+xml",
+    "sizes": 512x512"
+  }
+],
+"start_url": "/home",
+"display": "standalone",
+"prefer_related_application": "false"
