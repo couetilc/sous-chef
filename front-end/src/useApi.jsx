@@ -104,6 +104,23 @@ export class Api {
     })
   }
 
+  async listIngredients() {
+    return this.fetch('/api/ingredients/', {});
+  }
+
+  async listRestricted() {
+    return this.fetch('/api/ingredients/restricted', {})
+  }
+
+  async postDietIngredients({added, removed}) {
+    return this.fetch('/api/ingredients/updateRestricted/', {
+      body: JSON.stringify({
+        added,
+        removed
+      })
+    }) 
+  }
+
   async logout() {
     return this.fetch('/api/logout/', { method: "POST" })
   }
@@ -123,6 +140,7 @@ export function ApiProvider(props) {
     }
   })
 
+
   const context = useMemo(() => {
     return { api, isReady };
   }, [isReady, api]);
@@ -130,8 +148,8 @@ export function ApiProvider(props) {
 	return (
 		<ApiContext value={context}>
       {props.children}
-		</ApiContext>
-	)
+    </ApiContext>
+  )
 }
 
 export function useApi() {

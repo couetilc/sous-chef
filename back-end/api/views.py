@@ -131,3 +131,27 @@ class DietaryIngredientList(generics.ListAPIView):
         ).values_list('ingredient_id', flat=True)
 
         return Ingredient.objects.filter(id__in=dietary_ingredient_ids)
+
+class UpdateDietaryIngredientList(APIView):
+    permission_classes = [permissions.IsAuthenticated]   
+
+    def post(self, request):
+        added = request.data.get('added')
+        removed = request.data.get('removed')
+
+        print(added)
+        print(removed)
+
+        addedIngredients = Ingredient.objects.filter(id__in=added)
+        for ingredient in addedIngredients:
+            DietaryIngredient.objects.get_or_create(ingredient=ingredient, user=self.request.user)
+        
+        removedIngredients = Ingredient.objects.filter(id__in=removed)
+        for ingredient in removedIngredients:
+            target = DietaryIngredient.objects.filter(ingredient=ingredient, user=self.request.user)
+            target.delete()
+
+
+        print(DietaryIngredient.objects.all())
+
+        return Response({'message': 'Successfully updated ingredients'}, status=status.HTTP_200_OK)
