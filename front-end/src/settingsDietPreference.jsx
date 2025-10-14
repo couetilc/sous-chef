@@ -74,6 +74,7 @@ const DietComponent = () => {
                 return api.listRestricted()
             })
             .then((result) => {
+                alert("Updated ingredients!")
                 const fetchedList = result.map(({ id, name }) => (id))
                 setSelectedIngredients(fetchedList);
                 setFetchedSelectedIngredients(fetchedList);
