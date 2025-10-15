@@ -13,6 +13,7 @@ ansible/
 ├── inventory.ini    # Host definitions and connection settings
 ├── setup.yml        # Initial setup playbook (git install & repo clone)
 ├── docker.yml       # Docker and Docker Compose installation
+├── deploy.yml       # Deploy production stack
 ```
 
 ## Helpful Commands
@@ -35,4 +36,9 @@ ansible-playbook -i ansible/inventory.ini ansible/setup.yml
 Install Docker and Docker Compose:
 ```bash
 ansible-playbook -i ansible/inventory.ini ansible/docker.yml
+```
+
+Deploy production stack:
+```bash
+ansible-playbook -i ansible/inventory.ini ansible/deploy.yml
 ```
