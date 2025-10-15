@@ -4,15 +4,17 @@ import SousChefLogo from './souschef-logo.png';
 import { useApi } from './useApi';
 
 const DietComponent = () => {
-    const {api} = useApi();
+    const { api } = useApi();
 
-    // Fetch and populate ingredient list, selected diets/ingredients
+    // Fetch and populate diet and ingredient list, selected diets/ingredients
+    const [diets, setDiets] = useState([]);
     const [ingredients, setIngredients] = useState([]);
     const [selectedDiets, setSelectedDiets] = useState([]);
     const [selectedIngredients, setSelectedIngredients] = useState([]);
     const [fetchedSelectedIngredients, setFetchedSelectedIngredients] = useState([]);
 
     useEffect(() => {
+        // Get ingredients and user selections
         api.listIngredients()
             .then((result) => {
                 console.log(result)
@@ -24,6 +26,14 @@ const DietComponent = () => {
                 setSelectedIngredients(fetchedList);
                 setFetchedSelectedIngredients(fetchedList);
             })
+
+        // Get diets and user selections
+        api.listDiets()
+            .then((result) => {
+                console.log(result)
+                setDiets(result)
+            });
+
     }, [])
 
 
@@ -94,9 +104,11 @@ const DietComponent = () => {
                             value={selectedDiets}
                             onChange={e => setSelectedDiets(e.target.value)}
                         >
-                            <option value="vegetarian">Vegetarian</option>
-                            <option value="vegan">Vegan</option>
-                            <option value="gf">Gluten-Free</option>
+                            {
+                                diets.map((diet) =>
+                                    <option value={diet.id}>{diet.name}</option>
+                                )
+                            }
                         </select>
                     </label>
                 </p>
