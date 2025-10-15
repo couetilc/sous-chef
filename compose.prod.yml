@@ -4,6 +4,7 @@ services:
     hostname: db
     image: postgres:16
     restart: unless-stopped
+    env_file: .env
     expose:
       - "5432"
     volumes:
@@ -19,6 +20,7 @@ services:
   backend:
     hostname: backend
     restart: unless-stopped
+    env_file: .env
     build:
       context: ./back-end
       dockerfile: Dockerfile.prod
