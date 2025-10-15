@@ -15,7 +15,9 @@ const PasswordComponent = () => {
     })
 
     function publishPassword(formData) {
-
+        const password = formData.get('password')
+        api.updatePassword({ password })
+            .then(() => alert('Password successfully changed!'))
     }
 
     function publishEmail(formData) {

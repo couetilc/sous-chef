@@ -126,6 +126,19 @@ class UpdateUserEmail(APIView):
 
         return Response({'message': 'Successfully updated email'}, status=status.HTTP_200_OK)
 
+class UpdateUserPassword(APIView):
+    """Get current authenticated user"""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        password = request.data.get('password')
+        user = request.user
+
+        user.set_password(password)
+        user.save()
+
+        return Response({'message': 'Successfully updated password'}, status=status.HTTP_200_OK)
+
 class GroupList(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
     queryset = Group.objects.all()
