@@ -202,6 +202,8 @@ else:
     CSRF_TRUSTED_ORIGINS = [
         "http://souschef.life",
         "http://www.souschef.life"
+        "https://souschef.life",
+        "https://www.souschef.life"
     ]
 
     # https://docs.djangoproject.com/en/5.2/ref/databases/#persistent-database-connections
