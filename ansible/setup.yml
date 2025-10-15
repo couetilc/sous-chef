@@ -1,5 +1,5 @@
 ---
-- name: Setup Sous Chef on EC2
+- name: Initial server setup for Sous Chef
   hosts: ec2
   become: yes
   tasks:
@@ -14,3 +14,32 @@
         dest: /home/ec2-user/sous-chef
         update: yes
       become_user: ec2-user
+
+    - name: Install Docker
+      package:
+        name: docker
+        state: present
+
+    - name: Start and enable Docker service
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Add ec2-user to docker group
+      user:
+        name: ec2-user
+        groups: docker
+        append: yes
+
+    - name: Create Docker CLI plugins directory
+      file:
+        path: /usr/local/lib/docker/cli-plugins
+        state: directory
+        mode: '0755'
+
+    - name: Download Docker Compose
+      get_url:
+        url: https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64
+        dest: /usr/local/lib/docker/cli-plugins/docker-compose
+        mode: '0755'
