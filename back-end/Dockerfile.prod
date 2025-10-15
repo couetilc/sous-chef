@@ -58,11 +58,7 @@ ENV DJANGO_STATIC_ROOT=/var/www/static \
     DJANGO_MEDIA_ROOT=/var/www/media
 RUN mkdir -p "$DJANGO_STATIC_ROOT" "$DJANGO_MEDIA_ROOT" && chown -R django:django /var/www
 
-# Optionally collect static files at build time:
-#   docker build --build-arg COLLECT_STATIC=1 ...
-# If you prefer to collect during CI or release step, omit the arg when building.
-# Provide a default settings module so collectstatic can run if desired.
-# In production you'll typically set DJANGO_SETTINGS_MODULE via the runtime environment.
+# Provide a default settings module
 ARG DJANGO_SETTINGS_MODULE="config.settings"
 ENV DJANGO_SETTINGS_MODULE=${DJANGO_SETTINGS_MODULE}
 
