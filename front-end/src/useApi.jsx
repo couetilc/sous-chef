@@ -126,6 +126,7 @@ export class Api {
   }
 
   async listSelectedDiets() {
+
     return this.fetch('/api/diets/selected/', {});
   }
 
