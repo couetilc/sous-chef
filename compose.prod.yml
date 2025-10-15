@@ -1,0 +1,51 @@
+services:
+
+  db:
+    hostname: db
+    image: postgres:16
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 2s
+      timeout: 1s
+      retries: 5
+    networks:
+      - private
+
+  backend:
+    hostname: backend
+    build:
+      context: ./back-end
+      Dockerfile: Dockerfile.prod
+    volumes:
+      - django-static:/var/www/static
+      - django-media:/var/www/media
+      - /etc/letsencrypt:/etc/letsencrypt
+    networks:
+      - private
+    ports:
+      - "8000:8000"
+
+  nginx:
+    hostname: nginx
+  networks:
+    - private
+    - public
+  ports:
+    - "80:80"
+    - "443:443"
+
+volumes:
+  pgdata:
+  django-static:
+  django-media:
+
+networks:
+  public:
+    driver: bridge
+  private:
+    driver: bridge
+    internal: true

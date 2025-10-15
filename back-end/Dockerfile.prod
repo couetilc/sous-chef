@@ -1,0 +1,90 @@
+# ------------ 1) Builder stage: compile wheels, cache deps ------------
+FROM python:3.12-slim AS builder
+
+# Prevent Python from writing .pyc files & ensure unbuffered logs
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# System packages needed to build some Python deps (e.g., psycopg, Pillow)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      build-essential \
+      libpq-dev \
+      libjpeg-dev zlib1g-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy only dependency manifests first to leverage Docker layer caching
+COPY requirements.txt ./
+
+# Build wheels so we can install them into a clean runtime image
+RUN pip wheel --no-cache-dir --wheel-dir /wheels -r requirements.txt
+
+
+# ------------ 2) Runtime stage: minimal, non-root, fast startup ------------
+FROM python:3.12-slim AS runtime
+
+# Security/perf-friendly defaults
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_NO_CACHE_DIR=1
+
+# Install small set of runtime libs (no compilers)
+# libpq5 for Postgres, libjpeg/zlib for Pillow, curl for HEALTHCHECK/debug
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      libpq5 \
+      libjpeg62-turbo zlib1g \
+      curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create an unprivileged user to run the app
+RUN addgroup --system django && adduser --system --ingroup django django
+
+WORKDIR /app
+
+# Copy wheels built in the builder stage and install them
+COPY --from=builder /wheels /wheels
+RUN pip install --no-index --find-links=/wheels /wheels/*
+
+# Copy project code last (better cache usage)
+# If you have a separate "src" layout, adjust COPY accordingly
+COPY . /app
+
+# Static & media directories (served by the reverse proxy)
+# You can also mount these as volumes from the host/another container
+ENV DJANGO_STATIC_ROOT=/var/www/static \
+    DJANGO_MEDIA_ROOT=/var/www/media
+RUN mkdir -p "$DJANGO_STATIC_ROOT" "$DJANGO_MEDIA_ROOT" && chown -R django:django /var/www
+
+# Optionally collect static files at build time:
+#   docker build --build-arg COLLECT_STATIC=1 ...
+# If you prefer to collect during CI or release step, omit the arg when building.
+# Provide a default settings module so collectstatic can run if desired.
+# In production you'll typically set DJANGO_SETTINGS_MODULE via the runtime environment.
+ARG DJANGO_SETTINGS_MODULE="config.settings"
+ENV DJANGO_SETTINGS_MODULE=${DJANGO_SETTINGS_MODULE}
+
+# Run collectstatic only when requested, without prompting
+RUN python manage.py collectstatic --noinput
+
+# Expose the app port (reverse proxy will connect here)
+EXPOSE 8000
+
+# Drop privileges
+USER django:django
+
+# Default command: Gunicorn using Uvicorn workers (ASGI; works for sync or async Django)
+# - tweak workers based on CPU/memory; 2-4 per vCPU is a typical starting point
+CMD ["gunicorn", "yourproj.asgi:application", \
+     "-k", "uvicorn.workers.UvicornWorker", \
+     "--bind", "0.0.0.0:8000", \
+     "--workers", "3", \
+     "--timeout", "60", \
+     "--access-logfile", "-", "--error-logfile", "-"]
+
+# Optional: simple healthcheck (expects you to expose /healthz in Django)
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+  CMD curl -fsS http://127.0.0.1:8000/admin/ || exit 1
+
