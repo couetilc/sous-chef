@@ -121,6 +121,10 @@ export class Api {
     }) 
   }
 
+  async listDiets() {
+    return this.fetch('/api/diets/', {});
+  }
+
   async logout() {
     return this.fetch('/api/logout/', { method: "POST" })
   }

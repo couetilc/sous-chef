@@ -8,8 +8,8 @@ from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.contrib.auth.models import User, Group
-from .models import Ingredient, DietaryIngredient
-from .serializers import UserSerializer, GroupSerializer, UserRegistrationSerializer, IngredientSerializer
+from .models import Ingredient, DietaryIngredient, Diet, UserDiet
+from .serializers import UserSerializer, GroupSerializer, UserRegistrationSerializer, IngredientSerializer, DietSerializer
 
 # Create your views here.
 def index(request):
@@ -155,3 +155,9 @@ class UpdateDietaryIngredientList(APIView):
         print(DietaryIngredient.objects.all())
 
         return Response({'message': 'Successfully updated ingredients'}, status=status.HTTP_200_OK)
+
+class DietList(generics.ListAPIView):
+    """List all available diets in the database"""
+    permission_classes = [permissions.IsAuthenticated]
+    queryset = Diet.objects.all()
+    serializer_class = DietSerializer
