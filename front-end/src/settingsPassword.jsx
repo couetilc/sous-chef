@@ -7,6 +7,8 @@ const PasswordComponent = () => {
     const { api } = useApi();
 
     const [currentEmail, setCurrentEmail] = useState("");
+    const [matching, setMatching] = useState(false);
+
 
     useEffect(() => {
         api.getCurrentUser().then((result) => {
@@ -14,8 +16,17 @@ const PasswordComponent = () => {
         })
     })
 
+    let confirm = ""
+    let pass = ""
+    function matchPasswords(p, c) {
+        pass = p
+        confirm = c;
+        (confirm === "" || pass !== confirm) ? setMatching(false) : setMatching(true)
+    }
+
     function publishPassword(formData) {
         const password = formData.get('password')
+
         api.updatePassword({ password })
             .then(() => alert('Password successfully changed!'))
     }
@@ -45,11 +56,11 @@ const PasswordComponent = () => {
             </form>
             <form action={publishPassword}>
                 <p>
-                    <input name="password" placeholder="Enter Password" /> <br />
-                    <input name="confirmpassword" placeholder="Confirm Password" /> <br />
+                    <input  name="password" onChange={e=>matchPasswords(e.target.value, confirm)} placeholder="Enter Password" /> <br />
+                    <input name="confirmpassword" onChange={e=>matchPasswords(pass, e.target.value)} placeholder="Confirm Password" /> <br />
                 </p>
                 <p>
-                    <button type="submit" name="button">Change Password</button>
+                    <button type="submit" name="button" disabled={!matching}>Change Password</button>
                 </p>
             </form>
         </div>
