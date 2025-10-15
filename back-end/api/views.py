@@ -161,3 +161,17 @@ class DietList(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
     queryset = Diet.objects.all()
     serializer_class = DietSerializer
+
+class SelectedDietList(generics.ListAPIView):
+    """List selected diets for the authenticated user"""
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = DietSerializer 
+
+    def get_queryset(self):
+        """Filter diets to only those selected by the current user"""
+        # Get the DietaryIngredient objects for the current user, then extract just the Ingredient objects
+        selected_diet_ids = UserDiet.objects.filter(
+            user=self.request.user
+        ).values_list('diet_id', flat=True)
+
+        return Ingredient.objects.filter(id__in=selected_diet_ids)
