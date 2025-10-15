@@ -18,5 +18,6 @@ urlpatterns = [
     path('ingredients/restricted/', views.DietaryIngredientList.as_view(), name='restricted-ingredients'),
     path('ingredients/updateRestricted/', views.UpdateDietaryIngredientList.as_view(), name='restricted-ingredients-update'),
     # Diet endpoints
-    path('diets/', views.DietList.as_view(), name='diet-list')
+    path('diets/', views.DietList.as_view(), name='diet-list'),
+    path('diets/selected/', views.SelectedDietList.as_view(), name='selected-diet-list')
 ]
