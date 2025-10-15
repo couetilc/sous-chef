@@ -3,10 +3,13 @@ from django.contrib.auth.models import User
 
 # Create your models here.
 class Recipe(models.Model):
-    title = models.CharField(max_length=200)
-    description = models.TextField()
+    title = models.TextField()
     ingredients = models.TextField()
     instructions = models.TextField()
+    # optional image for the recipe; requires Pillow to be installed
+    image_url = models.URLField(null=True, blank=True, max_length=400)
+    # original source URL for the recipe (where it was found)
+    source_url = models.URLField(null=True, blank=True, max_length=400)
     is_private = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
