@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
-docker compose up -d \
-	-f "../compose.prod.yml" \
-	--env-file "../.env"
+docker compose \
+	-f "compose.prod.yml" \
+	--env-file ".env" \
+	up -d
