@@ -50,8 +50,10 @@ class LoginView(APIView):
 
         # Check if sent username is actually the email
         if user is None:
-            username = User.objects.get(email=username).username
-            user = authenticate(request, username=username, password=password)
+            users = User.objects.filter(email=username)
+            if users.exists():
+                username = User.objects.get(email=username).username
+                user = authenticate(request, username=username, password=password)
 
         if user is not None:
             login(request, user)
