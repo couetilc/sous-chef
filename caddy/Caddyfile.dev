@@ -1,0 +1,35 @@
+# Development Caddyfile - no HTTPS, uses localhost
+{
+    # Disable automatic HTTPS for local development
+    auto_https off
+}
+
+:3000 {
+    # Encode responses (gzip compression)
+    encode gzip
+
+    # Proxy API calls to Django backend
+    handle /admin/* {
+        reverse_proxy backend:8000
+    }
+
+    handle /api/* {
+        reverse_proxy backend:8000
+    }
+
+    # Django static files (served by Django in dev)
+    handle /static/* {
+        reverse_proxy backend:8000
+    }
+
+    # Django media files (served by Django in dev)
+    handle /media/* {
+        reverse_proxy backend:8000
+    }
+
+    # Proxy everything else to Vite dev server
+    # This preserves Hot Module Replacement (HMR) for live reloading
+    handle {
+        reverse_proxy frontend:5173
+    }
+}

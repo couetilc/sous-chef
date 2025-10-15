@@ -1,0 +1,59 @@
+# Caddy configuration for Sous Chef
+# Caddy automatically handles HTTPS with Let's Encrypt
+
+# Main site
+souschef.life, www.souschef.life {
+    # Encode responses (replaces nginx gzip)
+    encode gzip
+
+    # Security headers
+    header {
+        X-Frame-Options "DENY"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+    }
+
+    # Static files from Django
+    handle /static/* {
+        root * /var/www
+        file_server {
+            precompressed gzip
+        }
+        header Cache-Control "public, max-age=604800, immutable"
+    }
+
+    # Media files
+    handle /media/* {
+        root * /var/www
+        file_server
+        header Cache-Control "public, max-age=604800"
+    }
+
+    # Django admin
+    handle /admin/* {
+        reverse_proxy backend:8000
+    }
+
+    # Django API
+    handle /api/* {
+        reverse_proxy backend:8000
+    }
+
+    # WebSocket support (uncomment if needed)
+    # handle /ws/* {
+    #     reverse_proxy backend:8000
+    # }
+
+    # SPA frontend - serve from root and fallback to index.html
+    handle {
+        root * /usr/share/nginx/html
+        try_files {path} {path}/ /index.html
+        file_server
+    }
+}
+
+# Reject all other requests
+:80 {
+    respond 444
+}
