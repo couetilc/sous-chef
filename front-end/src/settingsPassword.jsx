@@ -1,31 +1,66 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './style.css';
 import SousChefLogo from './souschef-logo.png';
+import { useApi } from './useApi';
 
 const PasswordComponent = () => {
-    function publish(formData) {
-        const pass = formData.get("password");
-        const passrepeat = formData.get("confirmpassword");
-        if (pass === "") {
-            alert(`Password cannot be empty!`);
-        }
-        else if (pass !== passrepeat) {
-            alert(`'${pass}' and '${passrepeat}' do not match!`);
-        }
-        else {
-            alert("Password Saved!");
-        }
+    const { api } = useApi();
+
+    const [currentEmail, setCurrentEmail] = useState("");
+    const [matching, setMatching] = useState(false);
+
+
+    useEffect(() => {
+        api.getCurrentUser().then((result) => {
+            setCurrentEmail(result.email)
+        })
+    })
+
+    let confirm = ""
+    let pass = ""
+    function matchPasswords(p, c) {
+        pass = p
+        confirm = c;
+        (confirm === "" || pass !== confirm) ? setMatching(false) : setMatching(true)
+    }
+
+    function publishPassword(formData) {
+        const password = formData.get('password')
+
+        api.updatePassword({ password })
+            .then(() => alert('Password successfully changed!'))
+    }
+
+    function publishEmail(formData) {
+        const email = formData.get('email')
+        api.updateEmail({ email })
+            .then((result) => {
+                return api.getCurrentUser();
+            })
+            .then((result) => setCurrentEmail(result.email))
+            .then(() => alert('Email successfully changed!'))
     }
 
     return (
         <div className="pass">
-            <form action={publish}>
+            <form action={publishEmail}>
                 <p>
-                    <input name="password" placeholder="Enter Password" /> <br />
-                    <input name="confirmpassword" placeholder="Confirm Password" /> <br />
+                    Current email: {currentEmail}
                 </p>
                 <p>
-                    <button type="submit" name="button">Change Password</button>
+                    <input name="email" placeholder="Enter Email" /> <br />
+                </p>
+                <p>
+                    <button type="submit" name="button">Change Email</button>
+                </p>
+            </form>
+            <form action={publishPassword}>
+                <p>
+                    <input  name="password" onChange={e=>matchPasswords(e.target.value, confirm)} placeholder="Enter Password" /> <br />
+                    <input name="confirmpassword" onChange={e=>matchPasswords(pass, e.target.value)} placeholder="Confirm Password" /> <br />
+                </p>
+                <p>
+                    <button type="submit" name="button" disabled={!matching}>Change Password</button>
                 </p>
             </form>
         </div>

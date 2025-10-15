@@ -16,35 +16,7 @@ from os import environ as env
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
-
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-g5kt_ez1(+i$ru&a0*)wamwgvcp^6&t-&zb#^@#+*h2j-@0%z+'
-
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-# SECURITY WARNING: don't allow all hosts in production!
-ALLOWED_HOSTS = ['*']
-
-# CORS configuration for SPA
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://localhost:5173",  # Vite default
-]
-CORS_ALLOW_CREDENTIALS = True  # Required for session cookies
-
-# Session configuration for cross-origin requests
-SESSION_COOKIE_SAMESITE = 'Lax'
-SESSION_COOKIE_HTTPONLY = True  # Protect against XSS
-SESSION_COOKIE_SECURE = False  # Set to True in production with HTTPS
-
-# CSRF configuration for SPA
-CSRF_COOKIE_SAMESITE = 'Lax'
-CSRF_COOKIE_HTTPONLY = False  # Allow JavaScript to read CSRF token
-CSRF_COOKIE_SECURE = False  # Set to True in production with HTTPS
-
+DEBUG = env.get("DJANGO_DEBUG", "False") == "True"
 
 # Application definition
 
@@ -91,7 +63,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
-
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
@@ -105,12 +76,6 @@ DATABASES = {
         "PORT": env.get("DJANGO_DB_PORT", "5432"),
     }
 }
-
-CSRF_TRUSTED_ORIGINS = [
-    "http://localhost:3000",
-    "http://localhost:8000"
-]
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
@@ -142,11 +107,13 @@ USE_I18N = True
 
 USE_TZ = True
 
-
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = env.get("DJANGO_STATIC_URL", 'static/')
+MEDIA_URL = env.get("DJANGO_MEDIA_URL", 'media/')
+STATIC_ROOT = env.get("DJANGO_STATIC_ROOT", '/var/www/static/')
+MEDIA_ROOT = env.get("DJANGO_MEDIA_ROOT", '/var/www/media/')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -167,3 +134,78 @@ SPECTACULAR_SETTINGS = {
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
 }
+
+# DEVELOPMENT environment
+if DEBUG == True:
+    SECRET_KEY = 'django-insecure-g5kt_ez1(+i$ru&a0*)wamwgvcp^6&t-&zb#^@#+*h2j-@0%z+'
+
+    STORAGES = {
+        "default": {
+            "BACKEND": "django.core.files.storage.FileSystemStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        },
+    }
+
+    ALLOWED_HOSTS = ['*']
+
+    CORS_ALLOWED_ORIGINS = [
+        "http://localhost:3000",
+        "http://localhost:5173",  # Vite default
+    ]
+    CORS_ALLOW_CREDENTIALS = True  # Required for session cookies
+
+    # Session configuration for cross-origin requests
+    SESSION_COOKIE_SAMESITE = 'Lax'
+    SESSION_COOKIE_HTTPONLY = True  # Protect against XSS
+    SESSION_COOKIE_SECURE = False  # Set to True in production with HTTPS
+
+    # CSRF configuration for SPA
+    CSRF_COOKIE_SAMESITE = 'Lax'
+    CSRF_COOKIE_HTTPONLY = False  # Allow JavaScript to read CSRF token
+    CSRF_COOKIE_SECURE = False
+    CSRF_TRUSTED_ORIGINS = [
+        "http://localhost:3000",
+        "http://localhost:8000"
+    ]
+
+# PRODUCTION environment
+# (https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/)
+else:
+    SECRET_KEY = env.get("DJANGO_SECRET_KEY")
+    ALLOWED_HOSTS = ['www.souschef.life', 'souschef.life']
+    CORS_ALLOWED_ORIGINS = [
+        "http://www.souschef.life",
+        "http://souschef.life",  # Vite default
+    ]
+    CORS_ALLOW_CREDENTIALS = True  # Required for session cookies
+
+    STORAGES = {
+        "default": {
+            "BACKEND": "django.core.files.storage.FileSystemStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.ManifestStaticFilesStorage",
+        },
+    }
+
+    # Session configuration for cross-origin requests
+    SESSION_COOKIE_SAMESITE = 'Lax'
+    SESSION_COOKIE_HTTPONLY = True  # Protect against XSS
+    SESSION_COOKIE_SECURE = True  # Set to True in production with HTTPS
+
+    # CSRF configuration for SPA
+    CSRF_COOKIE_SAMESITE = 'Lax'
+    CSRF_COOKIE_HTTPONLY = False  # Allow JavaScript to read CSRF token
+    CSRF_COOKIE_SECURE = True  # Set to True in production with HTTPS
+    CSRF_TRUSTED_ORIGINS = [
+        "http://souschef.life",
+        "http://www.souschef.life"
+        "https://souschef.life",
+        "https://www.souschef.life"
+    ]
+
+    # https://docs.djangoproject.com/en/5.2/ref/databases/#persistent-database-connections
+    CONN_MAX_AGE = 60
+    CONN_HEALTH_CHECKS = True

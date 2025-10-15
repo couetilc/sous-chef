@@ -104,6 +104,22 @@ export class Api {
     })
   }
 
+  async updateEmail({ email }) {
+    return this.fetch('/api/user/updateEmail/', {
+      body: JSON.stringify({
+        email,
+      }),
+    })
+  }
+
+  async updatePassword({ password }) {
+    return this.fetch('/api/user/updatePassword/', {
+      body: JSON.stringify({
+        password,
+      }),
+    })
+  }
+
   async listIngredients() {
     return this.fetch('/api/ingredients/', {});
   }

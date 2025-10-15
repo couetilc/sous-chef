@@ -1,0 +1,79 @@
+services:
+
+  db:
+    hostname: db
+    image: postgres:16
+    restart: unless-stopped
+    env_file: .env
+    expose:
+      - "5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 2s
+      timeout: 1s
+      retries: 5
+    networks:
+      - sous-chef
+
+  frontend-build:
+    hostname: frontend-build
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - ./front-end:/app
+      - frontend-dist:/app/dist
+    command: sh -c "corepack enable && pnpm install && pnpm build"
+
+  backend:
+    hostname: backend
+    restart: unless-stopped
+    env_file: .env
+    build:
+      context: ./back-end
+      dockerfile: Dockerfile.prod
+    volumes:
+      - django-static:/var/www/static
+      - django-media:/var/www/media
+    expose:
+      - "8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - sous-chef
+
+  caddy:
+    hostname: caddy
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - frontend-dist:/usr/share/nginx/html:ro
+      - django-static:/var/www/static:ro
+      - django-media:/var/www/media:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      frontend-build:
+        condition: service_completed_successfully
+      backend:
+        condition: service_started
+    networks:
+      - sous-chef
+
+networks:
+  sous-chef:
+    driver: bridge
+
+volumes:
+  pgdata:
+  django-static:
+  django-media:
+  frontend-dist:
+  caddy-data:
+  caddy-config:

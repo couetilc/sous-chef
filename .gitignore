@@ -5,3 +5,4 @@ __pycache__
 .pnpm-store
 .claude
 .DS_Store
+.env
