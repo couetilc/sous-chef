@@ -17,6 +17,15 @@ services:
     networks:
       - sous-chef
 
+  frontend-build:
+    hostname: frontend-build
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - ./front-end:/app
+      - frontend-dist:/app/dist
+    command: sh -c "corepack enable && pnpm install && pnpm build"
+
   backend:
     hostname: backend
     restart: unless-stopped
@@ -44,13 +53,16 @@ services:
       - "443:443"
     volumes:
       - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
-      - ./front-end/dist:/usr/share/nginx/html:ro
+      - frontend-dist:/usr/share/nginx/html:ro
       - django-static:/var/www/static:ro
       - django-media:/var/www/media:ro
       - caddy-data:/data
       - caddy-config:/config
     depends_on:
-      - backend
+      frontend-build:
+        condition: service_completed_successfully
+      backend:
+        condition: service_started
     networks:
       - sous-chef
 
@@ -62,5 +74,6 @@ volumes:
   pgdata:
   django-static:
   django-media:
+  frontend-dist:
   caddy-data:
   caddy-config:
