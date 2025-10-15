@@ -77,7 +77,7 @@ USER django:django
 
 # Default command: Gunicorn using Uvicorn workers (ASGI; works for sync or async Django)
 # - tweak workers based on CPU/memory; 2-4 per vCPU is a typical starting point
-CMD ["gunicorn", "yourproj.asgi:application", \
+CMD ["gunicorn", "config.asgi:application", \
      "-k", "uvicorn.workers.UvicornWorker", \
      "--bind", "0.0.0.0:8000", \
      "--workers", "3", \
