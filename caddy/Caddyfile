@@ -32,17 +32,17 @@ souschef.life, www.souschef.life {
 
     # Django admin
     handle /admin/* {
-        reverse_proxy localhost:8000
+        reverse_proxy backend:8000
     }
 
     # Django API
     handle /api/* {
-        reverse_proxy localhost:8000
+        reverse_proxy backend:8000
     }
 
     # WebSocket support (uncomment if needed)
     # handle /ws/* {
-    #     reverse_proxy localhost:8000
+    #     reverse_proxy backend:8000
     # }
 
     # SPA frontend - serve from root and fallback to index.html

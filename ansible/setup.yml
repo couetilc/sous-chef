@@ -1,0 +1,16 @@
+---
+- name: Setup Sous Chef on EC2
+  hosts: ec2
+  become: yes
+  tasks:
+    - name: Ensure git is installed
+      package:
+        name: git
+        state: present
+
+    - name: Clone sous-chef repository
+      git:
+        repo: git@github.com:couetilc/sous-chef.git
+        dest: /home/ec2-user/sous-chef
+        update: yes
+      become_user: ec2-user
