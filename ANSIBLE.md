@@ -12,6 +12,7 @@
 ansible/
 ├── inventory.ini    # Host definitions and connection settings
 ├── setup.yml        # Initial setup playbook (git install & repo clone)
+├── docker.yml       # Docker and Docker Compose installation
 ```
 
 ## Helpful Commands
@@ -29,4 +30,9 @@ ansible -i ansible/inventory.ini ec2 -a "command"
 Run setup playbook:
 ```bash
 ansible-playbook -i ansible/inventory.ini ansible/setup.yml
+```
+
+Install Docker and Docker Compose:
+```bash
+ansible-playbook -i ansible/inventory.ini ansible/docker.yml
 ```
