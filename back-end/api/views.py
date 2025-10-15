@@ -48,6 +48,11 @@ class LoginView(APIView):
 
         user = authenticate(request, username=username, password=password)
 
+        # Check if sent username is actually the email
+        if user is None:
+            username = User.objects.get(email=username).username
+            user = authenticate(request, username=username, password=password)
+
         if user is not None:
             login(request, user)
             return Response({
@@ -105,6 +110,19 @@ class UserDetails(generics.RetrieveAPIView):
     permission_classes = [permissions.IsAuthenticated]
     queryset = User.objects.all()
     serializer_class = UserSerializer
+
+class UpdateUserEmail(APIView):
+    """Get current authenticated user"""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        email = request.data.get('email')
+        user = request.user
+
+        user.email = email
+        user.save()
+
+        return Response({'message': 'Successfully updated email'}, status=status.HTTP_200_OK)
 
 class GroupList(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated]

@@ -8,6 +8,7 @@ urlpatterns = [
     path('login/', views.LoginView.as_view(), name='user-login'),
     path('logout/', views.LogoutView.as_view(), name='user-logout'),
     path('user/', views.CurrentUserView.as_view(), name='current-user'),
+    path('user/updateEmail/', views.UpdateUserEmail.as_view(), name='user-update-email'),
     path('csrf/', views.CSRFTokenView.as_view(), name='csrf-token'),
     # User and group management
     path('users/', views.UserList.as_view()),
