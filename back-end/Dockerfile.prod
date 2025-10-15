@@ -66,8 +66,9 @@ RUN mkdir -p "$DJANGO_STATIC_ROOT" "$DJANGO_MEDIA_ROOT" && chown -R django:djang
 ARG DJANGO_SETTINGS_MODULE="config.settings"
 ENV DJANGO_SETTINGS_MODULE=${DJANGO_SETTINGS_MODULE}
 
-# Run collectstatic only when requested, without prompting
-RUN python manage.py collectstatic --noinput
+# Copy and setup entrypoint script
+COPY entrypoint.prod.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh && chown django:django /entrypoint.sh
 
 # Expose the app port (reverse proxy will connect here)
 EXPOSE 8000
@@ -75,14 +76,8 @@ EXPOSE 8000
 # Drop privileges
 USER django:django
 
-# Default command: Gunicorn using Uvicorn workers (ASGI; works for sync or async Django)
-# - tweak workers based on CPU/memory; 2-4 per vCPU is a typical starting point
-CMD ["gunicorn", "config.asgi:application", \
-     "-k", "uvicorn.workers.UvicornWorker", \
-     "--bind", "0.0.0.0:8000", \
-     "--workers", "3", \
-     "--timeout", "60", \
-     "--access-logfile", "-", "--error-logfile", "-"]
+# Use entrypoint script to handle migrations, superuser, and startup
+ENTRYPOINT ["/entrypoint.sh"]
 
 # Optional: simple healthcheck (expects you to expose /healthz in Django)
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \

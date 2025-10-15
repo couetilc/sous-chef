@@ -5,6 +5,7 @@
 - Ansible installed (`brew install ansible`)
 - SSH key: `~/.ssh/connor-keypair.pem`
 - 1Password SSH agent configured at `~/.1password/agent.sock`
+- `.env` file in project root
 
 ## Folder Structure
 
