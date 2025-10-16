@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router';
 import './style.css';
 import SousChefLogo from './souschef-logo.png';
 import { useApi } from './useApi';
 
 
 const DeleteComponent = () => {
+    const navigate = useNavigate();
     const { api } = useApi();
 
     function login(formData) {
@@ -14,16 +16,15 @@ const DeleteComponent = () => {
         const password = formData.get("password");
 
 
-        api.login({username, password})
+        api.deleteUser({username, password})
         .then((result) => {
-            console.log(result);
-            if (result.id) {
-                alert('Successful login: Deleting account...');
-            } else {
-                alert('Invalid Credentials');
-            }
+            alert("Successfully deleted account!")
+            navigate("/login");
         })
-        .catch((error) => console.error(error))
+        .catch((error) => {
+            alert("Invalid Credentials! Could not delete account!")
+            console.log(error)
+        })
 
         dialog.close();
     }
