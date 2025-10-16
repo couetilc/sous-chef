@@ -27,9 +27,9 @@ HEADERS = {
 RECIPE_RE = re.compile(r"^https?://www\.allrecipes\.com/recipe/\d{6}/.+/?$", re.I)
 
 # Default input files (can be overridden by CLI args)
-DEFAULT_SITEMAPS = ["sitemaps/sitemap1.txt", "sitemaps/sitemap2.txt", "sitemaps/sitemap3.txt", "sitemaps/sitemap4.txt"]
+DEFAULT_SITEMAPS = ["scraping/recipe_scraping/sitemaps/sitemap1.txt", "scraping/recipe_scraping/sitemaps/sitemap2.txt", "scraping/recipe_scraping/sitemaps/sitemap3.txt", "scraping/recipe_scraping/sitemaps/sitemap4.txt"]
 
-OUT_CSV = "recipes.csv"
+OUT_CSV = "scraping/recipe_scraping/recipe_csv_files/recipes25.csv"
 REQUEST_TIMEOUT = 20
 
 # ---------------- Helpers ----------------
@@ -284,7 +284,7 @@ def main(argv):
 
   # Load + filter recipe URLs from sitemaps
   recipe_urls = load_recipe_urls_from_sitemaps(paths)
-  # recipe_urls = recipe_urls[:50]
+  recipe_urls = recipe_urls[:25]
   if not recipe_urls:
     print("No recipe URLs found in provided sitemaps (with 6-digit ID filter).")
     return

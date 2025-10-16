@@ -7,7 +7,7 @@
 Generate ingredient_prices.csv by attaching Kroger prices to a canonical ingredient list.
 
 Usage:
-  ./gen_prices.py --canonical /path/to/canonical.csv --out ingredient_prices.csv
+  ./grocery_store_price_scraper.py --canonical /path/to/canonical.csv --out ingredient_prices.csv
 
 Environment variables:
   KROGER_CLIENT_ID (required)
@@ -291,10 +291,12 @@ def make_search_term(name: str) -> str:
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--canonical", required=True, help="Path to canonical ingredients CSV")
-    ap.add_argument("--out", default=os.getenv("OUT", "ingredient_prices.csv"), help="Output CSV path")
+    ap.add_argument("--out", default=os.getenv("OUT", "ingredient_prices25.csv"), help="Output CSV path")
     args = ap.parse_args()
 
     canonical_rows = read_canonical_list(args.canonical)
+    # Cutoff
+    canonical_rows = canonical_rows[:25]
     if not canonical_rows:
         print(f"No ingredients found in {args.canonical}", file=sys.stderr)
         sys.exit(2)
