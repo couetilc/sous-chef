@@ -14,7 +14,7 @@ const DeleteComponent = () => {
         const password = formData.get("password");
 
 
-        api.login({username, password})
+        api.deleteUser({username, password})
         .then((result) => {
             console.log(result);
             if (result.id) {

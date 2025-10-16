@@ -10,6 +10,7 @@ urlpatterns = [
     path('user/', views.CurrentUserView.as_view(), name='current-user'),
     path('user/updateEmail/', views.UpdateUserEmail.as_view(), name='user-update-email'),
     path('user/updatePassword/', views.UpdateUserPassword.as_view(), name='user-update-password'),
+    path('user/delete/', views.DeleteUser.as_view(), name='user-delete'),
     path('csrf/', views.CSRFTokenView.as_view(), name='csrf-token'),
     # User and group management
     path('users/', views.UserList.as_view()),

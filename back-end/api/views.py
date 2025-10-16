@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.http import HttpResponse
 from django.contrib.auth import authenticate, login, logout
 from django.middleware.csrf import get_token
@@ -138,6 +138,31 @@ class UpdateUserPassword(APIView):
         user.save()
 
         return Response({'message': 'Successfully updated password'}, status=status.HTTP_200_OK)
+
+class DeleteUser(APIView):
+    """Delete current authenticated ueser"""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        username = request.data.get('username')
+        password = request.data.get('password')
+
+        if not username or not password:
+            return Response(
+                {'error': 'Username and password are required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            user = request.user
+            user.delete()
+            return Response({'message': 'Successfully deleted'}, status=status.HTTP_200_OK)
+        else:
+            return Response(
+                {'error': 'Invalid credentials'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
 
 class GroupList(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
