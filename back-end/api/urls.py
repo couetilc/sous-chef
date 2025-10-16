@@ -8,6 +8,8 @@ urlpatterns = [
     path('login/', views.LoginView.as_view(), name='user-login'),
     path('logout/', views.LogoutView.as_view(), name='user-logout'),
     path('user/', views.CurrentUserView.as_view(), name='current-user'),
+    path('user/updateEmail/', views.UpdateUserEmail.as_view(), name='user-update-email'),
+    path('user/updatePassword/', views.UpdateUserPassword.as_view(), name='user-update-password'),
     path('csrf/', views.CSRFTokenView.as_view(), name='csrf-token'),
     # User and group management
     path('users/', views.UserList.as_view()),
@@ -16,4 +18,9 @@ urlpatterns = [
     # Ingredient endpoints
     path('ingredients/', views.IngredientList.as_view(), name='ingredient-list'),
     path('ingredients/restricted/', views.DietaryIngredientList.as_view(), name='restricted-ingredients'),
+    path('ingredients/updateRestricted/', views.UpdateDietaryIngredientList.as_view(), name='restricted-ingredients-update'),
+    # Diet endpoints
+    path('diets/', views.DietList.as_view(), name='diet-list'),
+    path('diets/selected/', views.SelectedDietList.as_view(), name='selected-diet-list'),
+    path('diets/updateSelected/', views.UpdateDiets.as_view(), name='selected-diet-update'),
 ]

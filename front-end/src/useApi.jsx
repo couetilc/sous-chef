@@ -104,6 +104,56 @@ export class Api {
     })
   }
 
+  async updateEmail({ email }) {
+    return this.fetch('/api/user/updateEmail/', {
+      body: JSON.stringify({
+        email,
+      }),
+    })
+  }
+
+  async updatePassword({ password }) {
+    return this.fetch('/api/user/updatePassword/', {
+      body: JSON.stringify({
+        password,
+      }),
+    })
+  }
+
+  async listIngredients() {
+    return this.fetch('/api/ingredients/', {});
+  }
+
+  async listRestricted() {
+    return this.fetch('/api/ingredients/restricted', {})
+  }
+
+  async postDietIngredients({added, removed}) {
+    return this.fetch('/api/ingredients/updateRestricted/', {
+      body: JSON.stringify({
+        added,
+        removed
+      })
+    }) 
+  }
+
+  async listDiets() {
+    return this.fetch('/api/diets/', {});
+  }
+
+  async listSelectedDiets() {
+    return this.fetch('/api/diets/selected/', {});
+  }
+
+  async postDiets({added, removed}) {
+    return this.fetch('/api/diets/updateSelected/', {
+      body: JSON.stringify({
+        added,
+        removed
+      })
+    }) 
+  }
+
   async logout() {
     return this.fetch('/api/logout/', { method: "POST" })
   }
@@ -123,6 +173,7 @@ export function ApiProvider(props) {
     }
   })
 
+
   const context = useMemo(() => {
     return { api, isReady };
   }, [isReady, api]);
@@ -130,8 +181,8 @@ export function ApiProvider(props) {
 	return (
 		<ApiContext value={context}>
       {props.children}
-		</ApiContext>
-	)
+    </ApiContext>
+  )
 }
 
 export function useApi() {

@@ -43,7 +43,7 @@ class RestrictedForUserFilter(SimpleListFilter):
 @admin.register(Recipe)
 class RecipeAdmin(admin.ModelAdmin):
 	list_display = ('title', 'is_private', 'created_at', 'updated_at')
-	search_fields = ('title', 'description', 'instructions', 'ingredients')
+	search_fields = ('title', 'instructions', 'ingredients')
 	list_filter = ('is_private', 'created_at', RestrictedForUserFilter)
 	inlines = (IngredientInline,)
 	ordering = ('-created_at',)
