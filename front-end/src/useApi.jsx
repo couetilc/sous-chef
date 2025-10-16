@@ -137,6 +137,23 @@ export class Api {
     }) 
   }
 
+  async listDiets() {
+    return this.fetch('/api/diets/', {});
+  }
+
+  async listSelectedDiets() {
+    return this.fetch('/api/diets/selected/', {});
+  }
+
+  async postDiets({added, removed}) {
+    return this.fetch('/api/diets/updateSelected/', {
+      body: JSON.stringify({
+        added,
+        removed
+      })
+    }) 
+  }
+
   async logout() {
     return this.fetch('/api/logout/', { method: "POST" })
   }

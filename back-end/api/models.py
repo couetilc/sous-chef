@@ -48,3 +48,26 @@ class RecipeIngredient(models.Model):
 
     def __str__(self):
         return f"{self.quantity} of {self.ingredient.name} for {self.recipe.title}"
+
+
+class Diet(models.Model):
+    """Canonical diet reference"""
+    name = models.CharField(max_length=200, unique=True)
+
+    class Meta:
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+class UserDiet(models.Model):
+    """User-specific diet based on selected preferences"""
+    diet = models.ForeignKey(Diet, on_delete=models.CASCADE, related_name='related_users')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='selected_diets')
+
+    class Meta:
+        ordering = ['diet__name']
+        unique_together = ['user', 'diet']
+
+    def __str__(self):
+        return f"{self.user.username} restricts {self.diet.name}"

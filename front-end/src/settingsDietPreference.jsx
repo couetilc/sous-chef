@@ -4,15 +4,18 @@ import SousChefLogo from './souschef-logo.png';
 import { useApi } from './useApi';
 
 const DietComponent = () => {
-    const {api} = useApi();
+    const { api } = useApi();
 
-    // Fetch and populate ingredient list, selected diets/ingredients
+    // Fetch and populate diet and ingredient list, selected diets/ingredients
+    const [diets, setDiets] = useState([]);
     const [ingredients, setIngredients] = useState([]);
     const [selectedDiets, setSelectedDiets] = useState([]);
+    const [fetchedSelectedDiets, setFetchedSelectedDiets] = useState([]);
     const [selectedIngredients, setSelectedIngredients] = useState([]);
     const [fetchedSelectedIngredients, setFetchedSelectedIngredients] = useState([]);
 
     useEffect(() => {
+        // Get ingredients and user selections
         api.listIngredients()
             .then((result) => {
                 console.log(result)
@@ -24,10 +27,71 @@ const DietComponent = () => {
                 setSelectedIngredients(fetchedList);
                 setFetchedSelectedIngredients(fetchedList);
             })
+
+        // Get diets and user selections
+        api.listDiets()
+            .then((result) => {
+                console.log(result)
+                setDiets(result)
+            });
+        api.listSelectedDiets()
+            .then((result) => {
+                const fetchedList = result.map(({ id, name }) => (id))
+                setSelectedDiets(fetchedList);
+                setFetchedSelectedDiets(fetchedList);
+            })
+
     }, [])
 
 
     function publishDiet(e) {
+        e.preventDefault();
+
+        // Create maps for selected and fetched ingredients to find diff group
+        // There is probably some better way to create the maps but I don't know it
+        const newDietsMap = new Map();
+        selectedDiets.forEach((dietId) => {
+            newDietsMap.set(parseInt(dietId, 10), true)
+        });
+
+        const oldDietsMap= new Map();
+        fetchedSelectedDiets.forEach((dietId) => {
+            oldDietsMap.set(parseInt(dietId, 10), true)
+        });
+
+        // Create diff lists
+        const addedDiets = [];
+        selectedDiets.forEach((dietId) => {
+            // IDs in selected ingredients are stored as strings
+            const intID = parseInt(dietId, 10)
+            if (!oldDietsMap.has(intID)) {
+                addedDiets.push(intID);
+            }
+        });
+
+        const removedDiets = []
+        fetchedSelectedDiets.forEach((dietId) => {
+            if (!newDietsMap.has(dietId)) {
+                removedDiets.push(dietId);
+            }
+        });
+
+        console.log(oldDietsMap)
+        console.log(newDietsMap)
+        console.log(addedDiets)
+        console.log(removedDiets)
+
+        // Forward diff lists to server
+        api.postDiets({ added: addedDiets, removed: removedDiets })
+            .then((result) => {
+                return api.listSelectedDiets()
+            })
+            .then((result) => {
+                alert("Updated Diets!")
+                const fetchedList = result.map(({ id, name }) => (id))
+                setSelectedDiets(fetchedList);
+                setFetchedSelectedDiets(fetchedList);
+            })
 
     }
 
@@ -92,11 +156,17 @@ const DietComponent = () => {
                             name="dietSelect"
                             multiple={true}
                             value={selectedDiets}
-                            onChange={e => setSelectedDiets(e.target.value)}
+                            onChange={e => {
+                                const options = [...e.target.selectedOptions]
+                                const values = options.map(option => option.value)
+                                setSelectedDiets(values)
+                            }}
                         >
-                            <option value="vegetarian">Vegetarian</option>
-                            <option value="vegan">Vegan</option>
-                            <option value="gf">Gluten-Free</option>
+                            {
+                                diets.map((diet) =>
+                                    <option value={diet.id}>{diet.name}</option>
+                                )
+                            }
                         </select>
                     </label>
                 </p>

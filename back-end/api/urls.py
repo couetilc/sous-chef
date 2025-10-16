@@ -18,5 +18,9 @@ urlpatterns = [
     # Ingredient endpoints
     path('ingredients/', views.IngredientList.as_view(), name='ingredient-list'),
     path('ingredients/restricted/', views.DietaryIngredientList.as_view(), name='restricted-ingredients'),
-    path('ingredients/updateRestricted/', views.UpdateDietaryIngredientList.as_view(), name='restricted-ingredients-update')
+    path('ingredients/updateRestricted/', views.UpdateDietaryIngredientList.as_view(), name='restricted-ingredients-update'),
+    # Diet endpoints
+    path('diets/', views.DietList.as_view(), name='diet-list'),
+    path('diets/selected/', views.SelectedDietList.as_view(), name='selected-diet-list'),
+    path('diets/updateSelected/', views.UpdateDiets.as_view(), name='selected-diet-update'),
 ]

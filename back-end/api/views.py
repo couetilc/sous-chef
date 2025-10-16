@@ -8,8 +8,8 @@ from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.contrib.auth.models import User, Group
-from .models import Ingredient, DietaryIngredient
-from .serializers import UserSerializer, GroupSerializer, UserRegistrationSerializer, IngredientSerializer
+from .models import Ingredient, DietaryIngredient, Diet, UserDiet
+from .serializers import UserSerializer, GroupSerializer, UserRegistrationSerializer, IngredientSerializer, DietSerializer
 
 # Create your views here.
 def index(request):
@@ -188,3 +188,47 @@ class UpdateDietaryIngredientList(APIView):
         print(DietaryIngredient.objects.all())
 
         return Response({'message': 'Successfully updated ingredients'}, status=status.HTTP_200_OK)
+
+class DietList(generics.ListAPIView):
+    """List all available diets in the database"""
+    permission_classes = [permissions.IsAuthenticated]
+    queryset = Diet.objects.all()
+    serializer_class = DietSerializer
+
+class SelectedDietList(generics.ListAPIView):
+    """List selected diets for the authenticated user"""
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = DietSerializer 
+
+    def get_queryset(self):
+        """Filter diets to only those selected by the current user"""
+        # Get the DietaryIngredient objects for the current user, then extract just the Ingredient objects
+        selected_diet_ids = UserDiet.objects.filter(
+            user=self.request.user
+        ).values_list('diet_id', flat=True)
+
+        return Ingredient.objects.filter(id__in=selected_diet_ids)
+
+class UpdateDiets(APIView):
+    permission_classes = [permissions.IsAuthenticated]   
+
+    def post(self, request):
+        added = request.data.get('added')
+        removed = request.data.get('removed')
+
+        print(added)
+        print(removed)
+
+        addedDiets= Diet.objects.filter(id__in=added)
+        for diet in addedDiets:
+            UserDiet.objects.get_or_create(diet=diet, user=self.request.user)
+        
+        removedDiets = Diet.objects.filter(id__in=removed)
+        for diet in removedDiets:
+            target = UserDiet.objects.filter(diet=diet, user=self.request.user)
+            target.delete()
+
+
+        print(UserDiet.objects.all())
+
+        return Response({'message': 'Successfully updated diets'}, status=status.HTTP_200_OK)
