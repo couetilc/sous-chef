@@ -183,6 +183,9 @@ class TestAuthenticationFlow:
         # DRF's IsAuthenticated returns 403 by default, not 401
         assert user_response.status_code == status.HTTP_403_FORBIDDEN
 
+        # Step 2.5, activate the user
+        User.objects.filter(username='flowuser').update(is_active=True)
+
         # Step 3: Login with new user
         login_data = {
             'username': 'flowuser',
