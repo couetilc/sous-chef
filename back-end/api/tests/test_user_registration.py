@@ -33,6 +33,8 @@ class TestUserRegistration:
         user = User.objects.get(username='newuser')
         assert user.email == 'newuser@example.com'
         assert user.check_password('SecurePass123!')
+        # by default, users are inactive, to avoid unintended user registration.
+        assert not user.is_active
 
     def test_registration_without_optional_fields(self, api_client):
         """Test registration with only required fields"""
@@ -283,5 +285,5 @@ class TestUserRegistration:
             user = User.objects.get(username='attacker3')
             assert user.is_staff is False
             assert user.is_superuser is False
-            # is_active should be True by default, that's fine
-            assert user.is_active is True
+            # is_active should be False by default, that's fine
+            assert user.is_active is False
