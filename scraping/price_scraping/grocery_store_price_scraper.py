@@ -247,7 +247,7 @@ def detect_name_column(header: List[str]) -> str:
     for cand in LIKELY_NAME_COLUMNS:
         if cand in lower:
             return header[lower.index(cand)]
-    if len(header) > 1 and header[0].strip().lower() in {"fdc_id","id"}:
+    if len(header) > 1 and header[0].strip().lower() in {"food_id","id"}:
         return header[1]
     return header[0]
 
@@ -264,7 +264,7 @@ def read_canonical_list(path: str) -> List[Tuple[str, str]]:
     header, data_rows = rows[0], rows[1:]
     name_col = detect_name_column(header)
     name_idx = header.index(name_col)
-    id_idx = 0 if header[0].strip().lower() in {"fdc_id", "id"} else None
+    id_idx = 0 if header[0].strip().lower() in {"food_id", "id"} else None
 
     pairs: List[Tuple[str, str]] = []
     for row in data_rows:
