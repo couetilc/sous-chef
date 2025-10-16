@@ -175,3 +175,27 @@ class SelectedDietList(generics.ListAPIView):
         ).values_list('diet_id', flat=True)
 
         return Ingredient.objects.filter(id__in=selected_diet_ids)
+
+class UpdateDiets(APIView):
+    permission_classes = [permissions.IsAuthenticated]   
+
+    def post(self, request):
+        added = request.data.get('added')
+        removed = request.data.get('removed')
+
+        print(added)
+        print(removed)
+
+        addedDiets= Diet.objects.filter(id__in=added)
+        for diet in addedDiets:
+            UserDiet.objects.get_or_create(diet=diet, user=self.request.user)
+        
+        removedDiets = Diet.objects.filter(id__in=removed)
+        for diet in removedDiets:
+            target = UserDiet.objects.filter(diet=diet, user=self.request.user)
+            target.delete()
+
+
+        print(UserDiet.objects.all())
+
+        return Response({'message': 'Successfully updated diets'}, status=status.HTTP_200_OK)
