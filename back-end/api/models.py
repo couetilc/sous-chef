@@ -33,7 +33,7 @@ class ScrapedIngredient(models.Model):
     food_category = models.TextField()
 
     def __str__(self):
-        return self.title
+        return self.description
 
 class ScrapedNutritionalInfo(models.Model):
     calories = models.TextField()
