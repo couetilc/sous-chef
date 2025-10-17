@@ -36,13 +36,14 @@ class ScrapedIngredient(models.Model):
         return self.description
 
 class ScrapedNutritionalInfo(models.Model):
+    description = models.TextField(default = "")
     calories = models.TextField()
     protein_g = models.TextField()
     fat_g = models.TextField()
     carbs_g = models.TextField()
 
     def __str__(self):
-        return self.title
+        return self.description
 
 class Ingredient(models.Model):
     """Canonical ingredient reference - base ingredient list"""
