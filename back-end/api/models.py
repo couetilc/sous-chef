@@ -18,6 +18,32 @@ class Recipe(models.Model):
         return self.title
 
 
+class ScrapedRecipe(models.Model):
+    title = models.TextField()
+    url = models.TextField()
+    image = models.TextField()
+    ingredients = models.TextField()
+    steps = models.TextField()
+
+    def __str__(self):
+        return self.title
+
+class ScrapedIngredient(models.Model):
+    description = models.TextField()
+    food_category = models.TextField()
+
+    def __str__(self):
+        return self.title
+
+class ScrapedNutrition(models.Model):
+    calories = models.TextField()
+    protein_g = models.TextField()
+    fat_g = models.TextField()
+    carbs_g = models.TextField()
+
+    def __str__(self):
+        return self.title
+
 class Ingredient(models.Model):
     """Canonical ingredient reference - base ingredient list"""
     name = models.CharField(max_length=200, unique=True)
