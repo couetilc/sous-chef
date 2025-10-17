@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.contrib.admin import SimpleListFilter
 from django.db.models import Q
 
-from api.models import Recipe, Ingredient, DietaryIngredient, RecipeIngredient, ScrapedInventory
+from api.models import Recipe, Ingredient, DietaryIngredient, RecipeIngredient, ScrapedInventory, ScrapedRecipe
 
 
 class IngredientInline(admin.TabularInline):
@@ -76,3 +76,9 @@ class ScrapedInventory(admin.ModelAdmin):
 	list_display = ('food_id', 'ingredient_name', 'quantity_other', 'quantity_oz', 'price')
 	search_fields = ('ingredient_name', 'price')
 	list_filter = ('ingredient_name', 'price')
+
+@admin.register(ScrapedRecipe)
+class ScrapedRecipe(admin.ModelAdmin):
+	list_display = ('title', 'url', 'image', 'ingredients', 'steps')
+	search_fields = ('title', 'ingredients', 'steps')
+	list_filter = ('title',)
