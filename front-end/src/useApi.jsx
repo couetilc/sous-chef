@@ -161,6 +161,15 @@ export class Api {
   async getCurrentUser() {
     return this.fetch('/api/user/')
   }
+
+  async deleteUser({username, password}) {
+    return this.fetch('/api/user/delete/', {
+      body: JSON.stringify({
+        username,
+        password
+      })
+    })
+  }
 }
 
 export function ApiProvider(props) {
