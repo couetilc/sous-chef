@@ -13,6 +13,7 @@
         repo: git@github.com:couetilc/sous-chef.git
         dest: /home/ec2-user/sous-chef
         update: yes
+        clone: yes
       become_user: ec2-user
 
     - name: Install Docker
