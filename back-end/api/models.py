@@ -35,7 +35,7 @@ class ScrapedIngredient(models.Model):
     def __str__(self):
         return self.title
 
-class ScrapedNutrition(models.Model):
+class ScrapedNutritionalInfo(models.Model):
     calories = models.TextField()
     protein_g = models.TextField()
     fat_g = models.TextField()
