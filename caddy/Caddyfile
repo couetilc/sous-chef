@@ -1,8 +1,12 @@
 # Caddy configuration for Sous Chef
 # Caddy automatically handles HTTPS with Let's Encrypt
 
+souschef.life {
+    redir https://www.{host}{uri} permanent
+}
+
 # Main site
-souschef.life, www.souschef.life {
+www.souschef.life {
     # Encode responses (replaces nginx gzip)
     encode gzip
 
