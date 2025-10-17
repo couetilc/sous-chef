@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.contrib.admin import SimpleListFilter
 from django.db.models import Q
 from django.utils.html import format_html
+from decimal import Decimal
 
 from api.models import Recipe, Ingredient, DietaryIngredient, RecipeIngredient, ScrapedInventory, ScrapedRecipe, ScrapedIngredient, ScrapedNutritionalInfo
 
@@ -132,6 +133,44 @@ class ProteinRangeFilter(SimpleListFilter):
 
         return queryset
 
+class PriceRangeFilter(SimpleListFilter):
+    title = 'price'
+    parameter_name = 'price_range'
+
+    def lookups(self, request, model_admin):
+        return [
+            ('missing', 'Missing'),
+            ('0-0.99', '$0.00–$0.99'),
+            ('1-2.99', '$1.00–$2.99'),
+            ('3-4.99', '$3.00–$4.99'),
+            ('5-9.99', '$5.00–$9.99'),
+            ('10-19.99', '$10.00–$19.99'),
+            ('20+', '$20.00+'),
+        ]
+
+    def queryset(self, request, queryset):
+        v = self.value()
+        if not v:
+            return queryset
+        if v == 'missing':
+            return queryset.filter(price__isnull=True)
+
+        bounds = {
+            '0-0.99':   (Decimal('0.00'),  Decimal('0.99')),
+            '1-2.99':   (Decimal('1.00'),  Decimal('2.99')),
+            '3-4.99':   (Decimal('3.00'),  Decimal('4.99')),
+            '5-9.99':   (Decimal('5.00'),  Decimal('9.99')),
+            '10-19.99': (Decimal('10.00'), Decimal('19.99')),
+            '20+':      (Decimal('20.00'), None),
+        }
+        lo, hi = bounds[v]
+        qs = queryset
+        if lo is not None:
+            qs = qs.filter(price__gte=lo)
+        if hi is not None:
+            qs = qs.filter(price__lte=hi)
+        return qs
+
 @admin.register(Recipe)
 class RecipeAdmin(admin.ModelAdmin):
 	list_display = ('title', 'is_private', 'created_at', 'updated_at')
@@ -162,12 +201,12 @@ class RecipeIngredientAdmin(admin.ModelAdmin):
 	search_fields = ('recipe__title', 'ingredient__name')
 	list_filter = ('ingredient',)
 
-#food_id,ingredient_name,quantity_other,quantity_oz,price
 @admin.register(ScrapedInventory)
-class ScrapedInventory(admin.ModelAdmin):
-	list_display = ('food_id', 'ingredient_name', 'quantity_other', 'quantity_oz', 'price')
-	search_fields = ('ingredient_name', 'price')
-	list_filter = ('ingredient_name', 'price')
+class ScrapedInventoryAdmin(admin.ModelAdmin):
+    list_display = ('food_id', 'ingredient_name', 'quantity_other', 'quantity_oz', 'price')
+    search_fields = ('ingredient_name',)
+    list_filter = (PriceRangeFilter,)
+    ordering = ('ingredient_name',)
 
 @admin.register(ScrapedRecipe)
 class ScrapedRecipe(admin.ModelAdmin):
