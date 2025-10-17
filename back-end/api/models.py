@@ -18,6 +18,33 @@ class Recipe(models.Model):
         return self.title
 
 
+class ScrapedRecipe(models.Model):
+    title = models.TextField()
+    url = models.TextField()
+    image = models.TextField()
+    ingredients = models.TextField()
+    steps = models.TextField()
+
+    def __str__(self):
+        return self.title
+
+class ScrapedIngredient(models.Model):
+    description = models.TextField()
+    food_category = models.TextField()
+
+    def __str__(self):
+        return self.description
+
+class ScrapedNutritionalInfo(models.Model):
+    description = models.TextField(default = "")
+    calories = models.TextField()
+    protein_g = models.TextField()
+    fat_g = models.TextField()
+    carbs_g = models.TextField()
+
+    def __str__(self):
+        return self.description
+
 class Ingredient(models.Model):
     """Canonical ingredient reference - base ingredient list"""
     name = models.CharField(max_length=200, unique=True)
@@ -71,3 +98,26 @@ class UserDiet(models.Model):
 
     def __str__(self):
         return f"{self.user.username} restricts {self.diet.name}"
+
+class ScrapedInventory(models.Model):
+    # Optional external/CSV id if present
+    food_id = models.CharField(max_length=64, null=True, blank=True, db_index=True)
+
+    # Keep length consistent with Ingredient.name
+    ingredient_name = models.CharField(max_length=200)
+
+    # Mirror your RecipeIngredient.quantity length
+    quantity_other = models.CharField(max_length=50, null=True, blank=True)
+
+    # Numeric ounces if present
+    quantity_oz = models.FloatField(null=True, blank=True)
+
+    # Plain price as a decimal (e.g., "3.49")
+    price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+
+    class Meta:
+        ordering = ['ingredient_name']
+
+    def __str__(self):
+        p = f"{self.price}" if self.price is not None else "—"
+        return f"{self.ingredient_name} (${p})"

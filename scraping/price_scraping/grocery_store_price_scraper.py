@@ -7,7 +7,7 @@
 Generate ingredient_prices.csv by attaching Kroger prices to a canonical ingredient list.
 
 Usage:
-  ./gen_prices.py --canonical /path/to/canonical.csv --out ingredient_prices.csv
+  ./grocery_store_price_scraper.py --canonical /path/to/canonical.csv --out ingredient_prices.csv
 
 Environment variables:
   KROGER_CLIENT_ID (required)
@@ -247,7 +247,7 @@ def detect_name_column(header: List[str]) -> str:
     for cand in LIKELY_NAME_COLUMNS:
         if cand in lower:
             return header[lower.index(cand)]
-    if len(header) > 1 and header[0].strip().lower() in {"fdc_id","id"}:
+    if len(header) > 1 and header[0].strip().lower() in {"food_id","id"}:
         return header[1]
     return header[0]
 
@@ -264,7 +264,7 @@ def read_canonical_list(path: str) -> List[Tuple[str, str]]:
     header, data_rows = rows[0], rows[1:]
     name_col = detect_name_column(header)
     name_idx = header.index(name_col)
-    id_idx = 0 if header[0].strip().lower() in {"fdc_id", "id"} else None
+    id_idx = 0 if header[0].strip().lower() in {"food_id", "id"} else None
 
     pairs: List[Tuple[str, str]] = []
     for row in data_rows:
@@ -291,10 +291,12 @@ def make_search_term(name: str) -> str:
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--canonical", required=True, help="Path to canonical ingredients CSV")
-    ap.add_argument("--out", default=os.getenv("OUT", "ingredient_prices.csv"), help="Output CSV path")
+    ap.add_argument("--out", default=os.getenv("OUT", "ingredient_prices25.csv"), help="Output CSV path")
     args = ap.parse_args()
 
     canonical_rows = read_canonical_list(args.canonical)
+    # Cutoff
+    canonical_rows = canonical_rows[:25]
     if not canonical_rows:
         print(f"No ingredients found in {args.canonical}", file=sys.stderr)
         sys.exit(2)
