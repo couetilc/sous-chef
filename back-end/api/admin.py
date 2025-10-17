@@ -185,4 +185,4 @@ class ScrapedIngredient(admin.ModelAdmin):
 class ScrapedNutritionalInfo(admin.ModelAdmin):
 	list_display = ('description', 'calories', "protein_g", "fat_g", "carbs_g")
 	search_fields = ('description', 'calories', "protein_g", "fat_g", "carbs_g")
-	list_filter = (CaloriesRangeFilter, ProteinRangeFilter)
+	list_filter = (CaloriesRangeFilter,)
