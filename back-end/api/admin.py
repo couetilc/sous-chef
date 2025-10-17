@@ -86,7 +86,51 @@ class CaloriesRangeFilter(SimpleListFilter):
 
         return queryset
 
+class ProteinRangeFilter(SimpleListFilter):
+    title = 'protein (g)'
+    parameter_name = 'protein_range'
 
+    def lookups(self, request, model_admin):
+        return [
+            ('0-5', '0–5 g'),
+            ('6-10', '6–10 g'),
+            ('11-15', '11–15 g'),
+            ('16-20', '16–20 g'),
+            ('21+', '21+ g'),
+        ]
+
+    def queryset(self, request, queryset):
+        val = self.value()
+        if not val:
+            return queryset
+
+        if val == '0-5':
+            return queryset.extra(
+                where=["CAST(protein_g AS FLOAT) BETWEEN %s AND %s"],
+                params=[0, 5]
+            )
+        elif val == '6-10':
+            return queryset.extra(
+                where=["CAST(protein_g AS FLOAT) BETWEEN %s AND %s"],
+                params=[6, 10]
+            )
+        elif val == '11-15':
+            return queryset.extra(
+                where=["CAST(protein_g AS FLOAT) BETWEEN %s AND %s"],
+                params=[11, 15]
+            )
+        elif val == '16-20':
+            return queryset.extra(
+                where=["CAST(protein_g AS FLOAT) BETWEEN %s AND %s"],
+                params=[16, 20]
+            )
+        elif val == '21+':
+            return queryset.extra(
+                where=["CAST(protein_g AS FLOAT) >= %s"],
+                params=[21]
+            )
+
+        return queryset
 
 @admin.register(Recipe)
 class RecipeAdmin(admin.ModelAdmin):
@@ -141,4 +185,4 @@ class ScrapedIngredient(admin.ModelAdmin):
 class ScrapedNutritionalInfo(admin.ModelAdmin):
 	list_display = ('description', 'calories', "protein_g", "fat_g", "carbs_g")
 	search_fields = ('description', 'calories', "protein_g", "fat_g", "carbs_g")
-	list_filter = (CaloriesRangeFilter,)
+	list_filter = (CaloriesRangeFilter, ProteinRangeFilter)
