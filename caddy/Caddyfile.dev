@@ -32,4 +32,9 @@
     handle {
         reverse_proxy frontend:5173
     }
+
+    handle_errors 5xx {
+        header Content-Type "text/html"
+        respond "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"utf-8\"></head><body><h1>Error</h1><p>Sorry chef, something went bad</p></body></html>"
+    }
 }
