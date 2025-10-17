@@ -1,8 +1,9 @@
 from django.contrib import admin
 from django.contrib.admin import SimpleListFilter
 from django.db.models import Q
+from django.utils.html import format_html
 
-from api.models import Recipe, Ingredient, DietaryIngredient, RecipeIngredient, ScrapedInventory, ScrapedRecipe
+from api.models import Recipe, Ingredient, DietaryIngredient, RecipeIngredient, ScrapedInventory, ScrapedRecipe, ScrapedIngredient, ScrapedNutritionalInfo
 
 
 class IngredientInline(admin.TabularInline):
@@ -38,6 +39,53 @@ class RestrictedForUserFilter(SimpleListFilter):
 		return queryset.filter(
 			ingredients_list__ingredient__dietary_restrictions__user__id=val
 		).distinct()
+
+class CaloriesRangeFilter(SimpleListFilter):
+    title = 'calories'
+    parameter_name = 'calories_range'
+
+    def lookups(self, request, model_admin):
+        return [
+            ('0-100', '0–100'),
+            ('101-200', '101–200'),
+            ('201-300', '201–300'),
+            ('301-400', '301–400'),
+            ('401+', '401+'),
+        ]
+
+    def queryset(self, request, queryset):
+        val = self.value()
+        if not val:
+            return queryset
+
+        if val == '0-100':
+            return queryset.extra(
+                where=["CAST(calories AS FLOAT) BETWEEN %s AND %s"],
+                params=[0, 100]
+            )
+        elif val == '101-200':
+            return queryset.extra(
+                where=["CAST(calories AS FLOAT) BETWEEN %s AND %s"],
+                params=[101, 200]
+            )
+        elif val == '201-300':
+            return queryset.extra(
+                where=["CAST(calories AS FLOAT) BETWEEN %s AND %s"],
+                params=[201, 300]
+            )
+        elif val == '301-400':
+            return queryset.extra(
+                where=["CAST(calories AS FLOAT) BETWEEN %s AND %s"],
+                params=[301, 400]
+            )
+        elif val == '401+':
+            return queryset.extra(
+                where=["CAST(calories AS FLOAT) >= %s"],
+                params=[401]
+            )
+
+        return queryset
+
 
 
 @admin.register(Recipe)

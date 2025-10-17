@@ -2,7 +2,7 @@ import csv
 from pathlib import Path
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
-from api.models import ScrapedIngredient
+from api.models import ScrapedNutritionalInfo
 
 
 class Command(BaseCommand):
@@ -45,11 +45,10 @@ class Command(BaseCommand):
             with open(csv_path, 'r', encoding='utf-8') as csvfile:
                 reader = csv.DictReader(csvfile)
 
-                if 'description' not in reader.fieldnames:
-                    raise CommandError('CSV must have a "description" column')
-
-                # food_category is optional in case some files don't have it
-                has_food_cat = 'food_category' in reader.fieldnames
+                required_fields = {'description', 'calories', 'protein_g', 'fat_g', 'carbs_g'}
+                missing = required_fields - set(reader.fieldnames)
+                if missing:
+                    raise CommandError(f'Missing columns: {", ".join(missing)}')
 
                 for row in reader:
                     description = row.get('description', '').strip()
@@ -58,14 +57,12 @@ class Command(BaseCommand):
 
                     cleaned = self.clean_ingredient_name(description)
 
-                    # choose category if present (first seen)
-                    if has_food_cat:
-                        fc = row.get('food_category', '').strip()
-                        if cleaned not in ingredient_map:
-                            ingredient_map[cleaned] = fc
-                    else:
-                        if cleaned not in ingredient_map:
-                            ingredient_map[cleaned] = ''
+                    ingredient_map[cleaned] = {
+                        'calories': row.get('calories', '').strip(),
+                        'protein_g': row.get('protein_g', '').strip(),
+                        'fat_g': row.get('fat_g', '').strip(),
+                        'carbs_g': row.get('carbs_g', '').strip(),
+                    }
 
         except Exception as e:
             raise CommandError(f'Error reading CSV: {e}')
@@ -83,10 +80,15 @@ class Command(BaseCommand):
         skipped_count = 0
 
         with transaction.atomic():
-            for name, food_category in ingredient_map.items():
-                obj, created = ScrapedIngredient.objects.get_or_create(
+            for name, data in ingredient_map.items():
+                obj, created = ScrapedNutritionalInfo.objects.get_or_create(
                     description=name,
-                    defaults={'food_category': food_category}
+                    defaults={
+                        'calories': data['calories'],
+                        'protein_g': data['protein_g'],
+                        'fat_g': data['fat_g'],
+                        'carbs_g': data['carbs_g'],
+                    },
                 )
                 if created:
                     created_count += 1
@@ -98,6 +100,6 @@ class Command(BaseCommand):
                 f'Successfully loaded ingredients:\n'
                 f'  - Created: {created_count}\n'
                 f'  - Skipped (already exists): {skipped_count}\n'
-                f'  - Total in database: {ScrapedIngredient.objects.count()}'
+                f'  - Total in database: {ScrapedNutritionalInfo.objects.count()}'
             )
         )
