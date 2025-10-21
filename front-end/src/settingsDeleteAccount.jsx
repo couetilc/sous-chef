@@ -1,55 +1,114 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router';
-import './style.css';
-import SousChefLogo from './souschef-logo.png';
 import { useApi } from './useApi';
-
+import {
+    Card,
+    CardContent,
+    Button,
+    Typography,
+    TextField,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions,
+    Stack,
+    Alert
+} from '@mui/material';
+import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 
 const DeleteComponent = () => {
     const navigate = useNavigate();
     const { api } = useApi();
+    const [dialogOpen, setDialogOpen] = useState(false);
+    const [username, setUsername] = useState("");
+    const [password, setPassword] = useState("");
 
-    function login(formData) {
-        const dialog = document.getElementById("deleteAccountDialog")
+    function handleDelete(e) {
+        e.preventDefault();
 
-        const username = formData.get("user");
-        const password = formData.get("password");
-
-
-        api.deleteUser({username, password})
-        .then((result) => {
-            alert("Successfully deleted account!")
-            navigate("/login");
-        })
-        .catch((error) => {
-            alert("Invalid Credentials! Could not delete account!")
-            console.log(error)
-        })
-
-        dialog.close();
+        api.deleteUser({ username, password })
+            .then((result) => {
+                alert("Successfully deleted account!");
+                navigate("/login");
+            })
+            .catch((error) => {
+                alert("Invalid Credentials! Could not delete account!");
+                console.log(error);
+            })
+            .finally(() => {
+                setDialogOpen(false);
+                setUsername("");
+                setPassword("");
+            });
     }
 
-    function showDeleteDialog() {
-        const dialog = document.getElementById("deleteAccountDialog")
-        dialog.showModal();
+    function showDeleteDialog(e) {
+        e.preventDefault();
+        setDialogOpen(true);
+    }
+
+    function handleCancel() {
+        setDialogOpen(false);
+        setUsername("");
+        setPassword("");
     }
 
     return (
-        <div className="delete">
-            <dialog id="deleteAccountDialog">
-                <form action={login}>
-                    <input name="user" placeholder="Enter Username" /> <br />
-                    <input name="password" placeholder="Enter Password" /> <br />
+        <Card sx={{ height: '100%' }}>
+            <CardContent sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 4 }}>
+                <Button
+                    variant="contained"
+                    color="error"
+                    size="large"
+                    startIcon={<DeleteForeverIcon />}
+                    onClick={showDeleteDialog}
+                >
+                    Delete Account
+                </Button>
 
-                    <button formMethod='dialog'>Cancel</button>
-                    <button type='submit'>Submit</button>
-                </form>
-            </dialog>
-
-            <form action={showDeleteDialog}>
-                <button type="submit">Delete Account</button>
-            </form>
-        </div>
+                <Dialog open={dialogOpen} onClose={handleCancel} maxWidth="xs" fullWidth>
+                    <DialogTitle>Delete Account</DialogTitle>
+                    <DialogContent>
+                        <Alert severity="warning" sx={{ mb: 2 }}>
+                            This action cannot be undone. Please confirm your credentials to delete your account.
+                        </Alert>
+                        <Stack spacing={2} component="form" onSubmit={handleDelete}>
+                            <TextField
+                                name="user"
+                                label="Username"
+                                placeholder="Enter Username"
+                                fullWidth
+                                value={username}
+                                onChange={(e) => setUsername(e.target.value)}
+                                autoFocus
+                            />
+                            <TextField
+                                name="password"
+                                label="Password"
+                                type="password"
+                                placeholder="Enter Password"
+                                fullWidth
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                            />
+                        </Stack>
+                    </DialogContent>
+                    <DialogActions>
+                        <Button onClick={handleCancel} color="inherit">
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={handleDelete}
+                            color="error"
+                            variant="contained"
+                            disabled={!username || !password}
+                        >
+                            Delete Account
+                        </Button>
+                    </DialogActions>
+                </Dialog>
+            </CardContent>
+        </Card>
     );
 };
 

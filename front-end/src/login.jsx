@@ -1,70 +1,128 @@
 // /src/login
-import home from './home.jsx'
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import './style.css';
-import SousChefLogo from './souschef-logo.png';
-import { useUser } from './useUser.jsx'
+import { useUser } from './useUser.jsx';
+import { Box, Container, Paper, TextField, Button, Typography, Stack, Link } from '@mui/material';
+import LoginIcon from '@mui/icons-material/Login';
 
 export default function Login(props) {
-  let user = props.user;
-  let setUser = props.setUser;
   const navigate = useNavigate();
   const { login } = useUser();
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
 
-  async function checkLogin() {
-    const userElement = document.getElementById("userId");
-    if ( userElement.value == '') {
+  async function checkLogin(e) {
+    e.preventDefault();
+
+    if (username === '') {
       alert("Please enter your username!");
       return;
     }
-    const userText = userElement.value;
 
-    const pwElement = document.getElementById("pwId");
-    if ( pwElement.value =='' ) {
+    if (password === '') {
       alert("Please enter your password!");
       return;
     }
 
     try {
-      await login({ username: userText, password: pwElement.value })
+      await login({ username, password });
       navigate("/home/");
     } catch (error) {
       alert("Invalid Credentials!");
     }
   }
 
-  const loginDiv = {
-    border: '5px solid black',
-    backgroundColor: 'goldenrod',
-    textAlign: 'center'
-  };
   return (
-    <div className="centered-div">
-      <div style={loginDiv}>
-        <h1>Log In</h1>
-        <label>Username: <input name="userIn" id="userId" /> </label>
-        <br />
-        <br />
-        <label>Password: <input type="password" name="passIn" id="pwId"/> </label>
-        <br />
-        <br />
-        <div className="inline-div" >
-        <button className="button"
-                type="button"
-                style={{backgroundColor: 'tomato', color: 'white'}}
-                onClick={() => navigate("/create-account")}>
-          Create Account
-        </button>
-        <div style={{width: '10px'}}></div>
-        <button className="button"
-                type="button"
-                style={{backgroundColor: 'green', color: 'white'}}
-                onClick={checkLogin}>
-          Continue
-        </button>
-        </div>
-      </div>
-    </div>
+    <Container maxWidth="xs">
+      <Box sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: 'calc(100vh - 450px)',
+        py: 4
+      }}>
+        <Paper
+          elevation={2}
+          sx={{
+            p: 4,
+            width: '100%',
+            bgcolor: 'background.paper',
+          }}
+        >
+          <Typography
+            variant="h4"
+            component="h1"
+            gutterBottom
+            align="center"
+            sx={{ fontWeight: 700, color: 'text.primary', mb: 1 }}
+          >
+            Welcome Back
+          </Typography>
+          <Typography
+            variant="body2"
+            align="center"
+            color="text.secondary"
+            sx={{ mb: 4 }}
+          >
+            Sign in to continue to Sous Chef
+          </Typography>
+
+          <Box component="form" onSubmit={checkLogin}>
+            <Stack spacing={2.5}>
+              <TextField
+                label="Username"
+                variant="outlined"
+                fullWidth
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                autoFocus
+              />
+
+              <TextField
+                label="Password"
+                type="password"
+                variant="outlined"
+                fullWidth
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+
+              <Button
+                type="submit"
+                variant="contained"
+                color="primary"
+                size="large"
+                fullWidth
+                endIcon={<LoginIcon />}
+                sx={{ mt: 1 }}
+              >
+                Sign In
+              </Button>
+
+              <Box sx={{ textAlign: 'center', mt: 2 }}>
+                <Typography variant="body2" color="text.secondary">
+                  Don't have an account?{' '}
+                  <Link
+                    component="button"
+                    type="button"
+                    variant="body2"
+                    onClick={() => navigate("/create-account")}
+                    sx={{
+                      textDecoration: 'none',
+                      fontWeight: 600,
+                      color: 'secondary.main',
+                      '&:hover': { textDecoration: 'underline' }
+                    }}
+                  >
+                    Create one
+                  </Link>
+                </Typography>
+              </Box>
+            </Stack>
+          </Box>
+        </Paper>
+      </Box>
+    </Container>
   );
 }

@@ -1,8 +1,19 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { useApi } from './useApi.jsx';
-import './style.css';
+import {
+  Box,
+  Container,
+  Paper,
+  TextField,
+  Button,
+  Typography,
+  Stack,
+  Alert,
+  Link
+} from '@mui/material';
+import PersonAddIcon from '@mui/icons-material/PersonAdd';
 
 export default function CreateAccount(props) {
   const navigate = useNavigate();
@@ -14,6 +25,7 @@ export default function CreateAccount(props) {
     register,
     handleSubmit,
     watch,
+    control,
     formState: { errors }
   } = useForm();
 
@@ -59,36 +71,55 @@ export default function CreateAccount(props) {
     }
   };
 
-  const formDiv = {
-    border: '5px solid black',
-    backgroundColor: 'goldenrod',
-    textAlign: 'center',
-    padding: '20px'
-  };
-
-  const errorStyle = {
-    color: 'darkred',
-    fontSize: '0.9em',
-    marginTop: '5px'
-  };
-
   return (
-    <div className="centered-div">
-      <div style={formDiv}>
-        <h1>Create Account</h1>
+    <Container maxWidth="xs">
+      <Box sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: 'calc(100vh - 450px)',
+        py: 4
+      }}>
+        <Paper
+          elevation={2}
+          sx={{
+            p: 4,
+            width: '100%',
+            bgcolor: 'background.paper',
+          }}
+        >
+          <Typography
+            variant="h4"
+            component="h1"
+            gutterBottom
+            align="center"
+            sx={{ fontWeight: 700, color: 'text.primary', mb: 1 }}
+          >
+            Create Account
+          </Typography>
+          <Typography
+            variant="body2"
+            align="center"
+            color="text.secondary"
+            sx={{ mb: 3 }}
+          >
+            Join Sous Chef to get started
+          </Typography>
 
-        {serverError && (
-          <div style={{ ...errorStyle, marginBottom: '15px' }}>
-            {serverError}
-          </div>
-        )}
+          {serverError && (
+            <Alert severity="error" sx={{ mb: 2, whiteSpace: 'pre-line' }}>
+              {serverError}
+            </Alert>
+          )}
 
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <div style={{ marginBottom: '15px' }}>
-            <label>
-              Username: *
-              <br />
-              <input
+          <form onSubmit={handleSubmit(onSubmit)}>
+            <Stack spacing={2}>
+              <TextField
+                label="Username"
+                fullWidth
+                error={!!errors.username}
+                helperText={errors.username?.message}
                 {...register('username', {
                   required: 'Username is required',
                   maxLength: {
@@ -100,18 +131,14 @@ export default function CreateAccount(props) {
                     message: 'Username can only contain letters, digits, and @/./+/-/_'
                   }
                 })}
-                style={{ marginTop: '5px' }}
               />
-            </label>
-            {errors.username && <div style={errorStyle}>{errors.username.message}</div>}
-          </div>
 
-          <div style={{ marginBottom: '15px' }}>
-            <label>
-              Email: *
-              <br />
-              <input
+              <TextField
+                label="Email"
                 type="email"
+                fullWidth
+                error={!!errors.email}
+                helperText={errors.email?.message}
                 {...register('email', {
                   required: 'Email is required',
                   maxLength: {
@@ -123,18 +150,14 @@ export default function CreateAccount(props) {
                     message: 'Invalid email address'
                   }
                 })}
-                style={{ marginTop: '5px' }}
               />
-            </label>
-            {errors.email && <div style={errorStyle}>{errors.email.message}</div>}
-          </div>
 
-          <div style={{ marginBottom: '15px' }}>
-            <label>
-              Password: *
-              <br />
-              <input
+              <TextField
+                label="Password"
                 type="password"
+                fullWidth
+                error={!!errors.password}
+                helperText={errors.password?.message || 'Minimum 8 characters'}
                 {...register('password', {
                   required: 'Password is required',
                   minLength: {
@@ -142,55 +165,58 @@ export default function CreateAccount(props) {
                     message: 'Password must be at least 8 characters'
                   }
                 })}
-                style={{ marginTop: '5px' }}
               />
-            </label>
-            {errors.password && <div style={errorStyle}>{errors.password.message}</div>}
-          </div>
 
-          <div style={{ marginBottom: '15px' }}>
-            <label>
-              Confirm Password: *
-              <br />
-              <input
+              <TextField
+                label="Confirm Password"
                 type="password"
+                fullWidth
+                error={!!errors.password_confirm}
+                helperText={errors.password_confirm?.message}
                 {...register('password_confirm', {
                   required: 'Please confirm your password',
                   validate: value =>
                     value === password || 'Passwords do not match'
                 })}
-                style={{ marginTop: '5px' }}
               />
-            </label>
-            {errors.password_confirm && <div style={errorStyle}>{errors.password_confirm.message}</div>}
-          </div>
 
-          <div style={{ fontSize: '0.9em', marginBottom: '15px' }}>
-            * Required fields
-          </div>
+              <Button
+                variant="contained"
+                color="primary"
+                type="submit"
+                size="large"
+                fullWidth
+                endIcon={<PersonAddIcon />}
+                disabled={isSubmitting}
+                sx={{ mt: 2 }}
+              >
+                {isSubmitting ? 'Creating Account...' : 'Create Account'}
+              </Button>
 
-          <div className="inline-div">
-            <button
-              className="button"
-              type="button"
-              style={{ backgroundColor: 'gray', color: 'white' }}
-              onClick={() => navigate('/login')}
-              disabled={isSubmitting}
-            >
-              Back to Login
-            </button>
-            <div style={{ width: '10px' }}></div>
-            <button
-              className="button"
-              type="submit"
-              style={{ backgroundColor: 'green', color: 'white' }}
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? 'Creating Account...' : 'Create Account'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+              <Box sx={{ textAlign: 'center', mt: 2 }}>
+                <Typography variant="body2" color="text.secondary">
+                  Already have an account?{' '}
+                  <Link
+                    component="button"
+                    type="button"
+                    variant="body2"
+                    onClick={() => navigate('/login')}
+                    disabled={isSubmitting}
+                    sx={{
+                      textDecoration: 'none',
+                      fontWeight: 600,
+                      color: 'secondary.main',
+                      '&:hover': { textDecoration: 'underline' }
+                    }}
+                  >
+                    Sign in
+                  </Link>
+                </Typography>
+              </Box>
+            </Stack>
+          </form>
+        </Paper>
+      </Box>
+    </Container>
   );
 }

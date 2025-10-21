@@ -1,7 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import './style.css';
-import SousChefLogo from './souschef-logo.png';
 import { useApi } from './useApi';
+import {
+    Card,
+    CardContent,
+    Button,
+    Typography,
+    Select,
+    MenuItem,
+    FormControl,
+    InputLabel,
+    Stack,
+    Chip,
+    Box,
+    OutlinedInput
+} from '@mui/material';
+import RestaurantMenuIcon from '@mui/icons-material/RestaurantMenu';
+import BlockIcon from '@mui/icons-material/Block';
 
 const DietComponent = () => {
     const { api } = useApi();
@@ -41,7 +55,7 @@ const DietComponent = () => {
                 setFetchedSelectedDiets(fetchedList);
             })
 
-    }, [])
+    }, [api])
 
 
     function publishDiet(e) {
@@ -147,60 +161,83 @@ const DietComponent = () => {
     }
 
     return (
-        <div className="diet">
-            <form onSubmit={publishDiet}>
-                <p>
-                    <label>
-                        Select diets: <br />
-                        <select
-                            name="dietSelect"
-                            multiple={true}
-                            value={selectedDiets}
-                            onChange={e => {
-                                const options = [...e.target.selectedOptions]
-                                const values = options.map(option => option.value)
-                                setSelectedDiets(values)
-                            }}
-                        >
-                            {
-                                diets.map((diet) =>
-                                    <option value={diet.id}>{diet.name}</option>
-                                )
-                            }
-                        </select>
-                    </label>
-                </p>
-                <p>
-                    <button type='submit'>Update Diet</button>
-                </p>
-            </form>
-            <form onSubmit={publishRestrictions}>
-                <p>
-                    <label>
-                        Select ingredients: <br />
-                        <select
-                            name="ingredientSelect"
-                            multiple={true}
-                            value={selectedIngredients}
-                            onChange={e => {
-                                const options = [...e.target.selectedOptions]
-                                const values = options.map(option => option.value)
-                                setSelectedIngredients(values)
-                            }}
-                        >
-                            {
-                                ingredients.map((ingredient) =>
-                                    <option value={ingredient.id}>{ingredient.name}</option>
-                                )
-                            }
-                        </select>
-                    </label>
-                </p>
-                <p>
-                    <button type='submit'>Update Ingredients</button>
-                </p>
-            </form>
-        </div>
+        <Card sx={{ height: '100%' }}>
+            <CardContent>
+                <Stack spacing={3}>
+                    {/* Diets Section */}
+                    <Box component="form" onSubmit={publishDiet}>
+                        <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <RestaurantMenuIcon /> Dietary Preferences
+                        </Typography>
+                        <Stack spacing={2}>
+                            <FormControl fullWidth size="small">
+                                <InputLabel id="diet-select-label">Select Diets</InputLabel>
+                                <Select
+                                    labelId="diet-select-label"
+                                    multiple
+                                    value={selectedDiets}
+                                    onChange={(e) => setSelectedDiets(e.target.value)}
+                                    input={<OutlinedInput label="Select Diets" />}
+                                    renderValue={(selected) => (
+                                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                                            {selected.map((value) => {
+                                                const diet = diets.find(d => d.id === value);
+                                                return diet ? <Chip key={value} label={diet.name} size="small" /> : null;
+                                            })}
+                                        </Box>
+                                    )}
+                                >
+                                    {diets.map((diet) => (
+                                        <MenuItem key={diet.id} value={diet.id}>
+                                            {diet.name}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                            <Button type="submit" variant="contained" color="primary" fullWidth>
+                                Update Diet
+                            </Button>
+                        </Stack>
+                    </Box>
+
+                    {/* Restricted Ingredients Section */}
+                    <Box component="form" onSubmit={publishRestrictions}>
+                        <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <BlockIcon /> Restricted Ingredients
+                        </Typography>
+                        <Stack spacing={2}>
+                            <FormControl fullWidth size="small">
+                                <InputLabel id="ingredient-select-label">Select Ingredients to Restrict</InputLabel>
+                                <Select
+                                    labelId="ingredient-select-label"
+                                    multiple
+                                    value={selectedIngredients}
+                                    onChange={(e) => setSelectedIngredients(e.target.value)}
+                                    input={<OutlinedInput label="Select Ingredients to Restrict" />}
+                                    renderValue={(selected) => (
+                                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                                            {selected.map((value) => {
+                                                const ingredient = ingredients.find(i => i.id === value);
+                                                return ingredient ? <Chip key={value} label={ingredient.name} size="small" /> : null;
+                                            })}
+                                        </Box>
+                                    )}
+                                >
+                                    {ingredients.map((ingredient) => (
+                                        <MenuItem key={ingredient.id} value={ingredient.id}>
+                                            {ingredient.name}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                            <Button type="submit" variant="contained" color="primary" fullWidth>
+                                Update Ingredients
+                            </Button>
+                        </Stack>
+                    </Box>
+                </Stack>
+            </CardContent>
+        </Card>
     );
 };
 

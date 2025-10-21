@@ -1,27 +1,42 @@
-import React, { useState } from 'react';
-import './style.css';
-import SousChefLogo from './souschef-logo.png';
+import React from 'react';
 import PasswordComponent from './settingsPassword';
 import DeleteComponent from './settingsDeleteAccount';
 import DietComponent from './settingsDietPreference';
-import Home from './home';
-
-import { BrowserRouter, Routes, Route, Link } from 'react-router';
+import { Container, Typography, Box, Grid } from '@mui/material';
 
 const SettingsPage = () => {
     return (
-            <div>
-                <div>
-                    <h1>
-                        Settings
-                    </h1>
-                </div>
-                <div className="settingsGrid">
-                    <PasswordComponent />
-                    <DeleteComponent />
-                    <DietComponent />
-                </div>
-            </div>
+        <Container maxWidth="lg">
+            <Box sx={{ py: 3 }}>
+                <Typography
+                    variant="h5"
+                    component="h1"
+                    sx={{
+                        fontWeight: 600,
+                        color: 'text.primary',
+                        mb: 3
+                    }}
+                >
+                    Account Settings
+                </Typography>
+
+                <Grid container spacing={2.5}>
+                    <Grid item xs={12} md={4}>
+                        <DietComponent />
+                    </Grid>
+                    <Grid item xs={12} md={8}>
+                        <Grid container spacing={2.5}>
+                            <Grid item xs={12}>
+                                <PasswordComponent />
+                            </Grid>
+                            <Grid item xs={12}>
+                                <DeleteComponent />
+                            </Grid>
+                        </Grid>
+                    </Grid>
+                </Grid>
+            </Box>
+        </Container>
     );
 }
 

@@ -1,8 +1,6 @@
-import './style.css'
 import { createRoot } from 'react-dom/client'
 import { useEffect, useState } from 'react'
 
-import SousChefLogo from './souschef-logo.png';
 import Login from './login.jsx';
 import Home from './home.jsx';
 import SousChef from './souschefPage.jsx';
@@ -21,6 +19,10 @@ import { useNavigate, useLocation } from 'react-router';
 import { StrictMode } from 'react';
 import { ApiProvider } from './useApi';
 import { UserProvider, useUser } from './useUser';
+import { ThemeProvider } from '@mui/material/styles';
+import CssBaseline from '@mui/material/CssBaseline';
+import Box from '@mui/material/Box';
+import theme from './theme';
 
 export default function App(props) {
   const navigate = useNavigate();
@@ -46,9 +48,14 @@ export default function App(props) {
   const settings = <PrivatePage><SettingsPage /></PrivatePage>
 
   return (
-    <>
-      <div className="app-container">
-        <HeaderBanner />
+    <Box sx={{
+      display: 'flex',
+      flexDirection: 'column',
+      minHeight: '100vh',
+      bgcolor: 'background.default'
+    }}>
+      <HeaderBanner />
+      <Box component="main" sx={{ flexGrow: 1 }}>
         <Routes>
           {/* private pages */}
           <Route path="home" element={home} />
@@ -63,9 +70,9 @@ export default function App(props) {
           <Route path="create-account" element={<CreateAccount />} />
           <Route path="logout" element={<LogoutPage />} />
           <Route path="/" element={<Login />} />
-        </ Routes>
-      </div>
-    </>
+        </Routes>
+      </Box>
+    </Box>
   )
 }
 
@@ -73,11 +80,14 @@ const root = createRoot(document.getElementById('root'))
 root.render(
   <StrictMode>
   <BrowserRouter>
-  <ApiProvider>
-  <UserProvider>
-    <App />
-  </UserProvider>
-  </ApiProvider>
+  <ThemeProvider theme={theme}>
+    <CssBaseline />
+    <ApiProvider>
+    <UserProvider>
+      <App />
+    </UserProvider>
+    </ApiProvider>
+  </ThemeProvider>
   </BrowserRouter>
   </StrictMode>
 )

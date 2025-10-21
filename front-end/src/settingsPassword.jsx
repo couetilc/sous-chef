@@ -1,69 +1,132 @@
 import React, { useState, useEffect } from 'react';
-import './style.css';
-import SousChefLogo from './souschef-logo.png';
 import { useApi } from './useApi';
+import {
+    Card,
+    CardContent,
+    TextField,
+    Button,
+    Typography,
+    Stack,
+    Divider,
+    Box
+} from '@mui/material';
+import EmailIcon from '@mui/icons-material/Email';
+import LockIcon from '@mui/icons-material/Lock';
 
 const PasswordComponent = () => {
     const { api } = useApi();
 
     const [currentEmail, setCurrentEmail] = useState("");
-    const [matching, setMatching] = useState(false);
-
+    const [newEmail, setNewEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
 
     useEffect(() => {
         api.getCurrentUser().then((result) => {
             setCurrentEmail(result.email)
         })
-    })
+    }, [api])
 
-    let confirm = ""
-    let pass = ""
-    function matchPasswords(p, c) {
-        pass = p
-        confirm = c;
-        (confirm === "" || pass !== confirm) ? setMatching(false) : setMatching(true)
-    }
+    const passwordsMatch = password !== "" && password === confirmPassword;
 
-    function publishPassword(formData) {
-        const password = formData.get('password')
+    function publishPassword(e) {
+        e.preventDefault();
+        if (!passwordsMatch) return;
 
         api.updatePassword({ password })
-            .then(() => alert('Password successfully changed!'))
+            .then(() => {
+                alert('Password successfully changed!');
+                setPassword("");
+                setConfirmPassword("");
+            })
     }
 
-    function publishEmail(formData) {
-        const email = formData.get('email')
-        api.updateEmail({ email })
+    function publishEmail(e) {
+        e.preventDefault();
+        api.updateEmail({ email: newEmail })
             .then((result) => {
                 return api.getCurrentUser();
             })
-            .then((result) => setCurrentEmail(result.email))
-            .then(() => alert('Email successfully changed!'))
+            .then((result) => {
+                setCurrentEmail(result.email);
+                setNewEmail("");
+                alert('Email successfully changed!');
+            })
     }
 
     return (
-        <div className="pass">
-            <form action={publishEmail}>
-                <p>
-                    Current email: {currentEmail}
-                </p>
-                <p>
-                    <input name="email" placeholder="Enter Email" /> <br />
-                </p>
-                <p>
-                    <button type="submit" name="button">Change Email</button>
-                </p>
-            </form>
-            <form action={publishPassword}>
-                <p>
-                    <input  name="password" onChange={e=>matchPasswords(e.target.value, confirm)} placeholder="Enter Password" /> <br />
-                    <input name="confirmpassword" onChange={e=>matchPasswords(pass, e.target.value)} placeholder="Confirm Password" /> <br />
-                </p>
-                <p>
-                    <button type="submit" name="button" disabled={!matching}>Change Password</button>
-                </p>
-            </form>
-        </div>
+        <Card sx={{ height: '100%' }}>
+            <CardContent>
+                <Stack spacing={3} divider={<Divider />}>
+                    {/* Email Section */}
+                    <Box component="form" onSubmit={publishEmail}>
+                        <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <EmailIcon /> Email Settings
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                            Current email: <strong>{currentEmail}</strong>
+                        </Typography>
+                        <Stack direction="row" spacing={2} alignItems="center">
+                            <TextField
+                                name="email"
+                                type="email"
+                                placeholder="Enter new email"
+                                size="small"
+                                fullWidth
+                                value={newEmail}
+                                onChange={(e) => setNewEmail(e.target.value)}
+                            />
+                            <Button
+                                type="submit"
+                                variant="contained"
+                                color="primary"
+                                disabled={!newEmail}
+                            >
+                                Change Email
+                            </Button>
+                        </Stack>
+                    </Box>
+
+                    {/* Password Section */}
+                    <Box component="form" onSubmit={publishPassword}>
+                        <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <LockIcon /> Password Settings
+                        </Typography>
+                        <Stack spacing={2}>
+                            <TextField
+                                name="password"
+                                type="password"
+                                placeholder="Enter new password"
+                                size="small"
+                                fullWidth
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                            />
+                            <TextField
+                                name="confirmpassword"
+                                type="password"
+                                placeholder="Confirm password"
+                                size="small"
+                                fullWidth
+                                value={confirmPassword}
+                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                error={confirmPassword !== "" && !passwordsMatch}
+                                helperText={confirmPassword !== "" && !passwordsMatch ? "Passwords do not match" : ""}
+                            />
+                            <Button
+                                type="submit"
+                                variant="contained"
+                                color="primary"
+                                disabled={!passwordsMatch}
+                                fullWidth
+                            >
+                                Change Password
+                            </Button>
+                        </Stack>
+                    </Box>
+                </Stack>
+            </CardContent>
+        </Card>
     );
 };
 
