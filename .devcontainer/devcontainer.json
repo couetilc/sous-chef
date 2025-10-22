@@ -2,7 +2,10 @@
   "name": "Sous Chef Dev Environment",
 
   // Use docker-compose to orchestrate services
-  "dockerComposeFile": "../compose.yml",
+  "dockerComposeFile": [
+    "../compose.yml",
+    "../compose.devcontainer.yml",
+  ],
   "service": "devcontainer",
   "workspaceFolder": "/workspace",
 
