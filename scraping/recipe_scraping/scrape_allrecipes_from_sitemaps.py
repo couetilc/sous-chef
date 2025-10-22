@@ -27,9 +27,14 @@ HEADERS = {
 RECIPE_RE = re.compile(r"^https?://www\.allrecipes\.com/recipe/\d{6}/.+/?$", re.I)
 
 # Default input files (can be overridden by CLI args)
-DEFAULT_SITEMAPS = ["scraping/recipe_scraping/sitemaps/sitemap1.txt", "scraping/recipe_scraping/sitemaps/sitemap2.txt", "scraping/recipe_scraping/sitemaps/sitemap3.txt", "scraping/recipe_scraping/sitemaps/sitemap4.txt"]
+DEFAULT_SITEMAPS = [
+  "scraping/recipe_scraping/sitemaps/sitemap1.txt",
+  "scraping/recipe_scraping/sitemaps/sitemap2.txt",
+  "scraping/recipe_scraping/sitemaps/sitemap3.txt",
+  "scraping/recipe_scraping/sitemaps/sitemap4.txt",
+]
 
-OUT_CSV = "scraping/recipe_scraping/recipe_csv_files/recipes25.csv"
+OUT_CSV = "scraping/recipe_scraping/recipe_csv_files/recipes_final.csv"
 REQUEST_TIMEOUT = 20
 
 # ---------------- Helpers ----------------
@@ -119,6 +124,81 @@ def _image_from_jsonld(image_field):
         return u
   return None
 
+# ---- New utility helpers for times/servings/nutrition ----
+
+_ISO_DUR_RE = re.compile(
+  r"^P(?:(?P<days>\d+)D)?(?:T(?:(?P<hours>\d+)H)?(?:(?P<minutes>\d+)M)?(?:(?P<seconds>\d+)S)?)?$",
+  re.I
+)
+
+def iso8601_to_minutes(val: str | None) -> int | None:
+  """
+  Convert ISO-8601 duration like 'PT1H30M' or 'PT45M' or 'P0DT20M' to minutes.
+  Returns None if parsing fails.
+  """
+  if not val or not isinstance(val, str):
+    return None
+  m = _ISO_DUR_RE.match(val.strip())
+  if not m:
+    return None
+  days = int(m.group("days") or 0)
+  hours = int(m.group("hours") or 0)
+  minutes = int(m.group("minutes") or 0)
+  seconds = int(m.group("seconds") or 0)
+  total_min = days * 24 * 60 + hours * 60 + minutes + (seconds // 60)
+  return total_min if total_min > 0 else (0 if any([days, hours, minutes, seconds]) else None)
+
+_NUMERIC_RE = re.compile(r"[-+]?\d*\.?\d+")
+_INT_RE = re.compile(r"\d+")
+
+def parse_number(text: str) -> float | None:
+  if not text:
+    return None
+  m = _NUMERIC_RE.search(text.replace(",", ""))
+  return float(m.group(0)) if m else None
+
+def parse_int(text: str) -> int | None:
+  if not text:
+    return None
+  m = _INT_RE.search(text.replace(",", ""))
+  return int(m.group(0)) if m else None
+
+def normalize_servings(yield_field) -> str:
+  """
+  Best-effort to extract a numeric servings value; fall back to cleaned text.
+  yield_field can be a string, number, or list (Allrecipes sometimes gives array).
+  """
+  raw = ""
+  if isinstance(yield_field, list) and yield_field:
+    raw = " ".join([str(x) for x in yield_field])
+  elif isinstance(yield_field, (str, int, float)):
+    raw = str(yield_field)
+  raw = _clean_text(raw)
+  if not raw:
+    return ""
+  n = parse_int(raw)
+  return str(n) if n is not None else raw
+
+def clean_grams(val: str | None) -> str:
+  """
+  Extract numeric grams from strings like '15 g', '15g', '15.2 grams'.
+  Returns '' on failure.
+  """
+  if not val:
+    return ""
+  n = parse_number(val)
+  return f"{n:.2f}".rstrip("0").rstrip(".") if n is not None else ""
+
+def clean_calories(val: str | None) -> str:
+  """
+  Extract numeric calories from strings like '433 calories' or '433 kcal'.
+  Returns '' on failure.
+  """
+  if not val:
+    return ""
+  n = parse_int(val)
+  return str(n) if n is not None else ""
+
 # ---------------- Sitemap parsing ----------------
 
 def extract_recipe_urls_from_xml_text(text: str):
@@ -173,7 +253,13 @@ def load_recipe_urls_from_sitemaps(paths):
 # ---------------- Extractors ----------------
 
 def extract_from_jsonld(soup: BeautifulSoup):
-  """Return (title, ingredients, steps, image_url) if available"""
+  """
+  Return a dict with fields:
+  title, ingredients, steps, image_url,
+  prep_time_min, cook_time_min, total_time_min, servings,
+  calories_per_serving, fat_g, carbs_g, protein_g
+  (Some may be empty strings.)
+  """
   for tag in soup.find_all("script", type="application/ld+json"):
     raw = tag.string or ""
     if not raw.strip():
@@ -198,25 +284,60 @@ def extract_from_jsonld(soup: BeautifulSoup):
       if types and "Recipe" in types:
         title = (node.get("name") or "").strip() or None
 
+        # Ingredients
         ingredients = node.get("recipeIngredient") or []
         if isinstance(ingredients, list):
           ingredients = [_clean_text(i) for i in ingredients if isinstance(i, str) and _clean_text(i)]
         else:
           ingredients = []
 
+        # Steps
         steps = []
         instr = node.get("recipeInstructions")
         if instr:
           steps = _flatten_instructions(instr)
 
+        # Image
         image_url = _image_from_jsonld(node.get("image"))
 
+        # Times (ISO-8601 durations)
+        prep_time_min = iso8601_to_minutes(node.get("prepTime"))
+        cook_time_min = iso8601_to_minutes(node.get("cookTime"))
+        total_time_min = iso8601_to_minutes(node.get("totalTime"))
+
+        # Servings
+        servings = normalize_servings(node.get("recipeYield"))
+
+        # Nutrition
+        n = node.get("nutrition") or {}
+        calories_per_serving = clean_calories(n.get("calories"))
+        fat_g = clean_grams(n.get("fatContent"))
+        carbs_g = clean_grams(n.get("carbohydrateContent") or n.get("carbs"))
+        protein_g = clean_grams(n.get("proteinContent"))
+
+        result = {
+          "title": title,
+          "ingredients": ingredients,
+          "steps": steps,
+          "image_url": image_url or "",
+          "prep_time_min": str(prep_time_min) if prep_time_min is not None else "",
+          "cook_time_min": str(cook_time_min) if cook_time_min is not None else "",
+          "total_time_min": str(total_time_min) if total_time_min is not None else "",
+          "servings": servings,
+          "calories_per_serving": calories_per_serving,
+          "fat_g": fat_g,
+          "carbs_g": carbs_g,
+          "protein_g": protein_g,
+        }
         if title and ingredients:
-          return title, ingredients, steps or [], image_url
-  return None, None, None, None
+          return result
+  return None
 
 def extract_from_html_fallback(soup: BeautifulSoup):
-  """Fallback extraction for title, ingredients, steps, image_url"""
+  """
+  Fallback extraction for all fields when JSON-LD is missing/partial.
+  Uses meta tags, itemprops, and common Allrecipes DOM patterns.
+  """
   # Title
   title = None
   og_title = soup.find("meta", property="og:title")
@@ -269,12 +390,94 @@ def extract_from_html_fallback(soup: BeautifulSoup):
   if og_img and og_img.get("content"):
     image_url = og_img["content"].strip()
   if not image_url:
-    # try typical <img> on page
     img_tag = soup.find("img")
     if img_tag and img_tag.get("src"):
       image_url = img_tag["src"].strip()
 
-  return title, ingredients, steps, image_url
+  # Times & Servings via common DOM pattern: .recipe-meta-item
+  # Example: header = 'prep time', body = '15 mins'
+  prep_time_min = cook_time_min = total_time_min = None
+  servings = ""
+  for box in soup.select(".recipe-meta-item"):
+    header = _clean_text((box.find(class_=re.compile(r"recipe-meta-item-header", re.I)) or {}).get_text(" ", strip=True) if box else "")
+    body = _clean_text((box.find(class_=re.compile(r"recipe-meta-item-body", re.I)) or {}).get_text(" ", strip=True) if box else "")
+    h = header.lower()
+    if "prep" in h and not prep_time_min:
+      prep_time_min = duration_text_to_minutes(body)
+    elif "cook" in h and not cook_time_min:
+      cook_time_min = duration_text_to_minutes(body)
+    elif "total" in h and not total_time_min:
+      total_time_min = duration_text_to_minutes(body)
+    elif "servings" in h and not servings:
+      servings = normalize_servings(body)
+
+  # Try meta/itemprop fallbacks for servings/time if still empty
+  if not servings:
+    y = soup.find(attrs={"itemprop": "recipeYield"})
+    if y:
+      servings = normalize_servings(y.get_text(" ", strip=True))
+
+  # Nutrition via itemprop or text heuristics
+  def find_itemprop(prop):
+    t = soup.find(attrs={"itemprop": prop})
+    if t:
+      return _clean_text(t.get_text(" ", strip=True))
+    return ""
+
+  calories_per_serving = clean_calories(find_itemprop("calories"))
+  fat_g = clean_grams(find_itemprop("fatContent"))
+  carbs_g = clean_grams(find_itemprop("carbohydrateContent"))
+  protein_g = clean_grams(find_itemprop("proteinContent"))
+
+  # If itemprops not found, try a loose text search section that contains "Nutrition" / "Calories"
+  if not any([calories_per_serving, fat_g, carbs_g, protein_g]):
+    text = soup.get_text(" ", strip=True)
+    # Very forgiving patterns like "Calories: 433", "Protein: 19 g"
+    cal_m = re.search(r"Calories?\s*:\s*(\d+)", text, flags=re.I)
+    pro_m = re.search(r"Protein\s*:\s*([-+]?\d*\.?\d+)\s*g", text, flags=re.I)
+    fat_m = re.search(r"Fat\s*:\s*([-+]?\d*\.?\d+)\s*g", text, flags=re.I)
+    carb_m = re.search(r"(Carbohydrates?|Carbs?)\s*:\s*([-+]?\d*\.?\d+)\s*g", text, flags=re.I)
+    if cal_m: calories_per_serving = cal_m.group(1)
+    if pro_m: protein_g = pro_m.group(1)
+    if fat_m: fat_g = fat_m.group(1)
+    if carb_m: carbs_g = carb_m.group(2) if carb_m.lastindex and carb_m.lastindex >= 2 else ""
+
+  return {
+    "title": title,
+    "ingredients": ingredients or [],
+    "steps": steps or [],
+    "image_url": image_url or "",
+    "prep_time_min": str(prep_time_min) if prep_time_min is not None else "",
+    "cook_time_min": str(cook_time_min) if cook_time_min is not None else "",
+    "total_time_min": str(total_time_min) if total_time_min is not None else "",
+    "servings": servings,
+    "calories_per_serving": calories_per_serving,
+    "fat_g": fat_g,
+    "carbs_g": carbs_g,
+    "protein_g": protein_g,
+  }
+
+def duration_text_to_minutes(text: str | None) -> int | None:
+  """
+  Heuristic for human-readable durations like '1 hr 15 mins', '45 mins', '2 h', '1h 5m'
+  """
+  if not text:
+    return None
+  t = text.lower()
+  # Convert unicode fractions or weird spacing
+  t = t.replace("hrs", "h").replace("hr", "h").replace("hours", "h").replace("hour", "h")
+  t = t.replace("mins", "m").replace("min", "m").replace("minutes", "m").replace("minute", "m")
+  t = t.replace(" ", "")
+  h = re.search(r"(\d+)\s*h", t)
+  m = re.search(r"(\d+)\s*m", t)
+  total = 0
+  if h: total += int(h.group(1)) * 60
+  if m: total += int(m.group(1))
+  if total == 0:
+    # maybe it's just a number like "45"
+    n = parse_int(t)
+    return n
+  return total
 
 # ---------------- Main ----------------
 
@@ -284,7 +487,7 @@ def main(argv):
 
   # Load + filter recipe URLs from sitemaps
   recipe_urls = load_recipe_urls_from_sitemaps(paths)
-  recipe_urls = recipe_urls[:25]
+  #recipe_urls = recipe_urls[:25]
   if not recipe_urls:
     print("No recipe URLs found in provided sitemaps (with 6-digit ID filter).")
     return
@@ -299,13 +502,14 @@ def main(argv):
       continue
 
     rsoup = BeautifulSoup(resp.text, "html.parser")
-    title, ingredients, steps, image_url = extract_from_jsonld(rsoup)
-    if not title or not ingredients:
-      t2, ing2, st2, img2 = extract_from_html_fallback(rsoup)
-      title = title or t2
-      ingredients = ingredients or (ing2 or [])
-      steps = steps or (st2 or [])
-      image_url = image_url or img2
+    data = extract_from_jsonld(rsoup)
+    if not data:
+      data = extract_from_html_fallback(rsoup)
+
+    title = data.get("title")
+    ingredients = data.get("ingredients") or []
+    steps = data.get("steps") or []
+    image_url = data.get("image_url", "")
 
     if not title or not ingredients:
       print(f"[{idx}] Skipped (missing title/ingredients): {link}")
@@ -317,6 +521,15 @@ def main(argv):
       "image": image_url or "",
       "ingredients": " | ".join(ingredients),
       "steps": " | ".join(steps),
+      # new fields
+      "prep_time_min": data.get("prep_time_min", ""),
+      "cook_time_min": data.get("cook_time_min", ""),
+      "total_time_min": data.get("total_time_min", ""),
+      "servings": data.get("servings", ""),
+      "calories_per_serving": data.get("calories_per_serving", ""),
+      "fat_g": data.get("fat_g", ""),
+      "carbs_g": data.get("carbs_g", ""),
+      "protein_g": data.get("protein_g", ""),
     }
     rows.append(row)
 
@@ -324,8 +537,13 @@ def main(argv):
       print(f"...processed {idx} recipes")
 
   if rows:
+    fieldnames = [
+      "title", "url", "image", "ingredients", "steps",
+      "prep_time_min", "cook_time_min", "total_time_min",
+      "servings", "calories_per_serving", "fat_g", "carbs_g", "protein_g",
+    ]
     with open(OUT_CSV, "w", newline="", encoding="utf-8") as f:
-      w = csv.DictWriter(f, fieldnames=["title", "url", "image", "ingredients", "steps"])
+      w = csv.DictWriter(f, fieldnames=fieldnames)
       w.writeheader()
       w.writerows(rows)
     print(f"Done. Wrote {len(rows)} recipes to {OUT_CSV}")
