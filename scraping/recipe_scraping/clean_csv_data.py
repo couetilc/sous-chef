@@ -9,8 +9,8 @@
 import ftfy
 import unicodedata
 
-input_path = "scraping/recipe_scraping/recipe_csv_files/recipes.csv"
-output_path = "scraping/recipe_scraping/recipe_csv_files/recipes_clean.csv"
+input_path = "scraping/recipe_scraping/recipe_csv_files/recipes_final.csv"
+output_path = "scraping/recipe_scraping/recipe_csv_files/recipes_final_clean.csv"
 
 def cleanup_text(s: str) -> str:
     # first, let ftfy try to fix as much as it can
