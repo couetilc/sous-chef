@@ -8,8 +8,8 @@ from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.contrib.auth.models import User, Group
-from .models import Ingredient, DietaryIngredient, Diet, UserDiet
-from .serializers import UserSerializer, GroupSerializer, UserRegistrationSerializer, IngredientSerializer, DietSerializer
+from .models import Ingredient, DietaryIngredient, Diet, UserDiet, CookedRecipe, Meal
+from .serializers import UserSerializer, GroupSerializer, UserRegistrationSerializer, IngredientSerializer, DietSerializer, CookedRecipeSerializer, MealSerializer
 
 # Create your views here.
 def index(request):
@@ -257,3 +257,53 @@ class UpdateDiets(APIView):
         print(UserDiet.objects.all())
 
         return Response({'message': 'Successfully updated diets'}, status=status.HTTP_200_OK)
+
+class RecipeHistoryView(generics.ListAPIView):
+    """List all cooked recipes for the authenticated user"""
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = CookedRecipeSerializer
+
+    def get_queryset(self):
+        """Filter cooked recipes to only those for the current user"""
+        return CookedRecipe.objects.filter(user=self.request.user)
+
+class CreateMealView(APIView):
+    """Create a meal from a cooked recipe"""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, cooked_recipe_id):
+        try:
+            cooked_recipe = CookedRecipe.objects.get(id=cooked_recipe_id)
+        except CookedRecipe.DoesNotExist:
+            return Response(
+                {'error': 'Cooked recipe not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Verify that the cooked recipe belongs to the authenticated user
+        if cooked_recipe.user != request.user:
+            return Response(
+                {'error': 'You do not have permission to create a meal from this cooked recipe'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        portion = request.data.get('portion')
+        if portion is None:
+            return Response(
+                {'error': 'Portion is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Create the meal
+        meal = Meal(cooked_recipe=cooked_recipe, portion=portion)
+
+        try:
+            meal.save()  # This will call full_clean() which validates portion constraints
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        serializer = MealSerializer(meal)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)

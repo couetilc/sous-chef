@@ -4,7 +4,7 @@ from django.db.models import Q
 from django.utils.html import format_html
 from decimal import Decimal
 
-from api.models import Recipe, Ingredient, DietaryIngredient, RecipeIngredient, ScrapedInventory, ScrapedRecipe, ScrapedIngredient, ScrapedNutritionalInfo
+from api.models import Recipe, Ingredient, DietaryIngredient, RecipeIngredient, ScrapedInventory, ScrapedRecipe, ScrapedIngredient, ScrapedNutritionalInfo, CookedRecipe, Meal
 
 
 class IngredientInline(admin.TabularInline):
@@ -225,3 +225,17 @@ class ScrapedNutritionalInfo(admin.ModelAdmin):
 	list_display = ('description', 'calories', "protein_g", "fat_g", "carbs_g")
 	search_fields = ('description', 'calories', "protein_g", "fat_g", "carbs_g")
 	list_filter = (CaloriesRangeFilter, ProteinRangeFilter)
+
+@admin.register(CookedRecipe)
+class CookedRecipeAdmin(admin.ModelAdmin):
+	list_display = ('user', 'recipe', 'cooked_at')
+	search_fields = ('user__username', 'recipe__title')
+	list_filter = ('cooked_at', 'user')
+	ordering = ('-cooked_at',)
+
+@admin.register(Meal)
+class MealAdmin(admin.ModelAdmin):
+	list_display = ('cooked_recipe', 'portion', 'eaten_at')
+	search_fields = ('cooked_recipe__recipe__title', 'cooked_recipe__user__username')
+	list_filter = ('eaten_at',)
+	ordering = ('-eaten_at',)

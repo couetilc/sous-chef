@@ -1,5 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
+from decimal import Decimal
 
 # Create your models here.
 class Recipe(models.Model):
@@ -121,3 +123,56 @@ class ScrapedInventory(models.Model):
     def __str__(self):
         p = f"{self.price}" if self.price is not None else "—"
         return f"{self.ingredient_name} (${p})"
+
+class CookedRecipe(models.Model):
+    """Record of a recipe that was cooked by a user"""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='cooked_recipes')
+    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE, related_name='cooking_instances')
+    cooked_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-cooked_at']  # Most recent first
+
+    def __str__(self):
+        return f"{self.user.username} cooked {self.recipe.title} on {self.cooked_at.strftime('%Y-%m-%d')}"
+
+class Meal(models.Model):
+    """Record of a meal eaten from a cooked recipe"""
+    cooked_recipe = models.ForeignKey(CookedRecipe, on_delete=models.CASCADE, related_name='meals')
+    portion = models.DecimalField(max_digits=5, decimal_places=4)  # e.g., 0.2500 for 25%
+    eaten_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-eaten_at']  # Most recent first
+
+    def clean(self):
+        """Validate that portion is valid and total portions don't exceed 1.0"""
+        # Ensure portion is a Decimal
+        if not isinstance(self.portion, Decimal):
+            self.portion = Decimal(str(self.portion))
+
+        # Validate portion is greater than 0 and less than or equal to 1
+        if self.portion <= 0:
+            raise ValidationError({'portion': 'Portion must be greater than 0.'})
+        if self.portion > 1:
+            raise ValidationError({'portion': 'Portion cannot exceed 1.0.'})
+
+        # Validate total portions for this cooked recipe don't exceed 1.0
+        existing_meals = Meal.objects.filter(cooked_recipe=self.cooked_recipe)
+        if self.pk:  # If updating existing meal, exclude it from the sum
+            existing_meals = existing_meals.exclude(pk=self.pk)
+
+        total_consumed = sum((meal.portion for meal in existing_meals), Decimal('0'))
+        if total_consumed + self.portion > Decimal('1.0'):
+            remaining = Decimal('1.0') - total_consumed
+            raise ValidationError({
+                'portion': f'Only {remaining} of this cooked recipe remains. Cannot consume {self.portion}.'
+            })
+
+    def save(self, *args, **kwargs):
+        """Call full_clean() to ensure validation runs"""
+        self.full_clean()
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.portion * 100}% of {self.cooked_recipe.recipe.title} eaten on {self.eaten_at.strftime('%Y-%m-%d')}"

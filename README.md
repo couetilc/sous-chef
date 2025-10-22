@@ -124,6 +124,25 @@ chmod +x scraping/ingredient_scraping/load_data.py
 ./scraping/ingredient_scraping/load_data.py
 ```
 
+#### Demo Data
+
+**Recipe History Demo:**
+```sh
+# Load recipes first (if not already loaded)
+docker compose run backend python manage.py load_recipes
+
+# Create demo user and sample recipe history data
+docker compose run backend python manage.py demo_recipe_history
+```
+
+This creates a demo user with comprehensive recipe history data:
+- **Username:** `recipe_history`
+- **Password:** `password123`
+- **Data:** 8 cooked recipes with varying consumption states (0%-100%)
+- **Meals:** 18 meals spread across the recipes with realistic timestamps
+
+The command is idempotent and can be run multiple times safely.
+
 #### Database GUI
 Install VSCode Extension "Database Client"
 
