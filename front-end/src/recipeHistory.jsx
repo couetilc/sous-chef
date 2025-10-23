@@ -2,13 +2,16 @@ import { useGET } from './useGET'
 
 function formatDate(dateString) {
   const date = new Date(dateString)
-  return date.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
+  const monthDay = date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric'
+  })
+  const year = date.getFullYear()
+  const time = date.toLocaleTimeString('en-US', {
     hour: 'numeric',
     minute: '2-digit'
   })
+  return { monthDay, year, time }
 }
 
 function formatPortion(portion) {
@@ -26,12 +29,22 @@ export default function RecipeHistory(props) {
           <div class="recipe-history-summary">
             <img src={recipe.image_url} />
             <div class="recipe-history-meals">
-              {meals.map(meal => (
-                <div class="recipe-history-meal">
-                  <p>Eaten at: {formatDate(meal.eaten_at)}</p>
-                  <p>Portion: {formatPortion(meal.portion)}</p>
-                </div>
-              ))}
+              {meals.map(meal => {
+                const { monthDay, year, time } = formatDate(meal.eaten_at)
+                return (
+                  <div class="recipe-history-meal">
+                    <div class="meal-date">
+                      <span class="date-label">meal eaten</span>
+                      <span class="date-time">{time}</span>
+                      <span class="date-full">{monthDay}, {year}</span>
+                    </div>
+                    <div class="meal-portion">
+                      <span class="portion-label">portion</span>
+                      <span class="portion-value">{formatPortion(meal.portion)}</span>
+                    </div>
+                  </div>
+                )
+              })}
             </div>
           </div>
         </div>

@@ -233,5 +233,50 @@
   margin: 0.25em 0;
 }
 
+#recipe-history .meal-date {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0.5em;
+  text-align: center;
+}
+
+#recipe-history .date-label {
+  font-variant: small-caps;
+  font-size: 0.85em;
+  color: #666;
+  margin-bottom: 0.25em;
+}
+
+#recipe-history .date-time {
+  font-size: 1.5em;
+  color: #333;
+  font-weight: normal;
+}
+
+#recipe-history .date-full {
+  font-size: 1em;
+  color: #333;
+  font-weight: normal;
+}
+
+#recipe-history .meal-portion {
+  display: flex;
+  flex-direction: column;
+  text-align: center;
+}
+
+#recipe-history .portion-label {
+  font-variant: small-caps;
+  font-size: 0.85em;
+  color: #666;
+  margin-bottom: 0.25em;
+}
+
+#recipe-history .portion-value {
+  font-size: 2em;
+  color: #333;
+  font-weight: normal;
+}
+
 
 /* END RECIPE HISTORY PAGE */
