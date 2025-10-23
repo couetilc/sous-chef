@@ -14,6 +14,7 @@ import CreateAccount from './createAccount.jsx';
 import HeaderBanner from './headerBanner.jsx';
 import LogoutPage from './logoutPage';
 import PrivatePage from './privatePage';
+import RecipeHistory from './recipeHistory';
 
 import { BrowserRouter, Routes, Route, Navigate } from "react-router";
 import { Link } from 'react-router';
@@ -44,6 +45,7 @@ export default function App(props) {
   const recipes = <PrivatePage><Recipes /></PrivatePage>
   const inventory = <PrivatePage><Inventory /></PrivatePage>
   const settings = <PrivatePage><SettingsPage /></PrivatePage>
+  const history = <PrivatePage><RecipeHistory /></PrivatePage>
 
   return (
     <>
@@ -57,6 +59,7 @@ export default function App(props) {
           <Route path="recipes" element={recipes} />
           <Route path="inventory" element={inventory} />
           <Route path="settings" element={settings} />
+          <Route path="history" element={history} />
 
           {/* public pages */}
           <Route path="login" element={<Login />} />
