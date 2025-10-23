@@ -11,6 +11,8 @@ urlpatterns = [
     path('user/updateEmail/', views.UpdateUserEmail.as_view(), name='user-update-email'),
     path('user/updatePassword/', views.UpdateUserPassword.as_view(), name='user-update-password'),
     path('user/delete/', views.DeleteUser.as_view(), name='user-delete'),
+    path('user/isOnboarded/', views.OnboardedView.as_view(), name='user-is-onboarded'),
+    path('user/updatedOnboarded/', views.UpdateOnboardedView.as_view(), name='user-update-onboarded'),
     path('csrf/', views.CSRFTokenView.as_view(), name='csrf-token'),
     # User and group management
     path('users/', views.UserList.as_view()),

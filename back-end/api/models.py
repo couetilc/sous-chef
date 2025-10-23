@@ -176,3 +176,8 @@ class Meal(models.Model):
 
     def __str__(self):
         return f"{self.portion * 100}% of {self.cooked_recipe.recipe.title} eaten on {self.eaten_at.strftime('%Y-%m-%d')}"
+
+class OnboardingSubmission(models.Model):
+    """Record of whether a user has completed onboarding"""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='onboarded')
+    has_onboarded = models.BooleanField(default=False);
