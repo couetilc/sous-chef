@@ -170,6 +170,14 @@ export class Api {
       })
     })
   }
+
+  async getRecipesFiltered({name}) {
+    return this.fetch('api/recipes/searchFiltered', {
+      body: JSON.stringify({
+        name
+      })
+    })
+  }
 }
 
 export function ApiProvider(props) {
