@@ -15,9 +15,9 @@ from rapidfuzz import process, fuzz
 from nltk.stem import WordNetLemmatizer
 from pathlib import Path
 
-# --- CONFIGURATION ---
+# Paths
 RECIPE_FILE = Path("scraping/recipe_scraping/recipe_csv_files/recipes.csv")
-INGREDIENT_FILE = Path("scraping/finalized_ingredients.csv")
+INGREDIENT_FILE = Path("scraping/production/canonical_ingredients.csv")
 OUTPUT_FILE = Path("scraping/recipe_ingredient_matches.csv")
 N_RECIPES = 20
 MIN_SCORE = 0
@@ -51,9 +51,9 @@ def normalize(text: str) -> str:
 def core_phrase(ingredient_name: str) -> str:
     """Return only the first two comma-separated parts for matching context."""
     parts = [p.strip() for p in ingredient_name.split(",") if p.strip()]
-    return ", ".join(parts[:2])  # Keep only first two components
+    return ", ".join(parts[:2])
 
-# --- LOAD DATA ---
+# Load data
 recipes_df = pd.read_csv(RECIPE_FILE)
 ingredients_df = pd.read_csv(INGREDIENT_FILE)
 
@@ -65,20 +65,46 @@ ingredient_norms = [normalize(n) for n in ingredient_core]
 
 print(f"Loaded {len(recipes_df)} recipes and {len(ingredient_names)} ingredients.")
 
-# --- MATCH FUNCTION ---
+# Find best match using fuzzy
 def find_best_match(ingredient):
     normalized = normalize(ingredient)
     if not normalized:
         return pd.Series(["", 0])
-    match, score, _ = process.extractOne(
+
+    tokens = set(normalized.split())
+
+    # Run fuzzy match globally, but we’ll re-rank manually
+    candidates = process.extract(
         normalized,
         ingredient_norms,
-        scorer=fuzz.token_set_ratio
+        scorer=fuzz.token_set_ratio,
+        limit=50
     )
-    matched_name = ingredient_names[ingredient_norms.index(match)] if score >= MIN_SCORE else ""
-    return pd.Series([matched_name, score])
 
-# --- PROCESS ---
+    best_match = ""
+    best_score = 0
+
+    for match, raw_score, _ in candidates:
+        idx = ingredient_norms.index(match)
+        name = ingredient_names[idx]
+        candidate_tokens = set(match.split())
+
+        # --- custom adjustments ---
+        length_penalty = 0.4 * len(name.split())  # heavier penalty for long names
+        containment_bonus = 8 if tokens <= candidate_tokens else 0
+        exact_match_bonus = 10 if normalized in match or match in normalized else 0
+
+        adjusted_score = raw_score - length_penalty + containment_bonus + exact_match_bonus
+
+        if adjusted_score > best_score:
+            best_score = adjusted_score
+            best_match = name
+
+    return pd.Series([best_match, round(best_score, 2)])
+
+
+
+# Print to csv file
 matches = []
 for i, row in recipes_df.iterrows():
     recipe_ingredients = str(row.get("ingredients", "")).split("|")
@@ -99,5 +125,4 @@ for i, row in recipes_df.iterrows():
 matches_df = pd.DataFrame(matches)
 matches_df.to_csv(OUTPUT_FILE, index=False)
 
-print(f"\n✅ Matching complete! Saved to '{OUTPUT_FILE}'")
-print(matches_df.head(10))
+print(f"\nMatching complete! Saved to '{OUTPUT_FILE}'")
