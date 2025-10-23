@@ -16,7 +16,7 @@ from nltk.stem import WordNetLemmatizer
 from pathlib import Path
 
 # Paths
-RECIPE_FILE = Path("scraping/recipe_scraping/recipe_csv_files/recipes.csv")
+RECIPE_FILE = Path("scraping/recipe_scraping/recipe_csv_files/recipes_final_clean_ready.csv")
 INGREDIENT_FILE = Path("scraping/production/canonical_ingredients.csv")
 OUTPUT_FILE = Path("scraping/recipe_ingredient_matches.csv")
 N_RECIPES = 20
