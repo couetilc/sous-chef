@@ -45,7 +45,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  overflow: hidden; 
+  overflow: hidden;
 }
 .img-button-cont img {
   display: flex;
@@ -75,7 +75,7 @@
   gap: 10px;
   background-color:coral;
   display: grid;
-  grid-template-areas: 
+  grid-template-areas:
   'diet pass pass'
   'diet pass pass'
   'diet delete delete'
@@ -130,7 +130,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  overflow: hidden; 
+  overflow: hidden;
 }
 
 .img-button-cont img {
@@ -171,3 +171,67 @@
   display: inline-block;
   margin-right: 10px;
 }
+
+/* RECIPE HISTORY PAGE */
+
+#recipe-history {
+  display: flex;
+  flex-flow: column nowrap;
+  width: 100%;
+  padding: 1em;
+}
+
+.recipe-history-recipe {
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 1.5em;
+  margin: 1em;
+  background-color: white;
+  transition: box-shadow 0.3s ease;
+}
+
+.recipe-history-recipe:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.recipe-history-recipe h2 {
+  margin-top: 0;
+  margin-bottom: 1em;
+}
+
+#recipe-history .recipe-history-summary {
+  display: flex;
+  flex-flow: row nowrap;
+  gap: 1.5em;
+}
+
+#recipe-history .recipe-history-summary img {
+  height: 150px;
+  width: 200px;
+  border-radius: 6px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+#recipe-history .recipe-history-meals {
+  display: flex;
+  flex-flow: row wrap;
+  gap: 1em;
+  flex: 1;
+}
+
+#recipe-history .recipe-history-meal {
+  border: 1px solid #d0d0d0;
+  border-radius: 6px;
+  padding: 0.75em 1em;
+  background-color: #f9f9f9;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+#recipe-history .recipe-history-meal p {
+  margin: 0.25em 0;
+}
+
+
+/* END RECIPE HISTORY PAGE */
