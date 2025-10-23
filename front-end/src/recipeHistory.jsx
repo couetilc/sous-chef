@@ -39,8 +39,8 @@ export default function RecipeHistory(props) {
                       <span class="date-full">{monthDay}, {year}</span>
                     </div>
                     <div class="meal-portion">
-                      <span class="portion-label">portion</span>
                       <span class="portion-value">{formatPortion(meal.portion)}</span>
+                      <span class="portion-label">portion</span>
                     </div>
                   </div>
                 )
