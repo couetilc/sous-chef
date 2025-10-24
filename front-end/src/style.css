@@ -1,11 +1,87 @@
+/* SOUS CHEF DESIGN SYSTEM - COLOR PALETTE */
+
+:root {
+  /* Base Colors */
+  --color-cream: #FFFDD6;
+  --color-french-gray: #CDD1DE;
+  --color-rich-black: #101419;
+  --color-auburn: #A52422;
+  --color-blue: #3559c7;
+
+  /* Semantic Tokens */
+  --color-background: var(--color-blue);
+  --color-surface: var(--color-cream);
+  --color-text-primary: var(--color-rich-black);
+  --color-text-secondary: #4a4e56;
+  --color-text-muted: #6b7280;
+  --color-border: var(--color-french-gray);
+  --color-border-subtle: #e8eaee;
+  --color-accent: var(--color-auburn);
+  --color-accent-hover: #8b1e1d;
+  --color-accent-light: rgba(165, 36, 34, 0.1);
+}
+
+/* Layout */
+
+:root {
+  --color-accent-dark: #22346e;
+  --color-accent-dark: #6D141C;
+}
+
 .app-container {
   display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  height: 100%;
-  background-color: #f0f0f0;
+  flex-flow: row nowrap;
+  font-size: 16px;
 }
+
+.left-menu {
+  background-color: var(--color-accent-dark);
+  color: white;
+  padding: 1em;
+}
+
+.sous-chef-logo {
+  filter: invert();
+}
+
+.navigation-menu {
+  display: flex;
+  flex-direction: column;
+}
+.navigation-menu ul {
+  list-style: none;
+  padding: 0;
+  margins: 0;
+}
+
+.navigation-menu li {
+  padding: .5em;
+  position: relative;
+}
+
+.navigation-menu li::after {
+  content: '›';
+  content: '▶';
+  font-size: .5em;
+  position: absolute;
+  right: 0;
+  top: calc(50% - .25em);
+}
+
+.navigation-menu li a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.center-page {
+}
+
+.center-top-bar {
+  background-color: var(--color-accent-dark);
+  height: 1em;
+}
+
+/* End Layout */
 
 .centered-div {
   padding: 20px;
@@ -157,21 +233,6 @@
   cursor: pointer;
 }
 
-.header-banner {
-  display: flex;
-  flex-direction: row;
-}
-.header-banner ul {
-  list-style: none;
-  padding: 0;
-  margins: 0;
-}
-
-.header-banner li {
-  display: inline-block;
-  margin-right: 10px;
-}
-
 /* RECIPE HISTORY PAGE */
 
 #recipe-history {
@@ -182,22 +243,24 @@
 }
 
 .recipe-history-recipe {
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--color-border);
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(16, 20, 25, 0.08);
   padding: 1.5em;
   margin: 1em;
-  background-color: white;
-  transition: box-shadow 0.3s ease;
+  background-color: var(--color-surface);
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
 }
 
 .recipe-history-recipe:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 12px rgba(165, 36, 34, 0.2);
+  border-color: var(--color-accent);
 }
 
 .recipe-history-recipe h2 {
   margin-top: 0;
   margin-bottom: 1em;
+  color: var(--color-text-primary);
 }
 
 #recipe-history .recipe-history-summary {
@@ -210,6 +273,7 @@
   height: 150px;
   width: 200px;
   border-radius: 6px;
+  border: 1px solid var(--color-border-subtle);
   object-fit: cover;
   flex-shrink: 0;
 }
@@ -222,11 +286,17 @@
 }
 
 #recipe-history .recipe-history-meal {
-  border: 1px solid #d0d0d0;
+  border: 1px solid var(--color-border);
   border-radius: 6px;
   padding: 0.75em 1em;
-  background-color: #f9f9f9;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  background-color: var(--color-cream);
+  box-shadow: 0 1px 3px rgba(16, 20, 25, 0.06);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+#recipe-history .recipe-history-meal:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 2px 6px rgba(165, 36, 34, 0.15);
 }
 
 #recipe-history .recipe-history-meal p {
@@ -243,19 +313,21 @@
 #recipe-history .date-label {
   font-variant: small-caps;
   font-size: 0.85em;
-  color: #666;
+  color: var(--color-accent);
   margin-bottom: 0.25em;
+  font-weight: 600;
+  letter-spacing: 0.5px;
 }
 
 #recipe-history .date-time {
   font-size: 1.5em;
-  color: #333;
+  color: var(--color-text-primary);
   font-weight: normal;
 }
 
 #recipe-history .date-full {
   font-size: 1em;
-  color: #333;
+  color: var(--color-text-secondary);
   font-weight: normal;
 }
 
@@ -265,19 +337,21 @@
   text-align: center;
   padding-top: 0.5em;
   margin-top: 0.5em;
-  border-top: 1px solid #d0d0d0;
+  border-top: 1px solid var(--color-border);
 }
 
 #recipe-history .portion-label {
   font-variant: small-caps;
   font-size: 0.85em;
-  color: #666;
+  color: var(--color-accent);
+  font-weight: 600;
+  letter-spacing: 0.5px;
 }
 
 #recipe-history .portion-value {
   font-size: 2em;
-  color: #333;
-  font-weight: normal;
+  color: var(--color-accent);
+  font-weight: 600;
 }
 
 

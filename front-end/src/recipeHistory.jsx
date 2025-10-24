@@ -24,23 +24,23 @@ export default function RecipeHistory(props) {
   return (
     <div id="recipe-history">
       {data?.length > 0 && data.map(({ recipe, meals }) => (
-        <div class="recipe-history-recipe box">
+        <div key={recipe.id} className="recipe-history-recipe box">
           <h2>{recipe.title}</h2>
-          <div class="recipe-history-summary">
+          <div className="recipe-history-summary">
             <img src={recipe.image_url} />
-            <div class="recipe-history-meals">
+            <div className="recipe-history-meals">
               {meals.map(meal => {
                 const { monthDay, year, time } = formatDate(meal.eaten_at)
                 return (
-                  <div class="recipe-history-meal">
-                    <div class="meal-date">
-                      <span class="date-label">meal eaten</span>
-                      <span class="date-time">{time}</span>
-                      <span class="date-full">{monthDay}, {year}</span>
+                  <div key={meal.id} className="recipe-history-meal">
+                    <div className="meal-date">
+                      <span className="date-label">meal eaten</span>
+                      <span className="date-time">{time}</span>
+                      <span className="date-full">{monthDay}, {year}</span>
                     </div>
-                    <div class="meal-portion">
-                      <span class="portion-value">{formatPortion(meal.portion)}</span>
-                      <span class="portion-label">portion</span>
+                    <div className="meal-portion">
+                      <span className="portion-value">{formatPortion(meal.portion)}</span>
+                      <span className="portion-label">portion</span>
                     </div>
                   </div>
                 )

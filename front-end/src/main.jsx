@@ -11,7 +11,6 @@ import Recipes from './recipesPage.jsx';
 import Inventory from './inventory.jsx';
 import SettingsPage from './settingsPage.jsx';
 import CreateAccount from './createAccount.jsx';
-import HeaderBanner from './headerBanner.jsx';
 import LogoutPage from './logoutPage';
 import PrivatePage from './privatePage';
 import RecipeHistory from './recipeHistory';
@@ -25,6 +24,7 @@ import { UserProvider, useUser } from './useUser';
 
 export default function App(props) {
   const navigate = useNavigate();
+  const curLocation = useLocation();
 
   function IsLoggedIn() {
     let isLogged = false;
@@ -50,23 +50,48 @@ export default function App(props) {
   return (
     <>
       <div className="app-container">
-        <HeaderBanner />
-        <Routes>
-          {/* private pages */}
-          <Route path="home" element={home} />
-          <Route path="sous-chef" element={souschef} />
-          <Route path="nutritionist" element={nutritionist} />
-          <Route path="recipes" element={recipes} />
-          <Route path="inventory" element={inventory} />
-          <Route path="settings" element={settings} />
-          <Route path="history" element={history} />
+        <div className="left-menu">
+          {/* left menu content */}
+          {( curLocation.pathname.localeCompare("/") == 0 ||
+             curLocation.pathname.localeCompare("/login/") == 0 ||
+             curLocation.pathname.localeCompare("/create-account/") == 0)
+             ? <img className="sous-chef-logo" src={SousChefLogo} height="300px"/>
+             : <header className="navigation-menu">
+                <img className="sous-chef-logo" src={SousChefLogo} width="150px"/>
+                <nav>
+                  <ul>
+                    <li><a href="/home">Home</a></li>
+                    <li><a href="/sous-chef">Sous Chef</a></li>
+                    <li><a href="/nutritionist">Nutritionist</a></li>
+                    <li><a href="/recipes">Recipes</a></li>
+                    <li><a href="/inventory">Inventory</a></li>
+                    <li><a href="/settings">Account Settings</a></li>
+                    <li><a href="/logout/">Logout</a></li>
+                  </ul>
+                </nav>
+              </header>
+          }
+        </div>
+        <div className="center-page">
+          <div className="center-top-bar">
+          </div>
+          <Routes>
+            {/* private pages */}
+            <Route path="home" element={home} />
+            <Route path="sous-chef" element={souschef} />
+            <Route path="nutritionist" element={nutritionist} />
+            <Route path="recipes" element={recipes} />
+            <Route path="inventory" element={inventory} />
+            <Route path="settings" element={settings} />
+            <Route path="history" element={history} />
 
-          {/* public pages */}
-          <Route path="login" element={<Login />} />
-          <Route path="create-account" element={<CreateAccount />} />
-          <Route path="logout" element={<LogoutPage />} />
-          <Route path="/" element={<Login />} />
-        </ Routes>
+            {/* public pages */}
+            <Route path="login" element={<Login />} />
+            <Route path="create-account" element={<CreateAccount />} />
+            <Route path="logout" element={<LogoutPage />} />
+            <Route path="/" element={<Login />} />
+          </ Routes>
+        </div>
       </div>
     </>
   )
