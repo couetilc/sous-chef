@@ -1,6 +1,11 @@
 /* SOUS CHEF DESIGN SYSTEM - COLOR PALETTE */
 
 :root {
+  /* Fonts */
+  --font-serif: Tinos;
+  --font-sans: Inter;
+  --font-ui: var(--font-sans);
+
   /* Base Colors */
   --color-cream: #FFFDD6;
   --color-french-gray: #CDD1DE;
@@ -26,21 +31,29 @@
 :root {
   --color-accent-dark: #22346e;
   --color-accent-dark: #6D141C;
+  --color-accent-dark: #580911;
+  --color-accent-darker: oklch(from var(--color-accent-dark) calc(l - .1) c h);
+  --color-accent-light: oklch(from var(--color-accent-dark) calc(l + .1) c h);
+  --color-accent-lighter: oklch(from var(--color-accent-dark) calc(l + .2) c h);
 }
 
 .app-container {
   display: flex;
   flex-flow: row nowrap;
   font-size: 16px;
+  font-family: var(--font-serif);
+  max-width: 100vw;
+  width: 100%;
 }
 
 .left-menu {
   background-color: var(--color-accent-dark);
   color: white;
   padding: 1em;
+  font-family: var(--font-ui);
 }
 
-.sous-chef-logo {
+.left-menu .sous-chef-logo {
   filter: invert();
 }
 
@@ -55,10 +68,9 @@
 }
 
 .navigation-menu li {
-  padding: .5em;
-  position: relative;
 }
 
+/*
 .navigation-menu li::after {
   content: '›';
   content: '▶';
@@ -67,18 +79,53 @@
   right: 0;
   top: calc(50% - .25em);
 }
+*/
 
 .navigation-menu li a {
+  display: block;
+  padding: .5em;
   color: inherit;
   text-decoration: none;
 }
 
+.navigation-menu li a, .left-menu .nav-link-home {
+  border-radius: .5em;
+  transition:
+    background-color .1s ease-in,
+    color .1s ease-in
+    ;
+}
+
+.navigation-menu li a:hover, .left-menu .nav-link-home:hover {
+  background-color: var(--color-accent-darker);
+  color: var(--color-cream);
+  border-radius: .5em;
+}
+
 .center-page {
+  width: 100%;
+  position: relative;
 }
 
 .center-top-bar {
   background-color: var(--color-accent-dark);
   height: 1em;
+}
+
+.center-page .curved-edge {
+  position: absolute;
+  fill: var(--color-accent-dark);
+  --curved-edge-hw: 1em;
+  height: var(--curved-edge-hw);
+  width: var(--curved-edge-hw);
+}
+
+.center-page .curved-edge.top-bar-edge-left {
+  left: 0;
+}
+.center-page .curved-edge.top-bar-edge-right {
+  right: 0;
+  transform: scaleX(-1);
 }
 
 /* End Layout */
@@ -238,8 +285,7 @@
 #recipe-history {
   display: flex;
   flex-flow: column nowrap;
-  width: 100%;
-  padding: 1em;
+  background-color: var(--color-cream);
 }
 
 .recipe-history-recipe {
@@ -248,8 +294,8 @@
   box-shadow: 0 2px 8px rgba(16, 20, 25, 0.08);
   padding: 1.5em;
   margin: 1em;
-  background-color: var(--color-surface);
   transition: box-shadow 0.3s ease, border-color 0.3s ease;
+  background-color: white;
 }
 
 .recipe-history-recipe:hover {
@@ -260,7 +306,8 @@
 .recipe-history-recipe h2 {
   margin-top: 0;
   margin-bottom: 1em;
-  color: var(--color-text-primary);
+  color: var(--color-accent-lighter);
+  font-size: 1.5em;
 }
 
 #recipe-history .recipe-history-summary {
@@ -289,7 +336,6 @@
   border: 1px solid var(--color-border);
   border-radius: 6px;
   padding: 0.75em 1em;
-  background-color: var(--color-cream);
   box-shadow: 0 1px 3px rgba(16, 20, 25, 0.06);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
@@ -313,7 +359,6 @@
 #recipe-history .date-label {
   font-variant: small-caps;
   font-size: 0.85em;
-  color: var(--color-accent);
   margin-bottom: 0.25em;
   font-weight: 600;
   letter-spacing: 0.5px;
@@ -321,13 +366,11 @@
 
 #recipe-history .date-time {
   font-size: 1.5em;
-  color: var(--color-text-primary);
   font-weight: normal;
 }
 
 #recipe-history .date-full {
   font-size: 1em;
-  color: var(--color-text-secondary);
   font-weight: normal;
 }
 
@@ -343,15 +386,12 @@
 #recipe-history .portion-label {
   font-variant: small-caps;
   font-size: 0.85em;
-  color: var(--color-accent);
   font-weight: 600;
   letter-spacing: 0.5px;
 }
 
 #recipe-history .portion-value {
   font-size: 2em;
-  color: var(--color-accent);
-  font-weight: 600;
 }
 
 

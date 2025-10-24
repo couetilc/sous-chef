@@ -2,6 +2,7 @@ import './style.css'
 import { createRoot } from 'react-dom/client'
 import { useEffect, useState } from 'react'
 
+import CurvedEdge from './curvedEdge';
 import SousChefLogo from './souschef-logo.png';
 import Login from './login.jsx';
 import Home from './home.jsx';
@@ -57,7 +58,9 @@ export default function App(props) {
              curLocation.pathname.localeCompare("/create-account/") == 0)
              ? <img className="sous-chef-logo" src={SousChefLogo} height="300px"/>
              : <header className="navigation-menu">
-                <img className="sous-chef-logo" src={SousChefLogo} width="150px"/>
+                <a className="nav-link-home" href="/home">
+                  <img className="sous-chef-logo" src={SousChefLogo} width="150px"/>
+                </a>
                 <nav>
                   <ul>
                     <li><a href="/home">Home</a></li>
@@ -75,6 +78,8 @@ export default function App(props) {
         <div className="center-page">
           <div className="center-top-bar">
           </div>
+          <CurvedEdge className="top-bar-edge-left" />
+          <CurvedEdge className="top-bar-edge-right" />
           <Routes>
             {/* private pages */}
             <Route path="home" element={home} />
