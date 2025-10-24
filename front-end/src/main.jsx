@@ -58,6 +58,9 @@ export default function App(props) {
              curLocation.pathname.localeCompare("/create-account/") == 0)
              ? <img className="sous-chef-logo" src={SousChefLogo} height="300px"/>
              : <header className="navigation-menu">
+                <div className="hamburger-button">
+                  <span>☰</span>
+                </div>
                 <a className="nav-link-home" href="/home">
                   <img className="sous-chef-logo" src={SousChefLogo} width="150px"/>
                 </a>
@@ -75,6 +78,7 @@ export default function App(props) {
               </header>
           }
         </div>
+        <div className="center-bar-left" />
         <div className="center-page">
           <div className="center-top-bar">
           </div>
@@ -97,6 +101,7 @@ export default function App(props) {
             <Route path="/" element={<Login />} />
           </ Routes>
         </div>
+        <div className="center-bar-right" />
       </div>
     </>
   )

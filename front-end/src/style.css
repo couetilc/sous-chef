@@ -103,13 +103,30 @@
 }
 
 .center-page {
-  width: 100%;
+  width: calc(100% - 2em);
   position: relative;
 }
 
 .center-top-bar {
   background-color: var(--color-accent-dark);
   height: 1em;
+}
+
+.hamburger-button {
+  padding: .25em;
+  border-radius: .5em;
+  align-items: center;
+  width: fit-content;
+  cursor: pointer;
+}
+
+.hamburger-button span {
+  font-size: 2em;
+  line-height: .5em;
+}
+
+.hamburger-button:hover {
+  background-color: var(--color-accent-darker);
 }
 
 .center-page .curved-edge {
