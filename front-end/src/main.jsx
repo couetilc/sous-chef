@@ -104,22 +104,24 @@ export default function App(props) {
           <div className="center-top-bar" />
           <CurvedEdge className="top-bar-edge-left" />
           <CurvedEdge className="top-bar-edge-right" />
-          <Routes>
-            {/* private pages */}
-            <Route path="home" element={home} />
-            <Route path="sous-chef" element={souschef} />
-            <Route path="nutritionist" element={nutritionist} />
-            <Route path="recipes" element={recipes} />
-            <Route path="inventory" element={inventory} />
-            <Route path="settings" element={settings} />
-            <Route path="history" element={history} />
+          <div className="center-page-middle">
+            <Routes>
+              {/* private pages */}
+              <Route path="home" element={home} />
+              <Route path="sous-chef" element={souschef} />
+              <Route path="nutritionist" element={nutritionist} />
+              <Route path="recipes" element={recipes} />
+              <Route path="inventory" element={inventory} />
+              <Route path="settings" element={settings} />
+              <Route path="history" element={history} />
 
-            {/* public pages */}
-            <Route path="login" element={<Login />} />
-            <Route path="create-account" element={<CreateAccount />} />
-            <Route path="logout" element={<LogoutPage />} />
-            <Route path="/" element={<Login />} />
-          </ Routes>
+              {/* public pages */}
+              <Route path="login" element={<Login />} />
+              <Route path="create-account" element={<CreateAccount />} />
+              <Route path="logout" element={<LogoutPage />} />
+              <Route path="/" element={<Login />} />
+            </ Routes>
+          </div>
           <CurvedEdge className="bottom-bar-edge-left" />
           <CurvedEdge className="bottom-bar-edge-right" />
           <div className="center-bottom-bar" />

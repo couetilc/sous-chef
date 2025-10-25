@@ -45,6 +45,7 @@
   font-family: var(--font-serif);
   max-width: 100svw;
   width: 100%;
+  min-height: 100svh;
 }
 
 .left-menu {
@@ -111,11 +112,20 @@
 .center-page {
   width: calc(100% - 2em);
   position: relative;
+  height: 100%;
+  display: flex;
+  flex-flow: column nowrap;
+  min-height: 100svh;
 }
 
 .center-top-bar, .center-bottom-bar {
   background-color: var(--color-accent-dark);
   height: 1em;
+  flex: 0 0 auto;
+}
+
+.center-page-middle {
+  flex: 1 0 auto;
 }
 
 .center-bar-right {
@@ -133,10 +143,12 @@
 
 .center-page .curved-edge.top-bar-edge-left {
   left: 0;
+  top: 1em;
 }
 
 .center-page .curved-edge.top-bar-edge-right {
   right: 0;
+  top: 1em;
   transform: scaleX(-1);
 }
 
