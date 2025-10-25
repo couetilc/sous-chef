@@ -114,9 +114,43 @@
   position: relative;
 }
 
-.center-top-bar {
+.center-top-bar, .center-bottom-bar {
   background-color: var(--color-accent-dark);
   height: 1em;
+}
+
+.center-bar-right {
+  background-color: var(--color-accent-dark);
+  width: 1em;
+}
+
+.center-page .curved-edge {
+  position: absolute;
+  fill: var(--color-accent-dark);
+  --curved-edge-hw: 1em;
+  height: var(--curved-edge-hw);
+  width: var(--curved-edge-hw);
+}
+
+.center-page .curved-edge.top-bar-edge-left {
+  left: 0;
+}
+
+.center-page .curved-edge.top-bar-edge-right {
+  right: 0;
+  transform: scaleX(-1);
+}
+
+.center-page .curved-edge.bottom-bar-edge-left {
+  left: 0;
+  bottom: var(--curved-edge-hw);
+  transform: scaleY(-1);
+}
+
+.center-page .curved-edge.bottom-bar-edge-right {
+  right: 0;
+  bottom: var(--curved-edge-hw);
+  transform: scaleY(-1) scaleX(-1);
 }
 
 .hamburger-button {
@@ -136,23 +170,6 @@
 
 .hamburger-button:hover {
   background-color: var(--color-accent-darker);
-}
-
-.center-page .curved-edge {
-  position: absolute;
-  fill: var(--color-accent-dark);
-  --curved-edge-hw: 1em;
-  height: var(--curved-edge-hw);
-  width: var(--curved-edge-hw);
-}
-
-.center-page .curved-edge.top-bar-edge-left {
-  left: 0;
-}
-
-.center-page .curved-edge.top-bar-edge-right {
-  right: 0;
-  transform: scaleX(-1);
 }
 
 /* End Layout */

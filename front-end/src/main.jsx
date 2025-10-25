@@ -84,8 +84,7 @@ export default function App(props) {
         </div>
         <div className="center-bar-left" />
         <div className="center-page">
-          <div className="center-top-bar">
-          </div>
+          <div className="center-top-bar" />
           <CurvedEdge className="top-bar-edge-left" />
           <CurvedEdge className="top-bar-edge-right" />
           <Routes>
@@ -104,6 +103,9 @@ export default function App(props) {
             <Route path="logout" element={<LogoutPage />} />
             <Route path="/" element={<Login />} />
           </ Routes>
+          <CurvedEdge className="bottom-bar-edge-left" />
+          <CurvedEdge className="bottom-bar-edge-right" />
+          <div className="center-bottom-bar" />
         </div>
         <div className="center-bar-right" />
       </div>
