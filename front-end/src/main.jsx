@@ -58,7 +58,11 @@ export default function App(props) {
              curLocation.pathname.localeCompare("/create-account/") == 0)
              ? <img className="sous-chef-logo" src={SousChefLogo} height="300px"/>
              : <header className="navigation-menu">
-                <div className="hamburger-button">
+                <div className="hamburger-button" onClick={
+                  e => getComputedStyle(e.currentTarget)['margin-left'] == '0px'
+                    ? e.currentTarget.style['margin-left'] = 'calc(100% - 2em)'
+                    : e.currentTarget.style['margin-left'] = '0'
+                }>
                   <span>☰</span>
                 </div>
                 <a className="nav-link-home" href="/home">

@@ -118,6 +118,8 @@
   align-items: center;
   width: fit-content;
   cursor: pointer;
+  margin-left: calc(100% - 2em);
+  transition: margin-left .1s ease-in;
 }
 
 .hamburger-button span {
