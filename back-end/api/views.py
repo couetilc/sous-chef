@@ -63,6 +63,7 @@ class LoginView(APIView):
                 'email': user.email,
                 'first_name': user.first_name,
                 'last_name': user.last_name,
+                'onboarded': user.onboarded,
             }, status=status.HTTP_200_OK)
         else:
             return Response(
@@ -93,6 +94,23 @@ class CurrentUserView(APIView):
             'first_name': user.first_name,
             'last_name': user.last_name,
         }, status=status.HTTP_200_OK)
+
+class OnboardedView(APIView):
+    """Get user's onboarding completion status"""
+    permission_class = [permissions.IsAuthenticated]
+    def get(self, request):
+        user = request.user
+        return Response({
+            'onboarded': user.onboarded
+        }, status=status.HTTP_200_OK)
+
+class UpdateOnboardedView(APIView):
+    """Update user's onboarding completion status"""
+    permission_class = [permissions.IsAuthenticated]
+    def post(self, request):
+        user = request.user
+        user.onboarded.has_onboarded=request.new_onboarded
+        return Response({ 'message': 'Successfully completed onboarding'}, status=status.HTTP_200_OK)
 
 
 @method_decorator(ensure_csrf_cookie, name='dispatch')
