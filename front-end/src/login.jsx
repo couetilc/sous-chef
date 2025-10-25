@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router';
 import './style.css';
 import SousChefLogo from './souschef-logo.png';
 import { useUser } from './useUser.jsx'
+import { useApi } from './useApi.jsx';
 
 export default function Login(props) {
   let user = props.user;
@@ -28,6 +29,10 @@ export default function Login(props) {
 
     try {
       await login({ username: userText, password: pwElement.value })
+      //check if user is logged in
+      if ( response.onboarded == false ) {
+        navigate("/welcome");
+      }
       navigate("/home/");
     } catch (error) {
       alert("Invalid Credentials!");

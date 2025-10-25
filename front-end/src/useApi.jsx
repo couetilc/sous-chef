@@ -170,6 +170,14 @@ export class Api {
       })
     })
   }
+
+  async getOnboardingStatus() {
+    return this.fetch('/api/user/isOnboarded/')
+  }
+
+  async setOnboardingStatus() {
+    return this.fetch("/api/user/updateOnBoarded");
+  }
 }
 
 export function ApiProvider(props) {

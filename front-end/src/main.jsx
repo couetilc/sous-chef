@@ -11,6 +11,7 @@ import Recipes from './recipesPage.jsx';
 import Inventory from './inventory.jsx';
 import SettingsPage from './settingsPage.jsx';
 import CreateAccount from './createAccount.jsx';
+import WelcomePage from './welcomePage.jsx';
 import HeaderBanner from './headerBanner.jsx';
 import LogoutPage from './logoutPage';
 import PrivatePage from './privatePage';
@@ -44,6 +45,8 @@ export default function App(props) {
   const recipes = <PrivatePage><Recipes /></PrivatePage>
   const inventory = <PrivatePage><Inventory /></PrivatePage>
   const settings = <PrivatePage><SettingsPage /></PrivatePage>
+  const welcome = <PrivatePage><WelcomePage /></PrivatePage>
+  const onboard = <PrivatePage><WelcomePage /></PrivatePage>
 
   return (
     <>
@@ -57,6 +60,7 @@ export default function App(props) {
           <Route path="recipes" element={recipes} />
           <Route path="inventory" element={inventory} />
           <Route path="settings" element={settings} />
+          <Route path="welcome" element={welcome} />
 
           {/* public pages */}
           <Route path="login" element={<Login />} />
