@@ -15,7 +15,8 @@
 
   /* Semantic Tokens */
   --color-background: var(--color-blue);
-  --color-surface: var(--color-cream);
+  --color-surface: white;
+  --color-surface-muted: #fdfdfd;
   --color-text-primary: var(--color-rich-black);
   --color-text-secondary: #4a4e56;
   --color-text-muted: #6b7280;
@@ -330,6 +331,7 @@
   display: flex;
   flex-flow: column nowrap;
   background-color: oklch(from var(--color-auburn) calc(l + 1) c h);
+  background-color: var(--color-surface);
 }
 
 .recipe-history-recipe {
@@ -339,7 +341,6 @@
   padding: 1.5em;
   margin: 1em;
   transition: box-shadow 0.3s ease, border-color 0.3s ease;
-  background-color: white;
 }
 
 .recipe-history-recipe:hover {
@@ -438,5 +439,37 @@
   font-size: 2em;
 }
 
+/* Recipe History Calendar */
+#recipe-history .recipe-history-calendar {
+  margin: 1em;
+  padding: 1em;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(16, 20, 25, 0.08);
+}
+
+#recipe-history .react-calendar {
+  width: 100%;
+  border: none;
+  font-family: var(--font-ui);
+}
+
+/* Highlight dates with meals */
+#recipe-history .react-calendar__tile.has-meal {
+  background-color: var(--color-accent-light);
+  border-radius: 50%;
+  font-weight: 600;
+}
+
+#recipe-history .react-calendar__tile.has-meal:hover {
+  background-color: var(--color-accent);
+  color: white;
+}
+
+#recipe-history .react-calendar__tile--active.has-meal {
+  background-color: var(--color-accent);
+  color: white;
+}
 
 /* END RECIPE HISTORY PAGE */
