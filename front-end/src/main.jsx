@@ -1,6 +1,6 @@
 import './style.css'
 import { createRoot } from 'react-dom/client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 
 import CurvedEdge from './curvedEdge';
 import SousChefLogo from './souschef-logo.png';
@@ -40,6 +40,23 @@ export default function App(props) {
     return navigate("/login");
   }
 
+  const navList = useRef(null);
+  useEffect(() => {
+    if (navList.current) {
+      for (let a of navList.current.querySelectorAll('a')) {
+          let trimTrailingSlash = str => str.replace(/\/$/, '')
+          if (
+            trimTrailingSlash(a.href)
+            === trimTrailingSlash(window.location.href)
+          ) {
+            a.classList.add('active')
+          } else {
+            a.classList.remove('active')
+          }
+      }
+    }
+  }, [navList])
+
   const home = <PrivatePage><Home /></PrivatePage>
   const souschef = <PrivatePage><SousChef /></PrivatePage>
   const nutritionist = <PrivatePage><Nutritionist /></PrivatePage>
@@ -65,11 +82,11 @@ export default function App(props) {
                 }>
                   <span>☰</span>
                 </div>
-                <a className="nav-link-home" href="/home">
+                <a className="nav-link-logo" href="/home">
                   <img className="sous-chef-logo" src={SousChefLogo} width="150px"/>
                 </a>
                 <nav>
-                  <ul>
+                  <ul ref={navList}>
                     <li><a href="/home">Home</a></li>
                     <li><a href="/sous-chef">Sous Chef</a></li>
                     <li><a href="/nutritionist">Nutritionist</a></li>
