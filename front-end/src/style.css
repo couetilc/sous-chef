@@ -105,6 +105,33 @@
   grid-area: delete;
 }
 
+.recipeFilterGrid {
+  padding: 1em;
+  gap: 10px;
+  background-color:coral;
+  display: grid;
+  grid-template-areas:
+  'name favorite clear'
+  ;
+}
+
+.recipeFilterGrid > div {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.recipeFilterGrid > div.name{
+  grid-area: name;
+}
+.recipeFilterGrid > div.favorite{
+  grid-area: favorite;
+}
+.recipeFilterGrid > div.clear{
+  grid-area: clear;
+}
+
+
 .home-grid {
   display: grid;
   margin: auto;
