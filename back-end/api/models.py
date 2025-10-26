@@ -176,3 +176,15 @@ class Meal(models.Model):
 
     def __str__(self):
         return f"{self.portion * 100}% of {self.cooked_recipe.recipe.title} eaten on {self.eaten_at.strftime('%Y-%m-%d')}"
+
+class FavoriteRecipe(models.Model):
+    """Record of a recipe that was favorited by a user"""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='favorite_recipes')
+    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE, related_name='user_favorites')
+
+    class Meta:
+        ordering = ['recipe_name']
+        unique_together = ['user', 'recipe']
+
+    def __str__(self):
+        return f"{self.user_name} favorited {self.recipe_name}"

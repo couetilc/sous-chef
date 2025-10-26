@@ -8,8 +8,8 @@ from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.contrib.auth.models import User, Group
-from .models import Ingredient, DietaryIngredient, Diet, UserDiet, Recipe, CookedRecipe, Meal
-from .serializers import UserSerializer, GroupSerializer, UserRegistrationSerializer, IngredientSerializer, DietSerializer, CookedRecipeSerializer, MealSerializer
+from .models import Ingredient, DietaryIngredient, Diet, UserDiet, Recipe, CookedRecipe, Meal, FavoriteRecipe
+from .serializers import UserSerializer, GroupSerializer, UserRegistrationSerializer, IngredientSerializer, DietSerializer, CookedRecipeSerializer, MealSerializer, FavoriteRecipeSerializer
 
 # Create your views here.
 def index(request):
@@ -322,3 +322,16 @@ class GetRecipesFiltered(generics.ListAPIView):
         intersect = filteredName
 
         return intersect
+
+class CreateFavoriteRecipe(generics.CreateAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = FavoriteRecipeSerializer
+    queryset = FavoriteRecipe.objects.all
+
+    def create(self, request, *args, **kwargs):
+        data = request.data
+        data['user'] = request.user.id
+        serializer = self.get_serializer(data=data)
+        serializer.is_valid()
+        favoriteRecipe = serializer.save()
+        return Response(data=None, status=status.HTTP_201_CREATED)

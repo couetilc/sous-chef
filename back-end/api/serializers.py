@@ -3,7 +3,7 @@ from django.contrib import admin
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
-from .models import Ingredient, Diet, CookedRecipe, Meal, Recipe
+from .models import Ingredient, Diet, CookedRecipe, Meal, Recipe, FavoriteRecipe
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -92,3 +92,8 @@ class CookedRecipeSerializer(serializers.ModelSerializer):
         model = CookedRecipe
         fields = ('id', 'user', 'recipe', 'cooked_at', 'meals')
         read_only_fields = ('id', 'user', 'cooked_at')
+
+class FavoriteRecipeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FavoriteRecipe
+        fields = ('id', 'user', 'recipe')
