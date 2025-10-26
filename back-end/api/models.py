@@ -183,7 +183,7 @@ class FavoriteRecipe(models.Model):
     recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE, related_name='user_favorites')
 
     class Meta:
-        ordering = ['recipe_name']
+        ordering = ['recipe__title']
         unique_together = ['user', 'recipe']
 
     def __str__(self):
