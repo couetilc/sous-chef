@@ -15,12 +15,11 @@ from rapidfuzz import process, fuzz
 from nltk.stem import WordNetLemmatizer
 from pathlib import Path
 
-# --- CONFIGURATION ---
-RECIPE_FILE = Path("scraping/recipe_scraping/recipe_csv_files/recipes.csv")
-INGREDIENT_FILE = Path("scraping/finalized_ingredients.csv")
+# Paths
+RECIPE_FILE = Path("scraping/recipe_scraping/recipe_csv_files/recipes_final_clean_ready.csv")
+INGREDIENT_FILE = Path("scraping/production/canonical_ingredients.csv")
 OUTPUT_FILE = Path("scraping/recipe_ingredient_matches.csv")
 N_RECIPES = 20
-MIN_SCORE = 0
 
 lemmatizer = WordNetLemmatizer()
 
@@ -34,7 +33,6 @@ STOPWORDS = [
 ]
 
 def normalize(text: str) -> str:
-    """Normalize text by cleaning and lemmatizing."""
     if pd.isna(text) or not isinstance(text, str):
         return ""
     text = text.lower()
@@ -51,13 +49,14 @@ def normalize(text: str) -> str:
 def core_phrase(ingredient_name: str) -> str:
     """Return only the first two comma-separated parts for matching context."""
     parts = [p.strip() for p in ingredient_name.split(",") if p.strip()]
-    return ", ".join(parts[:2])  # Keep only first two components
+    return ", ".join(parts[:2])
 
-# --- LOAD DATA ---
+# Load data
 recipes_df = pd.read_csv(RECIPE_FILE)
 ingredients_df = pd.read_csv(INGREDIENT_FILE)
 
-recipes_df = recipes_df.head(N_RECIPES)
+# Limit to only N_RECIPES
+# recipes_df = recipes_df.head(N_RECIPES)
 
 ingredient_names = ingredients_df["description"].astype(str).tolist()
 ingredient_core = [core_phrase(name) for name in ingredient_names]
@@ -65,39 +64,87 @@ ingredient_norms = [normalize(n) for n in ingredient_core]
 
 print(f"Loaded {len(recipes_df)} recipes and {len(ingredient_names)} ingredients.")
 
-# --- MATCH FUNCTION ---
+# Find best match using fuzzy
 def find_best_match(ingredient):
     normalized = normalize(ingredient)
     if not normalized:
         return pd.Series(["", 0])
-    match, score, _ = process.extractOne(
+
+    tokens = set(normalized.split())
+
+    # Run fuzzy match globally, but will re-rank manually
+    candidates = process.extract(
         normalized,
         ingredient_norms,
-        scorer=fuzz.token_set_ratio
+        scorer=fuzz.token_set_ratio,
+        limit=50
     )
-    matched_name = ingredient_names[ingredient_norms.index(match)] if score >= MIN_SCORE else ""
-    return pd.Series([matched_name, score])
 
-# --- PROCESS ---
-matches = []
+    best_match = ""
+    best_score = 0
+
+    for match, raw_score, _ in candidates:
+        idx = ingredient_norms.index(match)
+        name = ingredient_names[idx]
+        candidate_tokens = set(match.split())
+
+        # Penalty for longer words
+        length_penalty = 0.6 * len(name.split())
+        containment_bonus = 8 if tokens <= candidate_tokens else 0
+        exact_match_bonus = 10 if normalized in match or match in normalized else 0
+
+        adjusted_score = raw_score - length_penalty + containment_bonus + exact_match_bonus
+
+        if adjusted_score > best_score:
+            best_score = adjusted_score
+            best_match = name
+
+    return pd.Series([best_match, round(best_score, 2)])
+
+
+# Print to csv file
+all_ingredients_match = []
+all_ingredients_id = []
+
+total_recipes = len(recipes_df)
+progress_interval = max(1, total_recipes // 100)
+
 for i, row in recipes_df.iterrows():
     recipe_ingredients = str(row.get("ingredients", "")).split("|")
+    matched_names = []
+    matched_ids = []
+
     for ing in recipe_ingredients:
         ing = ing.strip()
         if not ing:
             continue
+
         matched_name, score = find_best_match(ing)
-        matches.append({
-            "recipe_index": i,
-            "original_ingredient": ing,
-            "normalized_ingredient": normalize(ing),
-            "matched_ingredient": matched_name,
-            "match_score": score
-        })
 
-# --- SAVE ---
-matches_df = pd.DataFrame(matches)
-matches_df.to_csv(OUTPUT_FILE, index=False)
+        # Find corresponding food_id
+        if matched_name in ingredient_names:
+            idx = ingredient_names.index(matched_name)
+            food_id = ingredients_df.loc[idx, "food_id"]
+        else:
+            food_id = ""
 
-print(f"\n✅ Matching complete! Saved to '{OUTPUT_FILE}'")
-print(matches_df.head(10))
+        matched_names.append(matched_name)
+        matched_ids.append(str(food_id))
+
+    all_ingredients_match.append(" | ".join(matched_names))
+    all_ingredients_id.append(" | ".join(matched_ids))
+
+    # Progress checker
+    if (i + 1) % progress_interval == 0 or i == total_recipes - 1:
+        pct = ((i + 1) / total_recipes) * 100
+        print(f"Processed {i + 1:,} / {total_recipes:,} recipes ({pct:.1f}%)")
+
+# Add new columns to recipe dataframe
+recipes_df["ingredients_match"] = all_ingredients_match
+recipes_df["ingredients_id"] = all_ingredients_id
+
+# Output to csv file
+OUTPUT_FILE = Path("scraping/recipe_scraping/recipe_csv_files/recipes_with_matches.csv")
+recipes_df.to_csv(OUTPUT_FILE, index=False)
+
+print(f"\nSaved enhanced recipe file with matches → {OUTPUT_FILE}")

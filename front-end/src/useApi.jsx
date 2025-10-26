@@ -134,7 +134,7 @@ export class Api {
         added,
         removed
       })
-    }) 
+    })
   }
 
   async listDiets() {
@@ -151,7 +151,7 @@ export class Api {
         added,
         removed
       })
-    }) 
+    })
   }
 
   async logout() {
@@ -177,6 +177,14 @@ export class Api {
         name
       })
     })
+  }
+
+  async recipeHistory() {
+    return this.fetch('/api/recipe_history/')
+  }
+
+  async recipeHistoryCreateMeal({ recipe_id }) {
+    return this.fetch(`/api/recipe_history/${recipe_id}/meal/`)
   }
 }
 
