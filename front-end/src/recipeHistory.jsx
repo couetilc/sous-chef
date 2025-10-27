@@ -1,4 +1,7 @@
+import { useState, useMemo } from 'react'
 import { useGET } from './useGET'
+import Calendar from 'react-calendar'
+import 'react-calendar/dist/Calendar.css'
 
 function formatDate(dateString) {
   const date = new Date(dateString)
@@ -20,27 +23,63 @@ function formatPortion(portion) {
 
 export default function RecipeHistory(props) {
   const data = useGET('recipeHistory')
+  const [calendarValue, setCalendarValue] = useState(new Date())
+
+  // Create a Set of dates that have meals for fast lookup
+  const datesWithMeals = useMemo(() => {
+    const dates = new Set()
+    if (Array.isArray(data)) {
+      data.forEach(({ meals }) => {
+        meals.forEach(meal => {
+          // Format date as YYYY-MM-DD for comparison
+          const date = new Date(meal.eaten_at)
+          const dateStr = date.toISOString().split('T')[0]
+          dates.add(dateStr)
+        })
+      })
+    }
+    return dates
+  }, [data])
+
+  // Highlight dates that have meals
+  const tileClassName = ({ date, view }) => {
+    if (view === 'month') {
+      const dateStr = date.toISOString().split('T')[0]
+      if (datesWithMeals.has(dateStr)) {
+        return 'has-meal'
+      }
+    }
+    return null
+  }
 
   return (
     <div id="recipe-history">
+      <div className="recipe-history-calendar">
+        <Calendar
+          onChange={setCalendarValue}
+          value={calendarValue}
+          tileClassName={tileClassName}
+        />
+      </div>
+
       {data?.length > 0 && data.map(({ recipe, meals }) => (
-        <div class="recipe-history-recipe box">
+        <div key={recipe.id} className="recipe-history-recipe box">
           <h2>{recipe.title}</h2>
-          <div class="recipe-history-summary">
+          <div className="recipe-history-summary">
             <img src={recipe.image_url} />
-            <div class="recipe-history-meals">
+            <div className="recipe-history-meals">
               {meals.map(meal => {
                 const { monthDay, year, time } = formatDate(meal.eaten_at)
                 return (
-                  <div class="recipe-history-meal">
-                    <div class="meal-date">
-                      <span class="date-label">meal eaten</span>
-                      <span class="date-time">{time}</span>
-                      <span class="date-full">{monthDay}, {year}</span>
+                  <div key={meal.id} className="recipe-history-meal">
+                    <div className="meal-date">
+                      <span className="date-label">meal eaten</span>
+                      <span className="date-time">{time}</span>
+                      <span className="date-full">{monthDay}, {year}</span>
                     </div>
-                    <div class="meal-portion">
-                      <span class="portion-value">{formatPortion(meal.portion)}</span>
-                      <span class="portion-label">portion</span>
+                    <div className="meal-portion">
+                      <span className="portion-value">{formatPortion(meal.portion)}</span>
+                      <span className="portion-label">portion</span>
                     </div>
                   </div>
                 )
