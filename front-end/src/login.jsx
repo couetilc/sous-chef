@@ -29,10 +29,12 @@ export default function Login(props) {
 
     try {
       await login({ username: userText, password: pwElement.value })
-      //check if user is logged in
+      //check if user is onboarded already
+      /*
       if ( response.onboarded == false ) {
         navigate("/welcome");
       }
+      */
       navigate("/home/");
     } catch (error) {
       alert("Invalid Credentials!");

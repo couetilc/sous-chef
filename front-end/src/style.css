@@ -171,3 +171,11 @@
   display: inline-block;
   margin-right: 10px;
 }
+
+.continue-btn {
+  background-color: darkgray;
+  color: white;
+  border-color: black;
+  border-width: 2px;
+  border-style: solid;
+}

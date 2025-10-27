@@ -15,6 +15,7 @@ import WelcomePage from './welcomePage.jsx';
 import HeaderBanner from './headerBanner.jsx';
 import LogoutPage from './logoutPage';
 import PrivatePage from './privatePage';
+import Onboarding from './onboarding';
 
 import { BrowserRouter, Routes, Route, Navigate } from "react-router";
 import { Link } from 'react-router';
@@ -46,7 +47,7 @@ export default function App(props) {
   const inventory = <PrivatePage><Inventory /></PrivatePage>
   const settings = <PrivatePage><SettingsPage /></PrivatePage>
   const welcome = <PrivatePage><WelcomePage /></PrivatePage>
-  const onboard = <PrivatePage><WelcomePage /></PrivatePage>
+  const onboard = <PrivatePage><Onboarding /></PrivatePage>
 
   return (
     <>
@@ -61,6 +62,7 @@ export default function App(props) {
           <Route path="inventory" element={inventory} />
           <Route path="settings" element={settings} />
           <Route path="welcome" element={welcome} />
+          <Route path="onboarding" element={onboard} />
 
           {/* public pages */}
           <Route path="login" element={<Login />} />

@@ -9,6 +9,7 @@ export default function HeaderBanner() {
 
   if ( curLocation.pathname.localeCompare("/") == 0 ||
        curLocation.pathname.localeCompare("/login/") == 0 ||
+       curLocation.pathname.localeCompare("/welcome/") == 0 ||
        curLocation.pathname.localeCompare("/create-account/") == 0 ) {
     return (
       <img src={SousChefLogo} height="300px"/>
