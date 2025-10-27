@@ -101,6 +101,17 @@ class UserDiet(models.Model):
     def __str__(self):
         return f"{self.user.username} restricts {self.diet.name}"
 
+class UserInventory(models.Model):
+    # User-specific inventory of ingredients they have on hand
+    ingredient = models.ForeignKey(Ingredient, on_delete=models.CASCADE, related_name='in_inventories')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='inventory_items')
+
+    class Meta:
+        ordering = ['ingredient__name']
+        unique_together = ['user', 'ingredient']
+    def __str__(self):
+        return f"{self.user.username} has {self.ingredient.name} in inventory"
+
 class ScrapedInventory(models.Model):
     # Optional external/CSV id if present
     food_id = models.CharField(max_length=64, null=True, blank=True, db_index=True)
