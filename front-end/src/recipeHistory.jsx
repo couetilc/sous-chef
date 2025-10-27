@@ -62,7 +62,7 @@ export default function RecipeHistory(props) {
         />
       </div>
 
-      {/* {data?.length > 0 && data.map(({ recipe, meals }) => (
+      {data?.length > 0 && data.map(({ recipe, meals }) => (
         <div key={recipe.id} className="recipe-history-recipe box">
           <h2>{recipe.title}</h2>
           <div className="recipe-history-summary">
@@ -87,7 +87,7 @@ export default function RecipeHistory(props) {
             </div>
           </div>
         </div>
-      ))} */}
+      ))}
     </div>
   )
 }

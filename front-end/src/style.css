@@ -105,7 +105,9 @@
     ;
 }
 
-.navigation-menu li a:hover, .left-menu .nav-link-logo:hover, .navigation-menu a.active {
+.navigation-menu li a:hover,
+.left-menu .nav-link-logo:hover,
+.navigation-menu a.active {
   background-color: var(--color-accent-darker);
 }
 
@@ -126,6 +128,11 @@
 
 .center-page-middle {
   flex: 1 0 auto;
+  display: flex;
+}
+
+.center-page-middle > * {
+  flex: 1 1 auto;
 }
 
 .center-bar-right {
@@ -452,19 +459,22 @@
 }
 
 /* Recipe History Calendar */
-#recipe-history .recipe-history-calendar {
+#recipe-history .react-calendar {
+  width: calc(100% - 2em);
+  aspect-ratio: 4 / 3;
   margin: 1em;
   padding: 1em;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(16, 20, 25, 0.08);
+  font-family: var(--font-ui);
+  display: flex;
+  flex-flow: column nowrap;
 }
 
-#recipe-history .react-calendar {
-  width: 100%;
-  border: none;
-  font-family: var(--font-ui);
+#recipe-history .react-calendar > *:nth-child(2){
+  flex: 1 0 auto;
 }
 
 /* Highlight dates with meals */
