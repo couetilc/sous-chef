@@ -17,6 +17,7 @@ export default function Recipes() {
   const clearFilters = () => {
     console.log("clear filters")
     setEnteredName('')
+    setFilterFavorites(false)
   }
 
   return (
