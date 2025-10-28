@@ -2,7 +2,8 @@ import React from 'react';
 import { useNavigate, Navigate } from 'react-router';
 import './style.css';
 import ChefHat from './chefhat.png';
-import Nutrition from './nutritionist.png';
+import Nutritionist from './nutritionist.png';
+import Nutrition from './nutrition.png'
 import Recipe from './recipe.png';
 import Inventory from './inventory.png';
 import { useUser } from './useUser.jsx'
@@ -30,6 +31,10 @@ export default function Home(props) {
     return navigate("/inventory");
   }
 
+  function navToNutrition() {
+    return navigate("/nutrition");
+  }
+
   function navToLogout() {
     return navigate("/logout/");
   }
@@ -55,7 +60,7 @@ export default function Home(props) {
          </button>
        </div>
        <div className="img-button-cont">
-         <img src={Nutrition}/>
+         <img src={Nutritionist}/>
          <button
              className="btn"
              onClick={navToNutritionist}>
@@ -76,6 +81,14 @@ export default function Home(props) {
              className="btn"
              onClick={navToInventory}>
            Inventory
+         </button>
+       </div>
+       <div className="img-button-cont">
+         <img src={Nutrition}/>
+         <button
+             className="btn"
+             onClick={navToNutrition}>
+           Nutrition
          </button>
        </div>
      </div>
