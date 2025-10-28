@@ -1,7 +1,4 @@
-import { useState, useMemo } from 'react'
 import { useGET } from './useGET'
-import Calendar from 'react-calendar'
-import 'react-calendar/dist/Calendar.css'
 
 function formatDate(dateString) {
   const date = new Date(dateString)
@@ -23,44 +20,9 @@ function formatPortion(portion) {
 
 export default function RecipeHistory(props) {
   const data = useGET('recipeHistory')
-  const [calendarValue, setCalendarValue] = useState(new Date())
-
-  // Create a Set of dates that have meals for fast lookup
-  const datesWithMeals = useMemo(() => {
-    const dates = new Set()
-    if (Array.isArray(data)) {
-      data.forEach(({ meals }) => {
-        meals.forEach(meal => {
-          // Format date as YYYY-MM-DD for comparison
-          const date = new Date(meal.eaten_at)
-          const dateStr = date.toISOString().split('T')[0]
-          dates.add(dateStr)
-        })
-      })
-    }
-    return dates
-  }, [data])
-
-  // Highlight dates that have meals
-  const tileClassName = ({ date, view }) => {
-    if (view === 'month') {
-      const dateStr = date.toISOString().split('T')[0]
-      if (datesWithMeals.has(dateStr)) {
-        return 'has-meal'
-      }
-    }
-    return null
-  }
 
   return (
     <div id="recipe-history">
-      <div className="recipe-history-calendar">
-        <Calendar
-          onChange={setCalendarValue}
-          value={calendarValue}
-          tileClassName={tileClassName}
-        />
-      </div>
 
       {data?.length > 0 && data.map(({ recipe, meals }) => (
         <div key={recipe.id} className="recipe-history-recipe box">
