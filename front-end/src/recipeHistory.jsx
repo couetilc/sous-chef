@@ -25,8 +25,11 @@ export default function RecipeHistory(props) {
     <div id="recipe-history">
 
       {data?.length > 0 && data.map(({ recipe, meals }) => (
-        <div key={recipe.id} className="recipe-history-recipe box">
-          <h2>{recipe.title}</h2>
+        <div key={recipe.id} className="recipe-history-recipe">
+          <div className="recipe-history-recipe-title">
+            <h2>{recipe.title}</h2>
+            <button className="button">Add Meal</button>
+          </div>
           <div className="recipe-history-summary">
             <img src={recipe.image_url} />
             <div className="recipe-history-meals">
