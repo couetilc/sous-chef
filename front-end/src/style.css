@@ -354,17 +354,26 @@
 }
 
 .recipe-history-recipe {
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(16, 20, 25, 0.08);
+  box-shadow:
+    0 2px 8px rgba(16, 20, 25, 0.08),
+    0 0 0 1px var(--color-border)
+    ;
   padding: 1.5em;
   margin: 1em;
   transition: box-shadow 0.3s ease, border-color 0.3s ease;
+  border-left: 2px solid transparent;
+  border-radius: 8px;
+  display: flex;
+  flex-flow: column nowrap;
+  gap: 1em;
 }
 
 .recipe-history-recipe:hover {
-  box-shadow: 0 4px 12px rgba(165, 36, 34, 0.2);
-  border-color: var(--color-accent);
+  box-shadow:
+    0 4px 12px rgba(165, 36, 34, 0.2),
+    0 0 0 1px var(--color-border)
+    ;
+    border-left: 2px solid var(--color-accent);
 }
 
 .recipe-history-recipe h2 {
@@ -405,7 +414,6 @@
 }
 
 #recipe-history .recipe-history-meal:hover {
-  transform: translateY(-2px);
   box-shadow: 0 2px 6px rgba(165, 36, 34, 0.15);
 }
 
@@ -458,40 +466,30 @@
   font-size: 2em;
 }
 
-/* Recipe History Calendar */
-#recipe-history .react-calendar {
-  width: calc(100% - 2em);
-  aspect-ratio: 4 / 3;
-  margin: 1em;
-  padding: 1em;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(16, 20, 25, 0.08);
-  font-family: var(--font-ui);
+#recipe-history .recipe-history-recipe-title {
   display: flex;
-  flex-flow: column nowrap;
+  flex-flow: row wrap;
+  align-items: center;
+  gap: 1em;
 }
-
-#recipe-history .react-calendar > *:nth-child(2){
-  flex: 1 0 auto;
+#recipe-history .recipe-history-recipe-title h2 {
+  margin: 0;
 }
-
-/* Highlight dates with meals */
-#recipe-history .react-calendar__tile.has-meal {
-  background-color: var(--color-accent-light);
-  border-radius: 50%;
-  font-weight: 600;
-}
-
-#recipe-history .react-calendar__tile.has-meal:hover {
-  background-color: var(--color-accent);
-  color: white;
-}
-
-#recipe-history .react-calendar__tile--active.has-meal {
-  background-color: var(--color-accent);
-  color: white;
+#recipe-history .recipe-history-recipe-title button {
+  flex: 0 0 auto;
 }
 
 /* END RECIPE HISTORY PAGE */
+
+.button {
+  --button-color: var(--color-accent-light);
+  --button-background: oklch(from var(--color-accent) calc(l + 1) c h);
+  padding: .25em .5em;
+  border: 1px solid var(--button-color);
+  border-radius: 4px;
+  background-color: var(--button-background);
+  color: var(--button-color);
+  font-weight: bold;
+  box-shadow: 1px 1px 2px 0px var(--color-accent-lighter);
+  cursor: pointer;
+}
