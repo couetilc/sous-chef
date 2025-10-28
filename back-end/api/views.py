@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.contrib.auth.models import User, Group
 from .models import Ingredient, DietaryIngredient, Diet, UserDiet, Recipe, CookedRecipe, Meal, FavoriteRecipe
-from .serializers import UserSerializer, GroupSerializer, UserRegistrationSerializer, IngredientSerializer, DietSerializer, CookedRecipeSerializer, MealSerializer, FavoriteRecipeSerializer
+from .serializers import UserSerializer, GroupSerializer, UserRegistrationSerializer, IngredientSerializer, DietSerializer, CookedRecipeSerializer, MealSerializer
 
 # Create your views here.
 def index(request):
@@ -323,15 +323,15 @@ class GetRecipesFiltered(generics.ListAPIView):
 
         return intersect
 
-class CreateFavoriteRecipe(generics.CreateAPIView):
+class CreateFavoriteRecipe(APIView):
     permission_classes = [permissions.IsAuthenticated]
-    serializer_class = FavoriteRecipeSerializer
-    queryset = FavoriteRecipe.objects.all
 
-    def create(self, request, *args, **kwargs):
-        data = request.data
-        data['user'] = request.user.id
-        serializer = self.get_serializer(data=data)
-        serializer.is_valid()
-        favoriteRecipe = serializer.save()
-        return Response(data=None, status=status.HTTP_201_CREATED)
+    def post(self, request):
+        recipeID = request.data.get('recipeID')
+        recipe = Recipe.objects.get(id=recipeID)
+        user = request.user
+
+        newFavorite = FavoriteRecipe(user=user, recipe=recipe)
+        newFavorite.save()
+
+        return Response({'message': 'Successfully favorited recipe'}, status=status.HTTP_200_OK)

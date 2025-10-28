@@ -92,8 +92,3 @@ class CookedRecipeSerializer(serializers.ModelSerializer):
         model = CookedRecipe
         fields = ('id', 'user', 'recipe', 'cooked_at', 'meals')
         read_only_fields = ('id', 'user', 'cooked_at')
-
-class FavoriteRecipeSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = FavoriteRecipe
-        fields = ('id', 'user', 'recipe')
