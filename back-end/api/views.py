@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.contrib.auth.models import User, Group
 from .models import Ingredient, DietaryIngredient, Diet, UserDiet, Recipe, CookedRecipe, Meal, FavoriteRecipe
-from .serializers import UserSerializer, GroupSerializer, UserRegistrationSerializer, IngredientSerializer, DietSerializer, CookedRecipeSerializer, MealSerializer
+from .serializers import UserSerializer, GroupSerializer, UserRegistrationSerializer, IngredientSerializer, DietSerializer, CookedRecipeSerializer, MealSerializer, RecipeSerializer
 
 # Create your views here.
 def index(request):
@@ -309,19 +309,18 @@ class CreateMealView(APIView):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 # This endpoint will encompass all filter functionality
-class GetRecipesFiltered(generics.ListAPIView):
+class GetRecipesFiltered(APIView):
     """List recipes matching the posted filter"""
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = RecipeSerializer
 
     def post(user, request):
-        options = request.data.get('options')
+        title = request.data.get('title')
+        filteredTitle = Recipe.objects.filter(title__icontains=title)
 
-        name = options.name
-        filteredName = Recipe.objects.filter(name__unaccent__icontains=name)
-
-        intersect = filteredName
-
-        return intersect
+        intersect = filteredTitle
+        serializer = RecipeSerializer(intersect, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 class CreateFavoriteRecipe(APIView):
     permission_classes = [permissions.IsAuthenticated]

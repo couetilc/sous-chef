@@ -26,7 +26,7 @@ urlpatterns = [
     path('diets/updateSelected/', views.UpdateDiets.as_view(), name='selected-diet-update'),
     # Recipe endpoints
     path('recipes/searchFiltered/', views.GetRecipesFiltered.as_view(), name='recipes-search-filtered'),
-    path('recipes/createFavorite', views.CreateFavoriteRecipe.as_view(), name='recipes-create-favorite'),
+    path('recipes/createFavorite/', views.CreateFavoriteRecipe.as_view(), name='recipes-create-favorite'),
     # Recipe history endpoints
     path('recipe_history/', views.RecipeHistoryView.as_view(), name='recipe-history'),
     path('recipe_history/<int:cooked_recipe_id>/meal/', views.CreateMealView.as_view(), name='create-meal'),
