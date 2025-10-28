@@ -5,7 +5,7 @@ import { useEffect, useState, useRef } from 'react'
 import Login from './login.jsx';
 import Home from './home.jsx';
 import SousChef from './souschefPage.jsx';
-import Nutritionist from './nutritionPage.jsx';
+import Nutritionist from './nutritionistPage.jsx';
 import Recipes from './recipesPage.jsx';
 import Inventory from './inventory.jsx';
 import SettingsPage from './settingsPage.jsx';

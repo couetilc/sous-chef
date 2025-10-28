@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate, Navigate } from 'react-router';
 import './style.css';
 import ChefHat from './chefhat.png';
-import Nutrition from './nutrition.png';
+import Nutrition from './nutritionist.png';
 import Recipe from './recipe.png';
 import Inventory from './inventory.png';
 import { useUser } from './useUser.jsx'
