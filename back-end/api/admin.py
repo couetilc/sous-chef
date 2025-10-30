@@ -235,7 +235,7 @@ class CookedRecipeAdmin(admin.ModelAdmin):
 
 @admin.register(Meal)
 class MealAdmin(admin.ModelAdmin):
-	list_display = ('cooked_recipe', 'portion', 'eaten_at')
-	search_fields = ('cooked_recipe__recipe__title', 'cooked_recipe__user__username')
-	list_filter = ('eaten_at',)
-	ordering = ('-eaten_at',)
+    list_display = ('cooked_recipe', 'servings', 'eaten_at')
+    search_fields = ('cooked_recipe__recipe__title', 'cooked_recipe__user__username')
+    list_filter = ('eaten_at',)
+    ordering = ('-eaten_at',)

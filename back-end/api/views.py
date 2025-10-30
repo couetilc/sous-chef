@@ -287,18 +287,18 @@ class CreateMealView(APIView):
                 status=status.HTTP_403_FORBIDDEN
             )
 
-        portion = request.data.get('portion')
-        if portion is None:
+        servings = request.data.get('servings')
+        if servings is None:
             return Response(
-                {'error': 'Portion is required'},
+                {'error': 'Servings is required'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Create the meal
-        meal = Meal(cooked_recipe=cooked_recipe, portion=portion)
+        # Create and validate the Meal
+        meal = Meal(cooked_recipe=cooked_recipe, servings=servings)
 
         try:
-            meal.save()  # This will call full_clean() which validates portion constraints
+            meal.save()  # Calls full_clean() in Meal model
         except Exception as e:
             return Response(
                 {'error': str(e)},
@@ -307,6 +307,7 @@ class CreateMealView(APIView):
 
         serializer = MealSerializer(meal)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
 
 # This endpoint will encompass all filter functionality
 class GetRecipesFiltered(APIView):
