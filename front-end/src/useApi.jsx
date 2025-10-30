@@ -171,6 +171,14 @@ export class Api {
     })
   }
 
+  async getRecipesFiltered({name}) {
+    return this.fetch('api/recipes/searchFiltered', {
+      body: JSON.stringify({
+        name
+      })
+    })
+  }
+
   async recipeHistory() {
     return this.fetch('/api/recipe_history/')
   }

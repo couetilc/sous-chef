@@ -8,8 +8,8 @@ from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.contrib.auth.models import User, Group
-from .models import Ingredient, DietaryIngredient, Diet, UserDiet, CookedRecipe, Meal
-from .serializers import UserSerializer, GroupSerializer, UserRegistrationSerializer, IngredientSerializer, DietSerializer, CookedRecipeSerializer, MealSerializer
+from .models import Ingredient, DietaryIngredient, Diet, UserDiet, Recipe, CookedRecipe, Meal, FavoriteRecipe
+from .serializers import UserSerializer, GroupSerializer, UserRegistrationSerializer, IngredientSerializer, DietSerializer, CookedRecipeSerializer, MealSerializer, RecipeSerializer
 
 # Create your views here.
 def index(request):
@@ -307,3 +307,30 @@ class CreateMealView(APIView):
 
         serializer = MealSerializer(meal)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+# This endpoint will encompass all filter functionality
+class GetRecipesFiltered(APIView):
+    """List recipes matching the posted filter"""
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = RecipeSerializer
+
+    def post(user, request):
+        title = request.data.get('title')
+        filteredTitle = Recipe.objects.filter(title__icontains=title)
+
+        intersect = filteredTitle
+        serializer = RecipeSerializer(intersect, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+class CreateFavoriteRecipe(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        recipeID = request.data.get('recipeID')
+        recipe = Recipe.objects.get(id=recipeID)
+        user = request.user
+
+        newFavorite = FavoriteRecipe(user=user, recipe=recipe)
+        newFavorite.save()
+
+        return Response({'message': 'Successfully favorited recipe'}, status=status.HTTP_200_OK)
