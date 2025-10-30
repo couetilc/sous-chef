@@ -27,44 +27,35 @@ export default function Nutrition() {
 
   return (
     <div className="centered-div">
-      <h1>NUTRITION</h1>
-      <p>Welcome to the Nutrition Interface page!</p>
+      <h1>Nutrition Tracking Page</h1>
 
-      <div
-        style={{
-          textAlign: 'left',
-          width: '100%',
-          marginTop: '20px',
-          marginBottom: '20px',
-          fontSize: '1.1em',
-        }}
-      >
-        {currentDate}
-      </div>
+      <div className="nutrition-section">
+        <div className="nutrition-date">{currentDate}</div>
 
-      <div className="nutrition-container">
-        {nutritionData.map((item, index) => {
-          const percentage = Math.min((item.consumed / item.goal) * 100, 100);
-          return (
-            <div key={index} className="nutrition-bar">
-              <div className="nutrition-label">
-                <strong>{item.label}</strong>
-                <div className="nutrition-amount">
-                  {item.consumed}/{item.goal}
+        <div className="nutrition-container">
+          {nutritionData.map((item, index) => {
+            const percentage = Math.min((item.consumed / item.goal) * 100, 100);
+            return (
+              <div key={index} className="nutrition-bar">
+                <div className="nutrition-label">
+                  <strong>{item.label}</strong>
+                  <div className="nutrition-amount">
+                    {item.consumed}/{item.goal}
+                  </div>
+                </div>
+                <div className="progress-bar">
+                  <div
+                    className="progress-fill"
+                    style={{
+                      width: `${percentage}%`,
+                      backgroundColor: item.color,
+                    }}
+                  ></div>
                 </div>
               </div>
-              <div className="progress-bar">
-                <div
-                  className="progress-fill"
-                  style={{
-                    width: `${percentage}%`,
-                    backgroundColor: item.color,
-                  }}
-                ></div>
-              </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
     </div>
   );
