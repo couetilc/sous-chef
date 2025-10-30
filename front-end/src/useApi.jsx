@@ -171,10 +171,11 @@ export class Api {
     })
   }
 
-  async getRecipesFiltered({title}) {
+  async getRecipesFiltered({title, searchFavorite}) {
     return this.fetch('api/recipes/searchFiltered', {
       body: JSON.stringify({
-        title
+        title,
+        searchFavorite
       })
     })
   }
