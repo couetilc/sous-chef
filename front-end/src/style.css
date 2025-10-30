@@ -340,7 +340,7 @@
   background-color:coral;
   display: grid;
   grid-template-areas:
-  'name favorite clear'
+  'name favorite clear search'
   ;
 }
 
@@ -359,7 +359,9 @@
 .recipeFilterGrid > div.clear{
   grid-area: clear;
 }
-
+.recipeFilterGrid > div.search{
+  grid-area: search;
+}
 
 .home-grid {
   display: grid;

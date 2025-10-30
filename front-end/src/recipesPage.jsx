@@ -1,11 +1,12 @@
 import './style.css';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
+import { useApi } from './useApi';
 
 import SousChefLogo from './souschef-logo.png';
 
 export default function Recipes() {
-
+  const { api } = useApi();
   const [enteredName, setEnteredName] = useState('')
   const [filterFavorites, setFilterFavorites] = useState(false)
 
@@ -18,6 +19,12 @@ export default function Recipes() {
     console.log("clear filters")
     setEnteredName('')
     setFilterFavorites(false)
+  }
+
+  const sendSearchRequest = () => {
+    api.getRecipesFiltered({title:enteredName, searchFavorite:filterFavorites}).then((result) => {
+      console.log(result)
+    })
   }
 
   return (
@@ -37,6 +44,9 @@ export default function Recipes() {
           </div>
           <div name='clear'>
             <button type="button" onClick={clearFilters}>Clear Filters</button>
+          </div>
+          <div name='search'>
+            <button type="submit" onClick={sendSearchRequest}>Search</button>
           </div>
       </div>
     </div>
