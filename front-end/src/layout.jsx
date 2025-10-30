@@ -44,12 +44,13 @@ export default function Layout(props) {
             </a>
             <nav>
               <ul ref={navList}>
-                <li><a href="/home">Home</a></li>
-                <li><a href="/sous-chef">Sous Chef</a></li>
-                <li><a href="/nutritionist">Nutritionist</a></li>
-                <li><a href="/recipes">Recipes</a></li>
-                <li><a href="/inventory">Inventory</a></li>
-                <li><a href="/settings">Account Settings</a></li>
+                <li><a href="/home/">Home</a></li>
+                <li><a href="/sous-chef/">Sous Chef</a></li>
+                <li><a href="/nutritionist/">Nutritionist</a></li>
+                <li><a href="/recipes/">Recipes</a></li>
+                <li><a href="/inventory/">Inventory</a></li>
+                <li><a href="/history/">History</a></li>
+                <li><a href="/settings/">Account Settings</a></li>
                 <li><a href="/logout/">Logout</a></li>
               </ul>
             </nav>
