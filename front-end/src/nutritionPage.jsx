@@ -27,7 +27,7 @@ export default function Nutrition() {
 
   return (
     <div className="centered-div">
-      <h1>Nutrition Tracking Page</h1>
+      <h1>Daily Nutrition Tracker</h1>
 
       <div className="nutrition-section">
         <div className="nutrition-date">{currentDate}</div>
