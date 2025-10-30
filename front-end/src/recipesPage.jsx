@@ -20,6 +20,10 @@ export default function Recipes() {
     setFilterFavorites(false)
   }
 
+  const sendSearchRequest = () => {
+    
+  }
+
   return (
     <div className="centered-div">
       <div>
@@ -37,6 +41,9 @@ export default function Recipes() {
           </div>
           <div name='clear'>
             <button type="button" onClick={clearFilters}>Clear Filters</button>
+          </div>
+          <div name='search'>
+            <button type="button" onClick={sendSearchRequest}>Search</button>
           </div>
       </div>
     </div>
