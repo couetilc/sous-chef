@@ -190,6 +190,23 @@
   background-color: var(--color-accent-darker);
 }
 
+@media (max-width: 600px) {
+  .app-container {
+    display: flex;
+    flex-flow: column nowrap;
+  }
+
+  .mobile-center {
+    display: flex;
+    flex-flow: row nowrap;
+  }
+
+  .center-bar-left {
+    width: 1em;
+    background-color: var(--color-accent-dark);
+  }
+}
+
 /* End Layout */
 
 .centered-div {
