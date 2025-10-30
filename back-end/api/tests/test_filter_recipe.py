@@ -22,3 +22,30 @@ class TestFilterRecipes:
         })
 
         print(response.data)
+    def test_filter_name_nomatch(self, authenticated_client, test_user):
+        fries = Recipe.objects.create(title='Fries')
+        ofries = Recipe.objects.create(title='Ofries')
+        bfries = Recipe.objects.create(title='Bfries')
+        chips = Recipe.objects.create(title='Chips')
+
+        favoriteFries = FavoriteRecipe.objects.create(user=test_user, recipe=fries)
+
+        response = authenticated_client.post('/api/recipes/searchFiltered/', {
+            "title" : "neon",
+            "searchFavorite": True
+        })
+
+    def test_filter_name_none(self, authenticated_client, test_user):
+        fries = Recipe.objects.create(title='Fries')
+        ofries = Recipe.objects.create(title='Ofries')
+        bfries = Recipe.objects.create(title='Bfries')
+        chips = Recipe.objects.create(title='Chips')
+
+        favoriteFries = FavoriteRecipe.objects.create(user=test_user, recipe=fries)
+
+        response = authenticated_client.post('/api/recipes/searchFiltered/', {
+            "searchFavorite": True,
+            "title" : ""
+        })
+
+        print(response.data)

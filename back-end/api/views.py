@@ -312,17 +312,19 @@ class CreateMealView(APIView):
 class GetRecipesFiltered(APIView):
     """List recipes matching the posted filter"""
     permission_classes = [permissions.IsAuthenticated]
-    serializer_class = RecipeSerializer
 
     def post(self, request):
         title = request.data.get('title')
-        filteredTitle = Recipe.objects.filter(title__icontains=title)
-
+        print(Recipe.objects.count())
+        if (title != None):
+            filteredTitle = Recipe.objects.filter(title__icontains=title)
+        else:
+            filteredTitle = Recipe.objects.all()
         intersect = filteredTitle
 
         # If searching by favorites only is enabled, get all favorites which intersect with the filtered recipes
         searchFavorite = bool(request.data.get('searchFavorite'))
-        if (searchFavorite == True):
+        if ((searchFavorite == True) and (intersect != Recipe.objects.none())):
             favorites = FavoriteRecipe.objects.filter(user=request.user)
             favoritesFiltered = favorites.filter(recipe__in=intersect) # Get all favoriteRecipes which match with our intersection
             intersect = Recipe.objects.filter(user_favorites__in=favoritesFiltered) # Recover the recipe objects from these favoriteRecipes 
