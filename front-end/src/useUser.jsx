@@ -11,10 +11,12 @@ export function UserProvider(props) {
   const { api } = useApi();
 
   const [user, setUser] = useState();
+  const [loading, setLoading] = useState(true);
 
   const context = useMemo(() => {
     return {
       user,
+      loading,
       async login({ username, password }) {
         const user = await api.login({ username, password })
         setUser(user);
@@ -28,7 +30,15 @@ export function UserProvider(props) {
         setUser(user);
       },
     }
-  }, [user, api]);
+  }, [user, api, loading]);
+
+  useEffect(() => {
+    if (!context.user) {
+      context.getCurrentUser()
+      .catch(() => /* ignore errors */ undefined)
+      .finally(() => setLoading(false))
+    }
+  }, [context]);
 
   return (
     <UserContext value={context}>
