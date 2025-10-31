@@ -7,6 +7,7 @@ from django.utils.decorators import method_decorator
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.pagination import PageNumberPagination
 from django.contrib.auth.models import User, Group
 from .models import Ingredient, DietaryIngredient, Diet, UserDiet, Recipe, CookedRecipe, Meal, FavoriteRecipe
 from .serializers import UserSerializer, GroupSerializer, UserRegistrationSerializer, IngredientSerializer, DietSerializer, CookedRecipeSerializer, MealSerializer, RecipeSerializer
@@ -191,7 +192,7 @@ class DietaryIngredientList(generics.ListAPIView):
         return Ingredient.objects.filter(id__in=dietary_ingredient_ids)
 
 class UpdateDietaryIngredientList(APIView):
-    permission_classes = [permissions.IsAuthenticated]   
+    permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
         added = request.data.get('added')
@@ -203,7 +204,7 @@ class UpdateDietaryIngredientList(APIView):
         addedIngredients = Ingredient.objects.filter(id__in=added)
         for ingredient in addedIngredients:
             DietaryIngredient.objects.get_or_create(ingredient=ingredient, user=self.request.user)
-        
+
         removedIngredients = Ingredient.objects.filter(id__in=removed)
         for ingredient in removedIngredients:
             target = DietaryIngredient.objects.filter(ingredient=ingredient, user=self.request.user)
@@ -223,7 +224,7 @@ class DietList(generics.ListAPIView):
 class SelectedDietList(generics.ListAPIView):
     """List selected diets for the authenticated user"""
     permission_classes = [permissions.IsAuthenticated]
-    serializer_class = DietSerializer 
+    serializer_class = DietSerializer
 
     def get_queryset(self):
         """Filter diets to only those selected by the current user"""
@@ -235,7 +236,7 @@ class SelectedDietList(generics.ListAPIView):
         return Ingredient.objects.filter(id__in=selected_diet_ids)
 
 class UpdateDiets(APIView):
-    permission_classes = [permissions.IsAuthenticated]   
+    permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
         added = request.data.get('added')
@@ -247,7 +248,7 @@ class UpdateDiets(APIView):
         addedDiets= Diet.objects.filter(id__in=added)
         for diet in addedDiets:
             UserDiet.objects.get_or_create(diet=diet, user=self.request.user)
-        
+
         removedDiets = Diet.objects.filter(id__in=removed)
         for diet in removedDiets:
             target = UserDiet.objects.filter(diet=diet, user=self.request.user)
@@ -308,30 +309,28 @@ class CreateMealView(APIView):
         serializer = MealSerializer(meal)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-
 # This endpoint will encompass all filter functionality
 class GetRecipesFiltered(APIView):
     """List recipes matching the posted filter"""
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
+        queryset = Recipe.objects.order_by('-created_at')
+
         title = request.data.get('title')
-        print(Recipe.objects.count())
-        if (title != None):
-            filteredTitle = Recipe.objects.filter(title__icontains=title)
-        else:
-            filteredTitle = Recipe.objects.all()
-        intersect = filteredTitle
+        if title:
+            queryset = queryset.filter(title__icontains=title)
 
-        # If searching by favorites only is enabled, get all favorites which intersect with the filtered recipes
         searchFavorite = request.data.get('searchFavorite')
-        if ((searchFavorite == "True") and (intersect != Recipe.objects.none())):
-            favorites = FavoriteRecipe.objects.filter(user=request.user)
-            favoritesFiltered = favorites.filter(recipe__in=intersect) # Get all favoriteRecipes which match with our intersection
-            intersect = Recipe.objects.filter(user_favorites__in=favoritesFiltered) # Recover the recipe objects from these favoriteRecipes 
+        if searchFavorite and searchFavorite == 'True':
+            queryset = queryset.filter(user_favorites__isnull=False)
 
-        serializer = RecipeSerializer(intersect, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        paginator = PageNumberPagination()
+        paginator.page_size = 100
+        page = paginator.paginate_queryset(queryset, request)
+        serializer = RecipeSerializer(page, many=True)
+
+        return paginator.get_paginated_response(serializer.data)
 
 class CreateFavoriteRecipe(APIView):
     permission_classes = [permissions.IsAuthenticated]
