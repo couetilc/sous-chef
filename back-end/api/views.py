@@ -344,3 +344,21 @@ class CreateFavoriteRecipe(APIView):
         newFavorite.save()
 
         return Response({'message': 'Successfully favorited recipe'}, status=status.HTTP_200_OK)
+
+class UserInventoryList(APIView):
+    """List user inventory for the authenticated user"""
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get(self, request):
+        return Response({'message': 'Not implemented'}, status=status.HTTP_501_NOT_IMPLEMENTED)
+    def post(self, request):
+        return Response({'message': 'Not implemented'}, status=status.HTTP_501_NOT_IMPLEMENTED)
+    
+class UserInventoryDetail(APIView):
+    """Retrieve, update or delete a user inventory item"""
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get(self, request, id):
+        return Response({'message': 'Not implemented'}, status=status.HTTP_501_NOT_IMPLEMENTED)
+    def delete(self, request, id):
+        return Response({'message': 'Not implemented'}, status=status.HTTP_501_NOT_IMPLEMENTED)
