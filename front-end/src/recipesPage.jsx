@@ -1,5 +1,5 @@
 import './style.css';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { useApi } from './useApi';
 
@@ -9,45 +9,80 @@ export default function Recipes() {
   const { api } = useApi();
   const [enteredName, setEnteredName] = useState('')
   const [filterFavorites, setFilterFavorites] = useState(false)
+  const [page, setPage] = useState(1)
+  const [recipes, setRecipes ] = useState();
+
+  useEffect(() => {
+    const param = { page }
+    if (enteredName && enteredName != '') {
+      param.title = enteredName
+    }
+    if (filterFavorites) {
+      param.searchFavorite = 'True'
+    }
+    api.getRecipesFiltered(param).then(setRecipes)
+  }, [api, enteredName, filterFavorites, page])
 
   const onFilterFavorites = () => {
     setFilterFavorites(!filterFavorites)
-    console.log("pressed")
   }
 
   const clearFilters = () => {
-    console.log("clear filters")
     setEnteredName('')
     setFilterFavorites(false)
   }
 
-  const sendSearchRequest = () => {
-    api.getRecipesFiltered({title:enteredName, searchFavorite:filterFavorites}).then((result) => {
-      console.log(result)
-    })
-  }
-
   return (
     <div className="centered-div">
+      <h1>Recipe Page</h1>
       <div>
-        <h1> RECIPES </h1>
-        <p> Welcome to the Recipes Interface page!</p>
-        <p> This is still under development, please come back later!</p>
+        <form onSubmit={e => {
+          e.preventDefault()
+          const form = new FormData(e.target)
+          setEnteredName(form.get('recipeName'))
+        }}>
+          <input
+            name="recipeName"
+            placeholder='Search Recipe Name'
+          ></input>
+          <button type="submit">Search Name</button>
+        </form>
       </div>
-        <h1> Recipe Filters</h1>
-      <div className='recipeFilterGrid'>
-          <div className='name'>
-            <input name="recipeName" value={enteredName} onChange={e => setEnteredName(e.target.value)} placeholder='Search Recipe Name'></input>
+      <div>
+        <button
+          type="button"
+          onClick={onFilterFavorites}
+        >
+          Filter by Favorites ({filterFavorites.toString()})
+        </button>
+      </div>
+      <div>
+        <button type="button" onClick={clearFilters}>Clear Filters</button>
+      </div>
+      <div>
+        {recipes?.previous &&
+          <button onClick={() => setPage(p => p - 1)}>previous page</button>}
+        {recipes?.next &&
+          <button onClick={() => setPage(p => p + 1)}>next page</button>}
+      </div>
+      <div>
+        {recipes?.results.map(recipe => (
+          <div key={recipe.id}>
+            <div>{recipe.title}</div>
+            <div>Ingredients:</div>
+            <ul>{recipe.ingredients.split('|').map(ingredient => (
+              <li>{ingredient.trim()}</li>
+            ))}</ul>
+            <div>Instructions:</div>
+            <ul>{recipe.instructions.split('|').map(step => (
+            <li>{step}</li>
+            ))}</ul>
+            {recipe.image_url &&
+              <img width="200px" src={recipe.image_url} loading="lazy"></img>}
+            {recipe.source_url &&
+              <a href={recipe.source_url} loading="lazy">source</a>}
           </div>
-          <div className='favorite'>
-            <button type="button" onClick={onFilterFavorites}>{`Filter by Favorites (${filterFavorites})`}</button>
-          </div>
-          <div name='clear'>
-            <button type="button" onClick={clearFilters}>Clear Filters</button>
-          </div>
-          <div name='search'>
-            <button type="submit" onClick={sendSearchRequest}>Search</button>
-          </div>
+        ))}
       </div>
     </div>
   )
