@@ -10,7 +10,7 @@ class TestUserInventoryAPI:
         # set the pre-conditions: put the database into a state we want to test
         ingredient = Ingredient.objects.create(name='Tomato')
 
-        response = authenticated_client.post('/api/ingredients/', { 'ingredient_id': ingredient.id})
+        response = authenticated_client.post('/api/user_inventory/', { 'ingredient_id': ingredient.id})
 
         assert response.status_code == status.HTTP_201_CREATED
         assert UserInventory.objects.count() == 1
