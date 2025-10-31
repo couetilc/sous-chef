@@ -58,19 +58,25 @@ class Command(BaseCommand):
                 for field in ['description', 'food_category', 'calories', 'protein_g', 'fat_g', 'carbs_g', 'quantity_other', 'price_g', 'price']:
                     if  field not in reader.fieldnames:
                         raise CommandError('CSV must have a "{field}" column')
-                    
+
+                def clean_float(value):
+                    try:
+                        return float(value)
+                    except ValueError:
+                        return 0.0
+
                 for row in reader:
                     description = row.get('description', '').strip()
                     if description:
                         description = self.clean_ingredient_name(description)
                     food_category = row.get('food_category', '').strip()
-                    calories = Decimal(row.get('calories', '').strip())
-                    protein_g = Decimal(row.get('protein_g', '').strip())
-                    fat_g = Decimal(row.get('fat_g', '').strip())
-                    carbs_g = Decimal(row.get('carbs_g', '').strip())
+                    calories = clean_float(row.get('calories', '0').strip())
+                    protein_g = clean_float(row.get('protein_g', '0').strip())
+                    fat_g = clean_float(row.get('fat_g', '0').strip())
+                    carbs_g = clean_float(row.get('carbs_g', '0').strip())
                     quantity_other = row.get('quantity_other', '').strip()
-                    price_g = Decimal(row.get('price_g', '').strip())
-                    price = Decimal(row.get('price', '').strip())
+                    price_g = clean_float(row.get('price_g', '0').strip())
+                    price = clean_float(row.get('price', '0').strip())
                     ingredients.append(Ingredient(
                         name=description,
                         food_category=food_category,
@@ -97,7 +103,7 @@ class Command(BaseCommand):
             return
 
         with transaction.atomic():
-            Ingredient.bulk_create(ingredients)
+            Ingredient.objects.bulk_create(ingredients)
 
         # Report results
         self.stdout.write(
