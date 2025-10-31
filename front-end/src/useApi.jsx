@@ -171,8 +171,8 @@ export class Api {
     })
   }
 
-  async getRecipesFiltered({title, searchFavorite}) {
-    return this.fetch('/api/recipes/searchFiltered/', {
+  async getRecipesFiltered({title, searchFavorite, page = 1}) {
+    return this.fetch(`/api/recipes/searchFiltered/?page=${page}`, {
       body: JSON.stringify({
         title,
         searchFavorite
