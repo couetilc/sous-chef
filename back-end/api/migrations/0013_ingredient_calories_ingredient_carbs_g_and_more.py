@@ -33,16 +33,4 @@ class Migration(migrations.Migration):
             name='protein_g',
             field=models.TextField(default='0'),
         ),
-        migrations.CreateModel(
-            name='UserInventory',
-            fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('ingredient', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='in_inventories', to='api.ingredient')),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='inventory_items', to=settings.AUTH_USER_MODEL)),
-            ],
-            options={
-                'ordering': ['ingredient__name'],
-                'unique_together': {('user', 'ingredient')},
-            },
-        ),
     ]
