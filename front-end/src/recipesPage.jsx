@@ -33,49 +33,53 @@ export default function Recipes() {
   }
 
   return (
-    <div className="centered-div">
+    <div className="recipe-page">
       <h1>Recipe Page</h1>
-      <div>
-        <form onSubmit={e => {
-          e.preventDefault()
-          const form = new FormData(e.target)
-          setEnteredName(form.get('recipeName'))
-        }}>
-          <input
-            name="recipeName"
-            placeholder='Search Recipe Name'
-          ></input>
-          <button type="submit">Search Name</button>
-        </form>
+      <div className="recipe-page-filters">
+        <div>
+          <h2>Filters</h2>
+          <form onSubmit={e => {
+            e.preventDefault()
+            const form = new FormData(e.target)
+            setEnteredName(form.get('recipeName'))
+          }}>
+            <input
+              name="recipeName"
+              placeholder='Search Recipe Name'
+            ></input>
+            <button type="submit">Search Name</button>
+          </form>
+        </div>
+        <div>
+          <button
+            type="button"
+            onClick={onFilterFavorites}
+          >
+            Filter by Favorites ({filterFavorites.toString()})
+          </button>
+        </div>
+        <div>
+          <button type="button" onClick={clearFilters}>Clear Filters</button>
+        </div>
+        <div>
+          {recipes?.previous &&
+            <button onClick={() => setPage(p => p - 1)}>previous page</button>}
+          {recipes?.next &&
+            <button onClick={() => setPage(p => p + 1)}>next page</button>}
+        </div>
       </div>
-      <div>
-        <button
-          type="button"
-          onClick={onFilterFavorites}
-        >
-          Filter by Favorites ({filterFavorites.toString()})
-        </button>
-      </div>
-      <div>
-        <button type="button" onClick={clearFilters}>Clear Filters</button>
-      </div>
-      <div>
-        {recipes?.previous &&
-          <button onClick={() => setPage(p => p - 1)}>previous page</button>}
-        {recipes?.next &&
-          <button onClick={() => setPage(p => p + 1)}>next page</button>}
-      </div>
+      <h2>Results</h2>
       <div>
         {recipes?.results.map(recipe => (
           <div key={recipe.id}>
             <div>{recipe.title}</div>
             <div>Ingredients:</div>
-            <ul>{recipe.ingredients.split('|').map(ingredient => (
-              <li>{ingredient.trim()}</li>
+            <ul>{recipe.ingredients.split('|').map((ingredient, i) => (
+              <li key={i}>{ingredient.trim()}</li>
             ))}</ul>
             <div>Instructions:</div>
-            <ul>{recipe.instructions.split('|').map(step => (
-            <li>{step}</li>
+            <ul>{recipe.instructions.split('|').map((step, i) => (
+            <li key={i}>{step}</li>
             ))}</ul>
             {recipe.image_url &&
               <img width="200px" src={recipe.image_url} loading="lazy"></img>}

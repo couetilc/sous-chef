@@ -564,3 +564,23 @@
   box-shadow: 1px 1px 2px 0px var(--color-accent-lighter);
   cursor: pointer;
 }
+
+/* RECIPE PAGE */
+
+.recipe-page {
+  padding: 1em;
+}
+
+.recipe-page h1 {
+  font-size: 2em;
+}
+
+.recipe-page h2 {
+  font-size: 1.5em;
+}
+
+.recipe-page-filters {
+  padding: 1em;
+}
+
+/* END RECIPE PAGE */
