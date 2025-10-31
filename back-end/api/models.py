@@ -61,6 +61,14 @@ class ScrapedNutritionalInfo(models.Model):
 class Ingredient(models.Model):
     """Canonical ingredient reference - base ingredient list"""
     name = models.CharField(max_length=200, unique=True)
+    food_category = models.TextField(default="")
+    quantity_other = models.TextField(default="")
+    calories = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    protein_g = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    fat_g = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    carbs_g = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    price_g = models.DecimalField(max_digits=10, decimal_places=2, default=0)
 
     class Meta:
         ordering = ['name']

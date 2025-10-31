@@ -52,9 +52,15 @@ export default function RecipeHistory(props) {
                       <span className="date-time">{time}</span>
                       <span className="date-full">{monthDay}, {year}</span>
                     </div>
+<<<<<<< HEAD
                     <div className="meal-servings">
                       <span className="servings-value">{formatServings(meal.servings)}</span>
                       <span className="servings-label"> eaten</span>
+=======
+                    <div class="meal-portion">
+                      <span class="portion-value">{formatPortion(meal.portion)}</span>
+                      <span class="portion-label">big ass plate</span>
+>>>>>>> de87f53 (updated ingredients model)
                     </div>
                   </div>
                 )

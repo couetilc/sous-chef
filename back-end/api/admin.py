@@ -182,7 +182,7 @@ class RecipeAdmin(admin.ModelAdmin):
 
 @admin.register(Ingredient)
 class IngredientAdmin(admin.ModelAdmin):
-	list_display = ('name',)
+	list_display = ('name', 'calories', 'protein_g', 'fat_g', 'carbs_g')
 	search_fields = ('name',)
 	ordering = ('name',)
 
