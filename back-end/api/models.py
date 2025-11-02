@@ -131,6 +131,16 @@ class UserInventory(models.Model):
     def __str__(self):
         return f"{self.user.username} has {self.ingredient.name} in inventory"
 
+class CookingSession(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='cooking_sessions')
+    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE, related_name='cooking_sessions')
+    start_time = models.DateTimeField(auto_now_add=True)
+    end_time = models.DateTimeField(null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.recipe.title} ({'active' if self.is_active else 'completed'})"
+
 class ScrapedInventory(models.Model):
     # Optional external/CSV id if present
     food_id = models.CharField(max_length=64, null=True, blank=True, db_index=True)
