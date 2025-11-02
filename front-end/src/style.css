@@ -557,6 +557,104 @@
 .recipes-page {
 }
 
+.recipes-page h1 {
+  font-size: 2em;
+  text-align: center;
+  padding: .5em;
+}
+
+.recipes-page .filter-bar {
+  display: flex;
+  flex-flow: row wrap;
+  gap: .5em;
+  padding: 1em;
+  align-items: center;
+  justify-content: center;
+}
+
+.recipes-page .paging {
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: center;
+  align-items: center;
+  gap: .5em;
+}
+
+.recipes-page .filter-name input {
+  border: 1px solid var(--color-accent);
+  border-radius: .25em;
+  padding: .25em;
+  margin: .25em;
+}
+
+.recipes-page .recipes-list {
+  display: flex;
+  flex-flow: column nowrap;
+  gap: 1em;
+}
+
+.recipes-page .recipe {
+  border: 1px solid var(--color-border);
+  border-radius: .5em;
+  padding: 1em;
+  margin: 1em;
+  display: flex;
+  flex-flow: column nowrap;
+  gap: .5em;
+}
+
+.recipes-page .recipe h3 {
+  font-size: 1.25em;
+  text-align: center;
+}
+
+.recipes-page .recipe img {
+  align-self: center;
+}
+
+.recipes-page .recipe .image-ingredients {
+  display: flex;
+  flex-flow: row wrap;
+  gap: 1em;
+  align-items: flex-start;
+}
+
+.recipes-page .recipe .image-ingredients > * {
+  flex: 1 1 auto;
+}
+
+.recipes-page .recipe .ingredients {
+  display: flex;
+  flex-flow: column nowrap;
+}
+
+.recipes-page .recipe h4 {
+  font-size: 1.125em;
+  margin-bottom: .25em;
+}
+
+.recipes-page .recipe .ingredients-list {
+  list-style-type: disc;
+  list-style-position: outside;
+  padding-left: 1em;
+}
+
+.recipes-page .recipe .instructions {
+  display: flex;
+  flex-flow: column nowrap;
+  gap: .5em;
+}
+
+.recipes-page .recipe .instructions ul {
+  list-style-type: disc;
+  list-style-position: outside;
+  padding-left: 1em;
+}
+
+.recipes-page .recipe .source-url {
+  align-self: center;
+}
+
 /* END RECIPES PAGE */
 
 .button {
