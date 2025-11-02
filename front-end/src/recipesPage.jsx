@@ -33,7 +33,7 @@ export default function Recipes() {
   }
 
   return (
-    <div className="centered-div">
+    <div className="recipes-page">
       <h1>Recipe Page</h1>
       <div>
         <form onSubmit={e => {

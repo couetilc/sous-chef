@@ -552,6 +552,13 @@
 
 /* END RECIPE HISTORY PAGE */
 
+/* RECIPES PAGE */
+
+.recipes-page {
+}
+
+/* END RECIPES PAGE */
+
 .button {
   --button-color: var(--color-accent-light);
   --button-background: oklch(from var(--color-accent) calc(l + 1) c h);

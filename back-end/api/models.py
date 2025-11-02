@@ -196,7 +196,7 @@ class Meal(models.Model):
             raise ValidationError({'servings': 'Servings must be greater than 0.'})
 
         # total_servings_cooked on the parent cooked_recipe
-        total_allowed = getattr(self.cooked_recipe.recipe, 'servings', 1)
+        total_allowed = getattr(self.cooked_recipe, 'total_servings_cooked', 1)
         existing_meals = Meal.objects.filter(cooked_recipe=self.cooked_recipe)
         if self.pk:
             existing_meals = existing_meals.exclude(pk=self.pk)
