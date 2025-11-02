@@ -4,13 +4,23 @@ from django.contrib.auth import authenticate, login, logout
 from django.middleware.csrf import get_token
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.utils.decorators import method_decorator
+from django.utils.dateparse import parse_datetime
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.pagination import PageNumberPagination
 from django.contrib.auth.models import User, Group
-from .models import Ingredient, DietaryIngredient, Diet, UserDiet, Recipe, CookedRecipe, Meal, FavoriteRecipe, UserInventory
-from .serializers import UserSerializer, GroupSerializer, UserRegistrationSerializer, IngredientSerializer, DietSerializer, CookedRecipeSerializer, MealSerializer, RecipeSerializer
+from decimal import Decimal, InvalidOperation
+
+from .models import (
+    Ingredient, DietaryIngredient, Diet, UserDiet,
+    Recipe, CookedRecipe, Meal, FavoriteRecipe, UserInventory
+)
+from .serializers import (
+    UserSerializer, GroupSerializer, UserRegistrationSerializer,
+    IngredientSerializer, DietSerializer,
+    CookedRecipeSerializer, MealSerializer, RecipeSerializer
+)
 
 # Create your views here.
 def index(request):
@@ -184,7 +194,6 @@ class DietaryIngredientList(generics.ListAPIView):
 
     def get_queryset(self):
         """Filter dietary ingredients to only those restricted by the current user"""
-        # Get the DietaryIngredient objects for the current user, then extract just the Ingredient objects
         dietary_ingredient_ids = DietaryIngredient.objects.filter(
             user=self.request.user
         ).values_list('ingredient_id', flat=True)
@@ -198,9 +207,6 @@ class UpdateDietaryIngredientList(APIView):
         added = request.data.get('added')
         removed = request.data.get('removed')
 
-        print(added)
-        print(removed)
-
         addedIngredients = Ingredient.objects.filter(id__in=added)
         for ingredient in addedIngredients:
             DietaryIngredient.objects.get_or_create(ingredient=ingredient, user=self.request.user)
@@ -209,9 +215,6 @@ class UpdateDietaryIngredientList(APIView):
         for ingredient in removedIngredients:
             target = DietaryIngredient.objects.filter(ingredient=ingredient, user=self.request.user)
             target.delete()
-
-
-        print(DietaryIngredient.objects.all())
 
         return Response({'message': 'Successfully updated ingredients'}, status=status.HTTP_200_OK)
 
@@ -227,8 +230,6 @@ class SelectedDietList(generics.ListAPIView):
     serializer_class = DietSerializer
 
     def get_queryset(self):
-        """Filter diets to only those selected by the current user"""
-        # Get the DietaryIngredient objects for the current user, then extract just the Ingredient objects
         selected_diet_ids = UserDiet.objects.filter(
             user=self.request.user
         ).values_list('diet_id', flat=True)
@@ -242,9 +243,6 @@ class UpdateDiets(APIView):
         added = request.data.get('added')
         removed = request.data.get('removed')
 
-        print(added)
-        print(removed)
-
         addedDiets= Diet.objects.filter(id__in=added)
         for diet in addedDiets:
             UserDiet.objects.get_or_create(diet=diet, user=self.request.user)
@@ -254,9 +252,6 @@ class UpdateDiets(APIView):
             target = UserDiet.objects.filter(diet=diet, user=self.request.user)
             target.delete()
 
-
-        print(UserDiet.objects.all())
-
         return Response({'message': 'Successfully updated diets'}, status=status.HTTP_200_OK)
 
 class RecipeHistoryView(generics.ListAPIView):
@@ -265,51 +260,88 @@ class RecipeHistoryView(generics.ListAPIView):
     serializer_class = CookedRecipeSerializer
 
     def get_queryset(self):
-        """Filter cooked recipes to only those for the current user"""
         return CookedRecipe.objects.filter(user=self.request.user)
 
+class RecipeNutritionPreviewView(APIView):
+    """
+    GET /api/recipes/<id>/nutrition/?servings=1.25
+    Returns scaled nutrition for the given number of servings.
+    Uses per-serving fields on Recipe (calories_per_serving, protein_g, fat_g, carbs_g).
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, id):
+        try:
+            recipe = Recipe.objects.get(id=id)
+        except Recipe.DoesNotExist:
+            return Response({'error': 'Recipe not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        servings_param = request.query_params.get('servings', '1')
+        try:
+            servings = Decimal(servings_param)
+            if servings <= 0:
+                raise InvalidOperation
+        except (InvalidOperation, ValueError):
+            return Response({'error': 'servings must be a positive number'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Scale numeric nutrition fields by servings
+        def scale(val):
+            try:
+                return float(Decimal(val) * servings)
+            except (InvalidOperation, ValueError, TypeError):
+                return 0.0
+
+        nutrition = {
+            'calories': scale(recipe.calories_per_serving),
+            'protein_g': scale(recipe.protein_g),
+            'fat_g': scale(recipe.fat_g),
+            'carbs_g': scale(recipe.carbs_g),
+        }
+
+        return Response({'nutrition': nutrition}, status=status.HTTP_200_OK)
+
 class CreateMealView(APIView):
-    """Create a meal from a cooked recipe"""
+    """Create a meal from a cooked recipe."""
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, cooked_recipe_id):
         try:
             cooked_recipe = CookedRecipe.objects.get(id=cooked_recipe_id)
         except CookedRecipe.DoesNotExist:
-            return Response(
-                {'error': 'Cooked recipe not found'},
-                status=status.HTTP_404_NOT_FOUND
-            )
+            return Response({'error': 'Cooked recipe not found'}, status=status.HTTP_404_NOT_FOUND)
 
-        # Verify that the cooked recipe belongs to the authenticated user
         if cooked_recipe.user != request.user:
-            return Response(
-                {'error': 'You do not have permission to create a meal from this cooked recipe'},
-                status=status.HTTP_403_FORBIDDEN
-            )
+            return Response({'error': 'You do not have permission to create a meal from this cooked recipe'},
+                            status=status.HTTP_403_FORBIDDEN)
 
+        # Validate servings
         servings = request.data.get('servings')
         if servings is None:
-            return Response(
-                {'error': 'Servings is required'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({'error': 'Servings is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Optional: eaten_at (ISO 8601). If provided, we will overwrite the default timestamp after creation.
+        eaten_at_raw = request.data.get('eaten_at')
+        parsed_eaten_at = None
+        if eaten_at_raw:
+            parsed_eaten_at = parse_datetime(eaten_at_raw)
+            if parsed_eaten_at is None:
+                return Response({'error': 'Invalid eaten_at; expected ISO 8601 datetime'}, status=status.HTTP_400_BAD_REQUEST)
 
         # Create and validate the Meal
         meal = Meal(cooked_recipe=cooked_recipe, servings=servings)
-
         try:
-            meal.save()  # Calls full_clean() in Meal model
+            meal.save()  # runs model validation (clean)
         except Exception as e:
-            return Response(
-                {'error': str(e)},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        # If client provided a specific eaten_at, set it after initial save (auto_now_add doesn’t block manual updates)
+        if parsed_eaten_at:
+            meal.eaten_at = parsed_eaten_at
+            meal.save(update_fields=['eaten_at'])
 
         serializer = MealSerializer(meal)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-# This endpoint will encompass all filter functionality
 class GetRecipesFiltered(APIView):
     """List recipes matching the posted filter"""
     permission_classes = [permissions.IsAuthenticated]
@@ -350,7 +382,6 @@ class UserInventoryList(APIView):
     permission_classes = [permissions.IsAuthenticated]
     
     def get(self, request):
-        # Return the authenticated user's inventory, ordered by ingredient name.
         inventories = UserInventory.objects.filter(user=request.user).order_by('ingredient__name')
 
         data = []
@@ -361,8 +392,8 @@ class UserInventoryList(APIView):
             })
 
         return Response(data, status=status.HTTP_200_OK)
+
     def post(self, request):
-        # Create a new UserInventory for the authenticated user.
         ingredient_id = request.data.get('ingredient_id')
         if ingredient_id is None:
             return Response({'error': 'ingredient_id is required'}, status=status.HTTP_400_BAD_REQUEST)
@@ -386,30 +417,22 @@ class UserInventoryDetail(APIView):
     permission_classes = [permissions.IsAuthenticated]
     
     def get(self, request, id):
-        # Attempt to fetch a UserInventory entry by its id, but scoped to the authenticated user. 
-        # If it doesn't exist or belongs to a different user, return HTTP 404.
-        # This enforces that a user cannot fetch another user's inventory item.
         try:
             inventory = UserInventory.objects.get(id=id, user=request.user)
         except UserInventory.DoesNotExist:
             return Response({'error': 'Not found'}, status=status.HTTP_404_NOT_FOUND)
         
-        # Prepare the same response shape used elsewhere: id and nested ingredient object.
         data = {
             'id': inventory.id,
             'ingredient': IngredientSerializer(inventory.ingredient).data,
         }
-        # Return HTTP 200 with the single inventory item.
         return Response(data, status=status.HTTP_200_OK)
+
     def delete(self, request, id):
-        # Fetch the UserInventory object scoped to the authenticated user. 
-        # If not found, return 404 to avoid deleting items that don't exist or belong to others.
         try:
             inventory = UserInventory.objects.get(id=id, user=request.user)
         except UserInventory.DoesNotExist:
             return Response({'error': 'Not found'}, status=status.HTTP_404_NOT_FOUND)
 
-        # Delete the found record from the database.
         inventory.delete()
-        # Return HTTP 204 No Content to indicate successful deletion with an empty response body.
         return Response(status=status.HTTP_204_NO_CONTENT)

@@ -1,8 +1,19 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
-export default function AddMealDialog({ recipe, onClose, onConfirm }) {
+export default function AddMealDialog({ recipe, cookedRecipeId, onClose, onSuccess }) {
   const [servingsEaten, setServingsEaten] = useState('1')
   const [ateAt, setAteAt] = useState(() => new Date().toISOString().slice(0, 16)) // YYYY-MM-DDTHH:mm
+
+  // Preview (GET) state
+  const [preview, setPreview] = useState(null)
+  const [previewLoading, setPreviewLoading] = useState(false)
+  const [previewError, setPreviewError] = useState(null)
+
+  // POST state
+  const [submitting, setSubmitting] = useState(false)
+
+  const debounceRef = useRef(null)
+  const abortRef = useRef(null)
 
   useEffect(() => {
     // lock background scroll while dialog is open
@@ -26,10 +37,8 @@ export default function AddMealDialog({ recipe, onClose, onConfirm }) {
     return out
   }
 
-  // Heuristics:
-  // - If recipe.nutrition_per_serving exists: use it directly for per-serving
-  // - Else if recipe.nutrition_total & recipe.servings exist: derive per-serving
-  const perServing = useMemo(() => {
+  // Local fallback per-serving (only used if backend preview fails)
+  const perServingLocal = useMemo(() => {
     const nps = recipe?.nutrition_per_serving
     if (nps) return nps
     const nt = recipe?.nutrition_total
@@ -39,25 +48,86 @@ export default function AddMealDialog({ recipe, onClose, onConfirm }) {
   }, [recipe])
 
   const servingsNumber = parseNumber(servingsEaten)
-  const willLog = useMemo(() => {
-    if (!perServing || servingsNumber <= 0) return null
-    return scaleNutrition(perServing, servingsNumber)
-  }, [perServing, servingsNumber])
 
-  const totalRecipe = useMemo(() => {
-    if (!perServing || !recipe?.servings) return null
-    const sv = parseFloat(recipe.servings)
-    if (!Number.isFinite(sv) || sv <= 0) return null
-    return scaleNutrition(perServing, sv)
-  }, [perServing, recipe])
+  // === GET preview from backend whenever servings change ===
+  useEffect(() => {
+    if (!recipe?.id || servingsNumber <= 0) {
+      setPreview(null)
+      setPreviewError(null)
+      return
+    }
 
-  function handleConfirm() {
-    if (!onConfirm) return
-    onConfirm({
-      recipeId: recipe.id,
-      servings: servingsNumber,
-      eaten_at: new Date(ateAt).toISOString(), // backend can handle timezone or you can keep local
-    })
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => {
+      if (abortRef.current) abortRef.current.abort()
+      abortRef.current = new AbortController()
+
+      setPreviewLoading(true)
+      setPreviewError(null)
+
+      fetch(`/api/recipes/${recipe.id}/nutrition/?servings=${encodeURIComponent(servingsNumber)}`, {
+        method: 'GET',
+        credentials: 'include',
+        signal: abortRef.current.signal,
+      })
+        .then(async (res) => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`)
+          return res.json()
+        })
+        .then((json) => setPreview(json?.nutrition ?? null))
+        .catch((err) => {
+          if (err.name !== 'AbortError') {
+            setPreview(null)
+            setPreviewError(err.message || 'Failed to fetch preview')
+          }
+        })
+        .finally(() => setPreviewLoading(false))
+    }, 250)
+
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+      if (abortRef.current) abortRef.current.abort()
+    }
+  }, [recipe?.id, servingsNumber])
+
+  const willLogLocal = useMemo(() => {
+    if (!perServingLocal || servingsNumber <= 0) return null
+    return scaleNutrition(perServingLocal, servingsNumber)
+  }, [perServingLocal, servingsNumber])
+
+  const effectivePreview = preview ?? willLogLocal
+
+  async function handleConfirm() {
+    if (servingsNumber <= 0 || submitting) return
+    setSubmitting(true)
+    try {
+      // === POST placeholder: connect to your Django endpoint ===
+      // Endpoint: POST /api/cooked-recipes/<cooked_recipe_id>/meals/
+      // Body: { servings, eaten_at }
+      const res = await fetch(`/api/cooked-recipes/${cookedRecipeId}/meals/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          servings: servingsNumber,
+          eaten_at: new Date(ateAt).toISOString(),
+        }),
+      })
+      // Placeholder behavior: just log the response; you can replace this with toasts/state
+      if (!res.ok) {
+        console.error('Log intake failed', res.status)
+      } else {
+        const json = await res.json().catch(() => ({}))
+        console.log('Log intake success:', json)
+        onSuccess?.(json)
+      }
+      onClose?.()
+    } catch (err) {
+      console.error('Log intake error:', err)
+      onClose?.()
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -69,10 +139,7 @@ export default function AddMealDialog({ recipe, onClose, onConfirm }) {
         position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
         display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
       }}
-      onClick={(e) => {
-        // close when clicking backdrop (but not when clicking inside dialog)
-        if (e.target === e.currentTarget) onClose?.()
-      }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose?.() }}
     >
       <div
         className="add-meal-card"
@@ -149,53 +216,41 @@ export default function AddMealDialog({ recipe, onClose, onConfirm }) {
           >
             <strong>Nutrition preview</strong>
 
-            {!perServing && (
+            {previewLoading && <div style={{ opacity: 0.8, fontSize: 14 }}>Loading preview…</div>}
+            {previewError && <div style={{ color: '#f66', fontSize: 14 }}>Error: {previewError}</div>}
+
+            {!previewLoading && !effectivePreview && (
               <div style={{ opacity: 0.8, fontSize: 14 }}>
-                No nutrition attached to this recipe yet. Add <code>nutrition_per_serving</code> or
-                <code> nutrition_total + servings</code> to enable the preview.
+                No nutrition available yet for this recipe.
               </div>
             )}
 
-            {perServing && (
+            {!previewLoading && effectivePreview && (
               <>
-                <section>
-                  <div style={{ fontWeight: 600, marginBottom: 4 }}>Per serving</div>
-                  <NutritionGrid data={perServing} />
-                </section>
-
                 <section>
                   <div style={{ fontWeight: 600, marginBottom: 4 }}>
                     Will be logged ({servingsNumber || 0} servings)
                   </div>
-                  {willLog ? <NutritionGrid data={willLog} /> : <div style={{ opacity: 0.8 }}>—</div>}
+                  <NutritionGrid data={effectivePreview} />
                 </section>
-
-                {totalRecipe && (
-                  <section>
-                    <div style={{ fontWeight: 600, marginBottom: 4 }}>
-                      Total recipe (all servings)
-                    </div>
-                    <NutritionGrid data={totalRecipe} />
-                  </section>
-                )}
               </>
             )}
           </div>
 
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-            <button className="button" onClick={onClose} style={{ padding: '10px 14px' }}>
+            <button className="button" onClick={onClose} style={{ padding: '10px 14px' }} disabled={submitting}>
               Cancel
             </button>
             <button
               className="button primary"
               onClick={handleConfirm}
-              disabled={!servingsNumber || servingsNumber <= 0}
+              disabled={!servingsNumber || servingsNumber <= 0 || submitting || !cookedRecipeId}
               style={{
                 padding: '10px 14px',
-                opacity: (!servingsNumber || servingsNumber <= 0) ? 0.6 : 1
+                opacity: (!servingsNumber || servingsNumber <= 0 || !cookedRecipeId) ? 0.6 : 1
               }}
             >
-              Log intake
+              {submitting ? 'Logging…' : 'Log intake'}
             </button>
           </div>
         </div>
@@ -233,7 +288,6 @@ function NutritionGrid({ data }) {
 }
 
 function formatKey(k) {
-  // turn protein_g -> protein (g), sodium_mg -> sodium (mg), calories stays calories
   if (k.endsWith('_g')) return `${k.replace('_g', '').replaceAll('_', ' ')} (g)`
   if (k.endsWith('_mg')) return `${k.replace('_mg', '').replaceAll('_', ' ')} (mg)`
   return k.replaceAll('_', ' ')

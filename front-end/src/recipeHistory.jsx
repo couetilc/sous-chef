@@ -18,30 +18,24 @@ function formatServings(servings) {
 
 export default function RecipeHistory(props) {
   const data = useGET('recipeHistory')
-  const [activeRecipe, setActiveRecipe] = useState(null)
-
-  // POST placeholder
-  function handleConfirmLogIntake(payload) {
-    console.log('Confirm log intake (stub):', payload)
-    // TODO: call POST
-    setActiveRecipe(null)
-  }
+  const [active, setActive] = useState(null) // { cookedRecipeId, recipe }
 
   return (
     <div id="recipe-history">
-      {data?.length > 0 && data.map(({ recipe, meals }) => (
-        <div key={recipe.id} className="recipe-history-recipe">
+      {data?.length > 0 && data.map(({ id, recipe, meals }) => ( // NOTE: use top-level id as cookedRecipeId
+        <div key={id} className="recipe-history-recipe">
           <div className="recipe-history-recipe-title">
             <h2>{recipe.title}</h2>
             <button
               className="button"
-              onClick={() => setActiveRecipe(recipe)}
+              onClick={() => setActive({ cookedRecipeId: id, recipe })}
             >
               Add Meal
             </button>
           </div>
+
           <div className="recipe-history-summary">
-            <img src={recipe.image_url} alt={recipe.title} />
+            {recipe.image_url && <img src={recipe.image_url} alt={recipe.title} />}
             <div className="recipe-history-meals">
               {meals.map(meal => {
                 const { monthDay, year, time } = formatDate(meal.eaten_at)
@@ -64,11 +58,13 @@ export default function RecipeHistory(props) {
         </div>
       ))}
 
-      {activeRecipe && (
+      {active && (
         <AddMealDialog
-          recipe={activeRecipe}
-          onClose={() => setActiveRecipe(null)}
-          onConfirm={handleConfirmLogIntake}
+          recipe={active.recipe}
+          cookedRecipeId={active.cookedRecipeId} // NOTE: pass cookedRecipeId for POST
+          onClose={() => setActive(null)}
+          // onSuccess: if your useGET exposes a refetch, you can call it here
+          // onSuccess={() => refetch?.()}
         />
       )}
     </div>
