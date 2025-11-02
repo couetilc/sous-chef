@@ -4,25 +4,24 @@ import './style.css'
 import Home from './home.jsx';
 import { useUser } from './useUser.jsx';
 import { useState } from 'react';
+import { useApi } from './useApi.jsx';
 
 export default function WelcomePage(props) {
   const navigate = useNavigate();
   const { user } = useUser();
+  const { api } = useApi();
 
   function navToHome() {
+    //update onboarding skipped property
+    api.setOnboardingStatus({false, true});
     return navigate("/home");
   }
 
   function navToOnboard() {
     return navigate("/onboarding");
   }
+  
    
-  /*
-   * If user has already done onboarding
-   */
-   //navToHome();
-
-
    return (
        <div className="centered-div">
          <h1> Welcome to Sous Chef! </h1>

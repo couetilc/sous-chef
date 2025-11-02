@@ -5,10 +5,13 @@ import Home from './home.jsx';
 import { useUser } from './useUser.jsx';
 import DietComponent from './settingsDietPreference';
 import { useState } from 'react';
+import { useApi } from 'useApi.jsx';
 
 export default function Onboarding(props) {
   const navigate = useNavigate();
-  const {user } = useUser();
+  const { user } = useUser();
+  const { api } = useApi();
+
   function navToHome() {
     return navigate("/home");
   }

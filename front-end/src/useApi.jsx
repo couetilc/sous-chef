@@ -175,11 +175,12 @@ export class Api {
     return this.fetch('/api/user/isOnboarded/')
   }
 
-  async setOnboardingStatus({new_onboarded}) {
-   return this.fetch("/api/user/updateOnboarded", {
+  async setOnboardingStatus({new_onboarded, new_skipped}) {
+   return this.fetch("/api/user/updateOnboarded", {method: "POST",
      body: JSON.stringify({
-       new_onboarded: "true"
-     }),
+       new_onboarded,
+       new_skipped
+     })
      
    })
   }

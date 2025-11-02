@@ -14,7 +14,7 @@ from .serializers import UserSerializer, GroupSerializer, UserRegistrationSerial
 from decimal import Decimal, InvalidOperation
 from .models import (
     Ingredient, DietaryIngredient, Diet, UserDiet,
-    Recipe, CookedRecipe, Meal, FavoriteRecipe, UserInventory
+    Recipe, CookedRecipe, Meal, FavoriteRecipe, UserInventory, OnboardingSubmission
 )
 from .serializers import (
     UserSerializer, GroupSerializer, UserRegistrationSerializer,
@@ -69,6 +69,8 @@ class LoginView(APIView):
 
         if user is not None:
             login(request, user)
+            if not user.onboarded.exists():
+                OnboardingSubmission.objects.create(user=user)
             return Response({
                 'id': user.id,
                 'username': user.username,
@@ -110,12 +112,10 @@ class OnboardedView(APIView):
     """Get user's onboarding completion status"""
     permission_class = [permissions.IsAuthenticated]
     def get(self, request):
-        print("here")
         user = request.user
-        print(user.onboarded.first().has_onboarded)
-        print(user)
         return Response({
-            'onboarded': user.onboarded.first().has_onboarded
+            'onboarded': user.onboarded.first().has_onboarded,
+            'skipped': user.onboarded.first().skipped
         }, status=status.HTTP_200_OK)
 
 class UpdateOnboardedView(APIView):
@@ -123,7 +123,8 @@ class UpdateOnboardedView(APIView):
     permission_class = [permissions.IsAuthenticated]
     def post(self, request):
         user = request.user
-        user.onboarded.has_onboarded=request.new_onboarded,
+        user.onboarded.first().has_onboarded=request.data['new_onboarded']
+        user.onboarded.first().skipped=request.data['skipped']
         return Response({ 'message': 'Successfully completed onboarding'}, status=status.HTTP_200_OK)
 
 

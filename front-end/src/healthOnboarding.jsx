@@ -5,7 +5,7 @@ import { useUser } from './useUser.jsx';
 import { useState } from 'react';
 
 const HealthComponent = () => {
-  const {api } = useApi();
+  const { api } = useApi();
 
   const [age, setAge] = useState([]);
   const [height, setHeight] = useState([]);
@@ -22,15 +22,15 @@ export default function HealthOnboarding(props) {
     return navigate("/home");
   }
 
-  /*
+  function submit() {
+   /*
     submit button onclick
     api call setage
     api call setheight
     api call setweight
     api call setactivitylevel
     api call setgoal
-  */
-  function submit() {
+    */
     alert("1");
   }
   return (
