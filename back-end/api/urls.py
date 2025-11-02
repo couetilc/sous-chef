@@ -30,4 +30,7 @@ urlpatterns = [
     # Recipe history endpoints
     path('recipe_history/', views.RecipeHistoryView.as_view(), name='recipe-history'),
     path('recipe_history/<int:cooked_recipe_id>/meal/', views.CreateMealView.as_view(), name='create-meal'),
+    # user inventory endpoints
+    path('user_inventory/', views.UserInventoryList.as_view(), name='user-inventory-list'),
+    path('user_inventory/<int:id>/', views.UserInventoryDetail.as_view(), name='user-inventory-detail'),
 ]
