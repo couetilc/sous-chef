@@ -3,6 +3,7 @@ from pathlib import Path
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from api.models import Recipe
+from decimal import Decimal
 
 
 class Command(BaseCommand):
@@ -12,7 +13,7 @@ class Command(BaseCommand):
         parser.add_argument(
             '--csv-path',
             type=str,
-            help='Path to the CSV file (default: scraping/recipe_scraping/recipe_csv_files/recipes_clean.csv)',
+            help='Path to the CSV file (default: /scraping/production/recipes_production.csv)',
         )
         parser.add_argument(
             '--dry-run',
@@ -37,7 +38,7 @@ class Command(BaseCommand):
         csv_path = options.get('csv_path')
         if not csv_path:
             # Default path in Docker container (scraping is mounted at /scraping)
-            csv_path = Path('/scraping/recipe_scraping/recipe_csv_files/recipes_clean.csv')
+            csv_path = Path('/scraping/production/recipes_production.csv')
         else:
             csv_path = Path(csv_path)
 
@@ -54,9 +55,17 @@ class Command(BaseCommand):
                 reader = csv.DictReader(csvfile)
 
                 # Verify expected columns
-                for column in ['title','url','image','ingredients','steps',]:
+                #title,url,image,ingredients,steps,prep_time_min,cook_time_min,total_time_min,servings,calories_per_serving,fat_g,carbs_g,protein_g,price_per_serving_usd,total_price_usd
+
+                for column in ['title','url','image','ingredients','steps','prep_time_min',
+                                'cook_time_min', 'total_time_min','servings', 'calories_per_serving',
+                                'fat_g', 'carbs_g','protein_g','price_per_serving_usd','total_price_usd']:
                     if column not in reader.fieldnames:
                         raise CommandError(f'CSV must have a "{column}" column')
+
+                def my_cast(value):
+                    if (value == ''): value = '0'
+                    return int(float(value))
 
                 for row in reader:
                     title = row.get('title', '').strip()
@@ -64,12 +73,32 @@ class Command(BaseCommand):
                     image = row.get('image', '').strip()
                     ingredients = row.get('ingredients', '').strip()
                     steps = row.get('steps', '').strip()
+                    prep_time_min = row.get('prep_time_min', '').strip()
+                    cook_time_min = row.get('cook_time_min', '').strip()
+                    total_time_min = row.get('total_time_min', '').strip()
+                    servings = row.get('servings', '').strip()
+                    calories_per_serving = row.get('calories_per_serving', '').strip()
+                    fat_g = row.get('fat_g', '').strip()
+                    carbs_g = row.get('carbs_g', '').strip()
+                    protein_g = row.get('protein_g', '').strip()
+                    price_per_serving_usd = row.get('price_per_serving_usd', '').strip()
+                    total_price_usd = row.get('total_price_usd', '').strip()
                     recipes.append(Recipe(
                         title=title,
                         source_url=url,
                         image_url=image,
                         ingredients=ingredients,
                         instructions=steps,
+                        prep_time_min=my_cast(prep_time_min),
+                        cook_time_min=my_cast(cook_time_min),
+                        total_time_min=my_cast(total_time_min),
+                        servings=my_cast(servings),
+                        calories_per_serving=my_cast(calories_per_serving),
+                        fat_g=my_cast(fat_g),
+                        carbs_g=my_cast(carbs_g),
+                        protein_g=my_cast(protein_g),
+                        price_per_serving_usd=Decimal(price_per_serving_usd),
+                        total_price_usd=Decimal(total_price_usd),
                     ))
 
         except Exception as e:

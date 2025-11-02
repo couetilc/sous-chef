@@ -5,40 +5,30 @@
 
 ### Prepare dependencies
 
-You should only have to do this once.
+1. Install [Docker](https://www.docker.com/get-started/)
 
-1. Install [`direnv`](https://direnv.net/)
-```sh
-# Once installed, in directory sous-chef/ now run
-direnv allow . # activates the .envrc file
+### Quick-start
+
+Rebuild our containers and start our application stack in the background
 ```
-2. Install [`nodenv`](https://github.com/nodenv/nodenv)
-```sh
-# Once installed, in directory sous-chef/ now run
-nodenv install # installs this project's node version
-corepack enable # adds "pnpm" to your PATH
-```
-3. Install [`pyenv`](https://github.com/pyenv/pyenv)
-```sh
-# Once installed, in directory sous-chef/ now run
-pyenv install # install's this project's python version
+# option "-d": start in the background
+# option "--build": rebuild our containers if they've changed
+docker compose up -d --build
 ```
 
-4. Install [Docker](https://www.docker.com/get-started/)
+Open a web browser to `localhost:3000`
+
+If you don't have your changes reflected, try
+```
+docker compose build
+docker compose up -d
+```
 
 ### Front-end
 
 The front-end package manager is [`pnpm`](https://pnpm.io/), it's fast and
 modern, which makes it  better than `npm`, while using the same package
 registry.
-
-Run these commands to get started developing:
-```
-pnpm install
-pnpm dev
-# opens a browser tab that connects to your front-end dev server
-open http://localhost:5173
-```
 
 The React files will live in `.jsx` files in `sous-chef/front-end/src/`. Our
 front-end assets are managed by [Vite](https://vite.dev/), a program that helps
@@ -54,6 +44,12 @@ docker compose up -d backend db
 docker compose run frontend pnpm test:integration
 ```
 
+If you have dependencies missing:
+
+```
+docker compose run frontend pnpm install
+```
+
 See [front-end/README.md](front-end/README.md) for detailed testing documentation.
 
 ### Back-end
@@ -63,23 +59,13 @@ uses the `back-end/requirements.txt` file to re-construct this project's python
 dependencies and manage them in a "virtual environment" using
 [`venv`](https://docs.python.org/3/library/venv.html).
 
-Run these commands to get started developing:
+These are common commands when developing our back-end.
 ```sh
-# in the sous-chef/back-end/ directory:
-docker compose -f $root/compose.yml up -d # starts the PostgreSQL container
-python manage.py migrate
-python manage.py createsuperuser
-python manage.py runserver
-# opens a browser tab that connects to your back-end dev server
-open http://localhost:8000
+docker compose up -d # starts all our application containers
+docker compose run backend python manage.py migrate # if you have pending migrations
+docker compose run backend python manage.py makemigrations # if you've updated a model
+docker compose run backend python manage.py createsuperuser # if you need a new admin user
 ```
-
-Our back-end application's main files will live in `sous-chef/back-end/app/`,
-while the configuration for our Django server will primarily be in
-`sous-chef/back-end/config/`. Remember to activate/deactivate your virtual
-environment when you start/stop working, and to start/stop the PostgreSQL
-container as well.
-
 
 ### Postgres Database
 

@@ -134,7 +134,7 @@ export class Api {
         added,
         removed
       })
-    }) 
+    })
   }
 
   async listDiets() {
@@ -151,7 +151,7 @@ export class Api {
         added,
         removed
       })
-    }) 
+    })
   }
 
   async logout() {
@@ -185,7 +185,24 @@ export class Api {
   }
 
   async setHealthInfo({ingredient_ids, diet_ids, height, weight, activity, goal}) {
+
+  }
     
+  async getRecipesFiltered({title, searchFavorite, page = 1}) {
+    return this.fetch(`/api/recipes/searchFiltered/?page=${page}`, {
+      body: JSON.stringify({
+        title,
+        searchFavorite
+      })
+    })
+  }
+
+  async recipeHistory() {
+    return this.fetch('/api/recipe_history/')
+  }
+
+  async recipeHistoryCreateMeal({ recipe_id }) {
+    return this.fetch(`/api/recipe_history/${recipe_id}/meal/`)
   }
 }
 

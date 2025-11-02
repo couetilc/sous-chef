@@ -75,11 +75,13 @@ class Command(BaseCommand):
             {
                 'name': 'Untouched',
                 'days_ago': 2,
+                'total_servings_cooked': 1,
                 'meals': []  # No meals
             },
             {
                 'name': 'Fully consumed (many small portions)',
                 'days_ago': 12,
+                'total_servings_cooked': 20,
                 'meals': [
                     {'days_after_cooked': 0, 'portion': Decimal('0.15')},
                     {'days_after_cooked': 1, 'portion': Decimal('0.20')},
@@ -92,6 +94,7 @@ class Command(BaseCommand):
             {
                 'name': 'Almost finished (90%)',
                 'days_ago': 8,
+                'total_servings_cooked': 3,
                 'meals': [
                     {'days_after_cooked': 0, 'portion': Decimal('0.40')},
                     {'days_after_cooked': 2, 'portion': Decimal('0.30')},
@@ -101,6 +104,7 @@ class Command(BaseCommand):
             {
                 'name': 'Half consumed',
                 'days_ago': 6,
+                'total_servings_cooked': 8,
                 'meals': [
                     {'days_after_cooked': 0, 'portion': Decimal('0.25')},
                     {'days_after_cooked': 1, 'portion': Decimal('0.25')},
@@ -109,6 +113,7 @@ class Command(BaseCommand):
             {
                 'name': 'Barely started (10%)',
                 'days_ago': 3,
+                'total_servings_cooked': 10,
                 'meals': [
                     {'days_after_cooked': 0, 'portion': Decimal('0.10')},
                 ]
@@ -116,6 +121,7 @@ class Command(BaseCommand):
             {
                 'name': 'Quarter consumed',
                 'days_ago': 10,
+                'total_servings_cooked': 4,
                 'meals': [
                     {'days_after_cooked': 1, 'portion': Decimal('0.25')},
                 ]
@@ -123,6 +129,7 @@ class Command(BaseCommand):
             {
                 'name': 'Mostly consumed (75%)',
                 'days_ago': 7,
+                'total_servings_cooked': 6,
                 'meals': [
                     {'days_after_cooked': 0, 'portion': Decimal('0.33')},
                     {'days_after_cooked': 1, 'portion': Decimal('0.33')},
@@ -132,6 +139,7 @@ class Command(BaseCommand):
             {
                 'name': 'Over half consumed (60%)',
                 'days_ago': 5,
+                'total_servings_cooked': 10,
                 'meals': [
                     {'days_after_cooked': 0, 'portion': Decimal('0.35')},
                     {'days_after_cooked': 2, 'portion': Decimal('0.25')},
@@ -151,6 +159,7 @@ class Command(BaseCommand):
             cooked_recipe = CookedRecipe.objects.create(
                 user=demo_user,
                 recipe=recipe,
+                total_servings_cooked=meal_plan['total_servings_cooked'],
             )
             # Manually set cooked_at since it's auto_now_add
             CookedRecipe.objects.filter(pk=cooked_recipe.pk).update(cooked_at=cooked_at)
@@ -161,14 +170,17 @@ class Command(BaseCommand):
             total_portion = Decimal('0')
             for meal_data in meal_plan['meals']:
                 eaten_at = cooked_at + timedelta(days=meal_data['days_after_cooked'])
+                servings = round(meal_data['portion'] *
+                    cooked_recipe.total_servings_cooked, 2)
+
                 meal = Meal.objects.create(
                     cooked_recipe=cooked_recipe,
-                    portion=meal_data['portion']
+                    servings=servings
                 )
                 # Manually set eaten_at since it's auto_now_add
                 Meal.objects.filter(pk=meal.pk).update(eaten_at=eaten_at)
                 meals_created += 1
-                total_portion += meal_data['portion']
+                total_portion += servings
 
             created_cooked_recipes.append({
                 'recipe': recipe.title,
