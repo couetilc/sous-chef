@@ -77,15 +77,15 @@ export default function Recipes() {
                 <img width="200px" src={recipe.image_url} loading="lazy"></img>}
               <div className="ingredients">
                 <h4>Ingredients:</h4>
-                <ul className="ingredients-list">{recipe.ingredients.split('|').map(ingredient => (
-                  <li>{ingredient.trim()}</li>
+                <ul className="ingredients-list">{recipe.ingredients.split('|').map((ingredient, i) => (
+                  <li key={i}>{ingredient.trim()}</li>
                 ))}</ul>
               </div>
             </div>
             <div className="instructions">
               <h4>Instructions:</h4>
-              <ul>{recipe.instructions.split('|').map(step => (
-              <li>{step}</li>
+              <ul>{recipe.instructions.split('|').map((step, i) => (
+              <li key={i}>{step}</li>
               ))}</ul>
             </div>
             {recipe.source_url &&
