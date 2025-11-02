@@ -187,6 +187,22 @@ export class Api {
   async recipeHistoryCreateMeal({ recipe_id }) {
     return this.fetch(`/api/recipe_history/${recipe_id}/meal/`)
   }
+
+  async UserInventory() {
+    return this.fetch('/api/user_inventory/')
+  }
+
+  async UserInventoryDeleteEntry({ inventory_id }) {
+    return this.fetch(`/api/user_inventory/${inventory_id}/`,
+      { method: `DELETE` }
+    )
+  }
+
+  async UserInventoryAddEntry({ ingredient_id }) {
+    return this.fetch(`/api/user_inventory/`, {
+      body: JSON.stringify({ ingredient_id })
+    })
+  }
 }
 
 export function ApiProvider(props) {
