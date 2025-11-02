@@ -175,8 +175,17 @@ export class Api {
     return this.fetch('/api/user/isOnboarded/')
   }
 
-  async setOnboardingStatus() {
-    return this.fetch("/api/user/updateOnBoarded");
+  async setOnboardingStatus({new_onboarded}) {
+   return this.fetch("/api/user/updateOnboarded", {
+     body: JSON.stringify({
+       new_onboarded: "true"
+     }),
+     
+   })
+  }
+
+  async setHealthInfo({ingredient_ids, diet_ids, height, weight, activity, goal}) {
+    
   }
 }
 

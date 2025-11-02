@@ -12,6 +12,19 @@ export default function Login(props) {
   let setUser = props.setUser;
   const navigate = useNavigate();
   const { login } = useUser();
+  const { api } = useApi();
+
+  async function navAfterLogin() {
+    //check if user is onboarded already
+    const response = await api.getOnboardingStatus();
+    if ( response.onboarded == false ) {
+      navigate("/welcome");
+    }
+    else {
+      navigate("/home/");
+    }
+    
+  }
 
   async function checkLogin() {
     const userElement = document.getElementById("userId");
@@ -28,15 +41,9 @@ export default function Login(props) {
     }
 
     try {
-      await login({ username: userText, password: pwElement.value })
-      //check if user is onboarded already
-      /*
-      if ( response.onboarded == false ) {
-        navigate("/welcome");
-      }
-      */
-      navigate("/home/");
-    } catch (error) {
+      await login({ username: userText, password: pwElement.value });
+        navAfterLogin();
+      } catch (error) {
       alert("Invalid Credentials!");
     }
   }

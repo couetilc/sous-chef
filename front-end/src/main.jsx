@@ -16,6 +16,7 @@ import HeaderBanner from './headerBanner.jsx';
 import LogoutPage from './logoutPage';
 import PrivatePage from './privatePage';
 import Onboarding from './onboarding';
+import HealthOnboarding from './healthOnboarding.jsx';
 
 import { BrowserRouter, Routes, Route, Navigate } from "react-router";
 import { Link } from 'react-router';
@@ -48,6 +49,7 @@ export default function App(props) {
   const settings = <PrivatePage><SettingsPage /></PrivatePage>
   const welcome = <PrivatePage><WelcomePage /></PrivatePage>
   const onboard = <PrivatePage><Onboarding /></PrivatePage>
+  const onboardHealth = <PrivatePage><HealthOnboarding/></PrivatePage>
 
   return (
     <>
@@ -63,6 +65,7 @@ export default function App(props) {
           <Route path="settings" element={settings} />
           <Route path="welcome" element={welcome} />
           <Route path="onboarding" element={onboard} />
+          <Route path="onboard-health" element={onboardHealth} />
 
           {/* public pages */}
           <Route path="login" element={<Login />} />

@@ -3,12 +3,17 @@ from django.contrib import admin
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
-from .models import Ingredient, Diet, CookedRecipe, Meal, Recipe
+from .models import Ingredient, Diet, CookedRecipe, Meal, Recipe, OnboardingSubmission
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ('username', 'email', "first_name", "last_name")
+
+class OnboardSerializer(serializers.ModelSerializer):
+    class Meta:
+      model = OnboardingSubmission
+      fields = ('has_onboarded')
 
 class GroupSerializer(serializers.ModelSerializer):
     class Meta:

@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.contrib.auth.models import User, Group
 from .models import Ingredient, DietaryIngredient, Diet, UserDiet, CookedRecipe, Meal
-from .serializers import UserSerializer, GroupSerializer, UserRegistrationSerializer, IngredientSerializer, DietSerializer, CookedRecipeSerializer, MealSerializer
+from .serializers import UserSerializer, GroupSerializer, UserRegistrationSerializer, IngredientSerializer, DietSerializer, CookedRecipeSerializer, MealSerializer, OnboardSerializer
 
 # Create your views here.
 def index(request):
@@ -24,6 +24,7 @@ class UserRegistrationView(generics.CreateAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
+        OnboardingSubmission.create(user=user, has_onboarded=False, skipped=False)
         return Response({
             'username': user.username,
             'email': user.email,
@@ -63,7 +64,6 @@ class LoginView(APIView):
                 'email': user.email,
                 'first_name': user.first_name,
                 'last_name': user.last_name,
-                'onboarded': user.onboarded,
             }, status=status.HTTP_200_OK)
         else:
             return Response(
@@ -99,9 +99,12 @@ class OnboardedView(APIView):
     """Get user's onboarding completion status"""
     permission_class = [permissions.IsAuthenticated]
     def get(self, request):
+        print("here")
         user = request.user
+        print(user.onboarded.first().has_onboarded)
+        print(user)
         return Response({
-            'onboarded': user.onboarded
+            'onboarded': user.onboarded.first().has_onboarded
         }, status=status.HTTP_200_OK)
 
 class UpdateOnboardedView(APIView):
@@ -109,7 +112,7 @@ class UpdateOnboardedView(APIView):
     permission_class = [permissions.IsAuthenticated]
     def post(self, request):
         user = request.user
-        user.onboarded.has_onboarded=request.new_onboarded
+        user.onboarded.has_onboarded=request.new_onboarded,
         return Response({ 'message': 'Successfully completed onboarding'}, status=status.HTTP_200_OK)
 
 

@@ -179,3 +179,18 @@
   border-width: 2px;
   border-style: solid;
 }
+
+.health {
+  display: grid;
+  grid-template-rows: 1fr 1fr 1fr 1fr 1fr 1fr;
+}
+
+.health-row {
+  display: grid;
+  grid-template-columns: 1fr 2fr 1fr;
+}
+
+.health-inline-text {
+  display: inline-block; 
+}
+
