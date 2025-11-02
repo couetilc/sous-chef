@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.pagination import PageNumberPagination
 from django.contrib.auth.models import User, Group
-from .models import Ingredient, DietaryIngredient, Diet, UserDiet, Recipe, CookedRecipe, Meal, FavoriteRecipe
+from .models import Ingredient, DietaryIngredient, Diet, UserDiet, Recipe, CookedRecipe, Meal, FavoriteRecipe, UserInventory
 from .serializers import UserSerializer, GroupSerializer, UserRegistrationSerializer, IngredientSerializer, DietSerializer, CookedRecipeSerializer, MealSerializer, RecipeSerializer
 
 # Create your views here.
@@ -350,15 +350,66 @@ class UserInventoryList(APIView):
     permission_classes = [permissions.IsAuthenticated]
     
     def get(self, request):
-        return Response({'message': 'Not implemented'}, status=status.HTTP_501_NOT_IMPLEMENTED)
+        # Return the authenticated user's inventory, ordered by ingredient name.
+        inventories = UserInventory.objects.filter(user=request.user).order_by('ingredient__name')
+
+        data = []
+        for item in inventories:
+            data.append({
+                'id': item.id,
+                'ingredient': IngredientSerializer(item.ingredient).data,
+            })
+
+        return Response(data, status=status.HTTP_200_OK)
     def post(self, request):
-        return Response({'message': 'Not implemented'}, status=status.HTTP_501_NOT_IMPLEMENTED)
+        # Create a new UserInventory for the authenticated user.
+        ingredient_id = request.data.get('ingredient_id')
+        if ingredient_id is None:
+            return Response({'error': 'ingredient_id is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            ingredient = Ingredient.objects.get(id=ingredient_id)
+        except Ingredient.DoesNotExist:
+            return Response({'error': 'Ingredient not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        inventory, created = UserInventory.objects.get_or_create(user=request.user, ingredient=ingredient)
+
+        serializer_data = {
+            'id': inventory.id,
+            'ingredient': IngredientSerializer(inventory.ingredient).data,
+        }
+
+        return Response(serializer_data, status=status.HTTP_201_CREATED)
     
 class UserInventoryDetail(APIView):
     """Retrieve, update or delete a user inventory item"""
     permission_classes = [permissions.IsAuthenticated]
     
     def get(self, request, id):
-        return Response({'message': 'Not implemented'}, status=status.HTTP_501_NOT_IMPLEMENTED)
+        # Attempt to fetch a UserInventory entry by its id, but scoped to the authenticated user. 
+        # If it doesn't exist or belongs to a different user, return HTTP 404.
+        # This enforces that a user cannot fetch another user's inventory item.
+        try:
+            inventory = UserInventory.objects.get(id=id, user=request.user)
+        except UserInventory.DoesNotExist:
+            return Response({'error': 'Not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Prepare the same response shape used elsewhere: id and nested ingredient object.
+        data = {
+            'id': inventory.id,
+            'ingredient': IngredientSerializer(inventory.ingredient).data,
+        }
+        # Return HTTP 200 with the single inventory item.
+        return Response(data, status=status.HTTP_200_OK)
     def delete(self, request, id):
-        return Response({'message': 'Not implemented'}, status=status.HTTP_501_NOT_IMPLEMENTED)
+        # Fetch the UserInventory object scoped to the authenticated user. 
+        # If not found, return 404 to avoid deleting items that don't exist or belong to others.
+        try:
+            inventory = UserInventory.objects.get(id=id, user=request.user)
+        except UserInventory.DoesNotExist:
+            return Response({'error': 'Not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Delete the found record from the database.
+        inventory.delete()
+        # Return HTTP 204 No Content to indicate successful deletion with an empty response body.
+        return Response(status=status.HTTP_204_NO_CONTENT)
