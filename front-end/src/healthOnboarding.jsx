@@ -35,20 +35,24 @@ export default function HealthOnboarding(props) {
     alert("1");
     //update user onboarded status
     api.setOnboardingStatus(boolTrue, boolFalse);
+    navToHome();
   }
 
   return (
     <div className="health">
       <div className="health-row">
         <p> Age: </p>
-        <input type="text" name="age"/>
+        <div className="health-inline">
+          <input type="text" name="age"/>
+          <p> years</p>
+        </div>
       </div>
       <div className="health-row">
         <p> Height: </p>
         <div>
-          <p>Feet: </p>
+          <p> Feet: </p>
           <input className="health-inline-text" type="text" name="feet"/>
-          <p>Inches: </p>
+          <p> Inches: </p>
           <input className="health-inline-text" type="text" name="inches"/>
         </div>
       </div>
