@@ -13,6 +13,7 @@
   --color-auburn: #A52422;
   --color-blue: #3559c7;
 
+
   /* Semantic Tokens */
   --color-background: var(--color-blue);
   --color-surface: white;
@@ -53,6 +54,7 @@
   color: white;
   padding: 1em;
   font-family: var(--font-ui);
+  flex: 0 0 auto;
 }
 
 .left-menu .sous-chef-logo {
@@ -91,7 +93,7 @@
   text-decoration: none;
 }
 
-.navigation-menu li a, .hamburger-button span {
+.navigation-menu li a, .hamburger-btn span {
   text-shadow:
     1px 1px 2px var(--color-rich-black),
     -1px -1px 2px var(--color-rich-black)
@@ -117,6 +119,7 @@
   position: relative;
   display: flex;
   flex-flow: column nowrap;
+  flex: 1 1 auto;
 }
 
 .center-top-bar, .center-bottom-bar {
@@ -137,6 +140,13 @@
 .center-bar-right {
   background-color: var(--color-accent-dark);
   width: 1em;
+  flex: 0 0 auto;
+}
+
+.center-bar-left {
+  width: 1em;
+  background-color: var(--color-accent-dark);
+  flex: 0 0 auto;
 }
 
 .center-page .curved-edge {
@@ -170,7 +180,7 @@
   transform: scaleY(-1) scaleX(-1);
 }
 
-.hamburger-button {
+.hamburger-btn {
   padding: .25em;
   border-radius: .5em;
   align-items: center;
@@ -180,12 +190,12 @@
   margin-left: 0em;
 }
 
-.hamburger-button span {
+.hamburger-btn span {
   font-size: 2em;
   line-height: .5em;
 }
 
-.hamburger-button:hover {
+.hamburger-btn:hover {
   background-color: var(--color-accent-darker);
 }
 
@@ -398,7 +408,7 @@
 }
 
 .img-button-cont .btn {
-  position: absolute;;
+  position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
@@ -414,11 +424,17 @@
 
 /* RECIPE HISTORY PAGE */
 
-#recipe-history {
+.recipe-history-page {
   display: flex;
   flex-flow: column nowrap;
   background-color: oklch(from var(--color-auburn) calc(l + 1) c h);
   background-color: var(--color-surface);
+}
+
+.recipe-history-page h1 {
+  font-size: 2em;
+  align-self: center;
+  margin: .5em 0 ;
 }
 
 .recipe-history-recipe {
@@ -451,13 +467,13 @@
   font-size: 1.5em;
 }
 
-#recipe-history .recipe-history-summary {
+.recipe-history-page .recipe-history-summary {
   display: flex;
-  flex-flow: row nowrap;
+  flex-flow: row wrap;
   gap: 1.5em;
 }
 
-#recipe-history .recipe-history-summary img {
+.recipe-history-page .recipe-history-summary img {
   height: 150px;
   width: 200px;
   border-radius: 6px;
@@ -466,14 +482,14 @@
   flex-shrink: 0;
 }
 
-#recipe-history .recipe-history-meals {
+.recipe-history-page .recipe-history-meals {
   display: flex;
   flex-flow: row wrap;
   gap: 1em;
   flex: 1;
 }
 
-#recipe-history .recipe-history-meal {
+.recipe-history-page .recipe-history-meal {
   border: 1px solid var(--color-border);
   border-radius: 6px;
   padding: 0.75em 1em;
@@ -481,22 +497,22 @@
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-#recipe-history .recipe-history-meal:hover {
+.recipe-history-page .recipe-history-meal:hover {
   box-shadow: 0 2px 6px rgba(165, 36, 34, 0.15);
 }
 
-#recipe-history .recipe-history-meal p {
+.recipe-history-page .recipe-history-meal p {
   margin: 0.25em 0;
 }
 
-#recipe-history .meal-date {
+.recipe-history-page .meal-date {
   display: flex;
   flex-direction: column;
   margin-bottom: 0.5em;
   text-align: center;
 }
 
-#recipe-history .date-label {
+.recipe-history-page .date-label {
   font-variant: small-caps;
   font-size: 0.85em;
   margin-bottom: 0.25em;
@@ -504,17 +520,17 @@
   letter-spacing: 0.5px;
 }
 
-#recipe-history .date-time {
+.recipe-history-page .date-time {
   font-size: 1.5em;
   font-weight: normal;
 }
 
-#recipe-history .date-full {
+.recipe-history-page .date-full {
   font-size: 1em;
   font-weight: normal;
 }
 
-#recipe-history .meal-portion {
+.recipe-history-page .meal-portion {
   display: flex;
   flex-direction: column;
   text-align: center;
@@ -523,27 +539,27 @@
   border-top: 1px solid var(--color-border);
 }
 
-#recipe-history .portion-label {
+.recipe-history-page .portion-label {
   font-variant: small-caps;
   font-size: 0.85em;
   font-weight: 600;
   letter-spacing: 0.5px;
 }
 
-#recipe-history .portion-value {
+.recipe-history-page .portion-value {
   font-size: 2em;
 }
 
-#recipe-history .recipe-history-recipe-title {
+.recipe-history-page .recipe-history-recipe-title {
   display: flex;
   flex-flow: row wrap;
   align-items: center;
   gap: 1em;
 }
-#recipe-history .recipe-history-recipe-title h2 {
+.recipe-history-page .recipe-history-recipe-title h2 {
   margin: 0;
 }
-#recipe-history .recipe-history-recipe-title button {
+.recipe-history-page .recipe-history-recipe-title button {
   flex: 0 0 auto;
 }
 
@@ -654,17 +670,198 @@
 
 /* END RECIPES PAGE */
 
-.button {
-  --button-color: var(--color-accent-light);
-  --button-background: oklch(from var(--color-accent) calc(l + 1) c h);
+/* Login Page */
+
+.login-page {
+  padding: 1em;
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: center;
+  gap: 1em;
+  background-color: var(--color-accent-dark);
+}
+
+.login-page .sous-chef-logo {
+  filter: invert();
+}
+
+.login-page h1 {
+  font-size: 2em;
+  text-align: center;
+}
+
+.login-page *[class*="-field"] {
+  flex: 0 1 auto;
+  display: flex;
+  flex-flow: row wrap;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-page *[class*="-field"] label {
+  width: 5em;
+}
+
+.login-page .submission-btns {
+  display: flex;
+  flex-flow: row wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 1em;
+}
+
+.login-page .create-account-button {
+}
+
+.login-page .continue-button {
+}
+
+.login-page .login-box {
+  border: 1px solid var(--color-auburn);
+  border-radius: .5em;
+  padding: 2em;
+  display: flex;
+  flex-flow: column nowrap;
+  gap: 1em;
+  background-color: white;
+}
+
+/* end Login Page */
+
+/* THEME PAGE */
+
+.theme-page {
+  padding: 1em;
+  display: flex;
+  flex-flow: column nowrap;
+  gap: 1em;
+  line-height: 1.5;
+}
+
+.theme-page h1 {
+  font-size: 2em;
+}
+
+.theme-page h2 {
+  font-size: 1.5em;
+}
+
+.theme-page h3 {
+  font-size: 1.25em;
+  margin: .5em 0;
+}
+
+.theme-page .sans-serif-font {
+  font-family: var(--font-sans);
+}
+
+.theme-page .serif-font {
+  font-family: var(--font-serif);
+}
+
+.theme-page .palette {
+  display: flex;
+  flex-flow: row wrap;
+}
+
+.theme-page .swatch {
+  height: 100px;
+  width: 100px;
+}
+
+.theme-page .red {
+  background-color: var(--color-auburn);
+}
+
+.theme-page .blue {
+  background-color: var(--color-blue);
+}
+
+/* END THEME PAGE */
+
+/* CREATE ACCOUNT PAGE */
+
+.create-account-page {
+  background-color: var(--color-accent-dark);
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: center;
+}
+
+.create-account-page h1 {
+  font-size: 2em;
+  margin-bottom: .5em;
+  text-align: center;
+}
+
+.create-account-page .create-account-box {
+  background-color: white;
+  border-radius: 1em;
+  padding: 2em;
+}
+
+.create-account-page label {
+  display: inline-block;
+  width: 10em;
+  text-align: right;
+  margin-right: 1em;
+}
+.create-account-page form {
+  display: flex;
+  flex-flow: column nowrap;
+  gap: 1em;
+}
+
+.create-account-page form div:last-child {
+  display: flex;
+  flex-flow: row wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 1em;
+}
+
+.create-account-page .errors {
+  color: red;
+  margin: .5em;
+}
+
+.create-account-page .sous-chef-logo {
+  filter: invert();
+}
+
+/* END CREATE ACCOUNT PAGE */
+
+*[class*="button"] {
+  --button-color: var(--color-auburn);
+  --button-shadow: oklch(from var(--button-color) calc(l + .1) c h);
+  --button-background: oklch(from var(--button-color) calc(l + 1) c h);
   padding: .25em .5em;
   border: 1px solid var(--button-color);
   border-radius: 4px;
   background-color: var(--button-background);
   color: var(--button-color);
   font-weight: bold;
-  box-shadow: 1px 1px 2px 0px var(--color-accent-lighter);
+  box-shadow: 1px 1px 2px 0px var(--button-shadow);
   cursor: pointer;
+}
+
+.button-blue {
+  --button-color: var(--color-blue);
+}
+
+*[class*="text-input"] {
+  --text-input-color: var(--color-auburn);
+  padding: .25em .5em;
+  border: 1px solid var(--text-input-color);
+  border-radius: .25em;
+}
+
+*[class*="text-input"]:focus {
+  outline: 2px solid var(--text-input-color);
+}
+
+.text-input-blue {
+  --text-input-color: var(--color-blue);
 }
 
 .continue-btn {
@@ -687,6 +884,6 @@
 }
 
 .health-inline-text {
-  display: inline-block; 
+  display: inline-block;
 }
 

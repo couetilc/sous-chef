@@ -33,9 +33,9 @@ export default function Layout(props) {
   }, [navList])
 
   let isPublicPage = (
-    curLocation.pathname.localeCompare("/") == 0
-    || curLocation.pathname.localeCompare("/login/") == 0
-    || curLocation.pathname.localeCompare("/create-account/") == 0
+    curLocation.pathname.match(/^\/$/)
+    || curLocation.pathname.match(/^\/login\/?$/)
+    || curLocation.pathname.match(/^\/create-account\/?$/)
   )
 
   let CurrentLayout = isMobile ? MobileLayout : DesktopLayout
@@ -67,15 +67,17 @@ function Nav(props) {
 function DesktopLayout(props) {
   return (
     <div className="app-container">
-      <div className="left-menu">
-        {/* left menu content */}
-        <header className="navigation-menu">
-          <a className="nav-link-logo" href="/home">
-            <img className="sous-chef-logo" src={SousChefLogo} width="150px"/>
-          </a>
-          <Nav />
-        </header>
-      </div>
+      {!props.isPublicPage &&
+        <div className="left-menu">
+          {/* left menu content */}
+          <header className="navigation-menu">
+            <a className="nav-link-logo" href="/home">
+              <img className="sous-chef-logo" src={SousChefLogo} width="150px"/>
+            </a>
+            <Nav />
+          </header>
+        </div>
+      }
       <div className="center-bar-left" />
       <div className="center-page">
         <div className="center-top-bar" />
@@ -98,14 +100,16 @@ function MobileLayout(props) {
   return (
     <div className="app-container">
       <div className="top-menu">
-        <header className="navigation-menu">
-          <div className="hamburger-button" onClick={
-            () => setOpen(state => !state)
-          }>
-            <span>☰</span>
-          </div>
-          {open && <Nav />}
-        </header>
+        {!props.isPublicPage &&
+          <header className="navigation-menu">
+            <div className="hamburger-btn" onClick={
+              () => setOpen(state => !state)
+            }>
+              <span>☰</span>
+            </div>
+            {open && <Nav />}
+          </header>
+        }
       </div>
       <div className="mobile-center">
         <div className="center-bar-left" />
