@@ -100,14 +100,16 @@ function MobileLayout(props) {
   return (
     <div className="app-container">
       <div className="top-menu">
-        <header className="navigation-menu">
-          <div className="hamburger-btn" onClick={
-            () => setOpen(state => !state)
-          }>
-            <span>☰</span>
-          </div>
-          {open && !props.isPublicPage && <Nav />}
-        </header>
+        {!props.isPublicPage &&
+          <header className="navigation-menu">
+            <div className="hamburger-btn" onClick={
+              () => setOpen(state => !state)
+            }>
+              <span>☰</span>
+            </div>
+            {open && <Nav />}
+          </header>
+        }
       </div>
       <div className="mobile-center">
         <div className="center-bar-left" />

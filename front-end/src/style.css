@@ -779,6 +779,58 @@
 
 /* END THEME PAGE */
 
+/* CREATE ACCOUNT PAGE */
+
+.create-account-page {
+  background-color: var(--color-accent-dark);
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: center;
+}
+
+.create-account-page h1 {
+  font-size: 2em;
+  margin-bottom: .5em;
+  text-align: center;
+}
+
+.create-account-page .create-account-box {
+  background-color: white;
+  border-radius: 1em;
+  padding: 2em;
+}
+
+.create-account-page label {
+  display: inline-block;
+  width: 10em;
+  text-align: right;
+  margin-right: 1em;
+}
+.create-account-page form {
+  display: flex;
+  flex-flow: column nowrap;
+  gap: 1em;
+}
+
+.create-account-page form div:last-child {
+  display: flex;
+  flex-flow: row wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 1em;
+}
+
+.create-account-page .errors {
+  color: red;
+  margin: .5em;
+}
+
+.create-account-page .sous-chef-logo {
+  filter: invert();
+}
+
+/* END CREATE ACCOUNT PAGE */
+
 *[class*="button"] {
   --button-color: var(--color-auburn);
   --button-shadow: oklch(from var(--button-color) calc(l + .1) c h);
