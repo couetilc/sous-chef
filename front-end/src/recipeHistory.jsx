@@ -21,7 +21,13 @@ export default function RecipeHistory(props) {
   const [active, setActive] = useState(null) // { cookedRecipeId, recipe }
 
   return (
-    <div id="recipe-history">
+    <div className="recipe-history-page">
+      <h1>Activity History</h1>
+      {data?.length == 0 &&
+        <p>
+          You have no activity history
+        </p>
+      }
       {data?.length > 0 && data.map(({ id, recipe, meals }) => ( // NOTE: use top-level id as cookedRecipeId
         <div key={id} className="recipe-history-recipe">
           <div className="recipe-history-recipe-title">
@@ -35,7 +41,9 @@ export default function RecipeHistory(props) {
           </div>
 
           <div className="recipe-history-summary">
-            {recipe.image_url && <img src={recipe.image_url} alt={recipe.title} />}
+            { recipe.image_url &&
+              <img src={recipe.image_url} alt={recipe.title} />
+            }
             <div className="recipe-history-meals">
               {meals.map(meal => {
                 const { monthDay, year, time } = formatDate(meal.eaten_at)

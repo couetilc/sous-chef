@@ -49,6 +49,7 @@ export default function Login(props) {
 
   return (
     <div className="login-page">
+      <img className="sous-chef-logo" src={SousChefLogo} width="150px"/>
       <div className="login-box">
         <h1>Log In</h1>
         <div className="username-field">

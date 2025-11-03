@@ -59,26 +59,13 @@ export default function CreateAccount(props) {
     }
   };
 
-  const formDiv = {
-    border: '5px solid black',
-    backgroundColor: 'goldenrod',
-    textAlign: 'center',
-    padding: '20px'
-  };
-
-  const errorStyle = {
-    color: 'darkred',
-    fontSize: '0.9em',
-    marginTop: '5px'
-  };
-
   return (
     <div className="centered-div">
-      <div style={formDiv}>
+      <div>
         <h1>Create Account</h1>
 
         {serverError && (
-          <div style={{ ...errorStyle, marginBottom: '15px' }}>
+          <div className="errors">
             {serverError}
           </div>
         )}
@@ -103,7 +90,7 @@ export default function CreateAccount(props) {
                 style={{ marginTop: '5px' }}
               />
             </label>
-            {errors.username && <div style={errorStyle}>{errors.username.message}</div>}
+            {errors.username && <div className="errors">{errors.username.message}</div>}
           </div>
 
           <div style={{ marginBottom: '15px' }}>
@@ -126,7 +113,7 @@ export default function CreateAccount(props) {
                 style={{ marginTop: '5px' }}
               />
             </label>
-            {errors.email && <div style={errorStyle}>{errors.email.message}</div>}
+            {errors.email && <div className="errors">{errors.email.message}</div>}
           </div>
 
           <div style={{ marginBottom: '15px' }}>
@@ -145,7 +132,7 @@ export default function CreateAccount(props) {
                 style={{ marginTop: '5px' }}
               />
             </label>
-            {errors.password && <div style={errorStyle}>{errors.password.message}</div>}
+            {errors.password && <div className="errors">{errors.password.message}</div>}
           </div>
 
           <div style={{ marginBottom: '15px' }}>
@@ -162,18 +149,17 @@ export default function CreateAccount(props) {
                 style={{ marginTop: '5px' }}
               />
             </label>
-            {errors.password_confirm && <div style={errorStyle}>{errors.password_confirm.message}</div>}
+            {errors.password_confirm && <div className="errors">{errors.password_confirm.message}</div>}
           </div>
 
-          <div style={{ fontSize: '0.9em', marginBottom: '15px' }}>
+          <div>
             * Required fields
           </div>
 
           <div className="inline-div">
             <button
-              className="button"
+              className="button-blue"
               type="button"
-              style={{ backgroundColor: 'gray', color: 'white' }}
               onClick={() => navigate('/login')}
               disabled={isSubmitting}
             >
@@ -183,7 +169,6 @@ export default function CreateAccount(props) {
             <button
               className="button"
               type="submit"
-              style={{ backgroundColor: 'green', color: 'white' }}
               disabled={isSubmitting}
             >
               {isSubmitting ? 'Creating Account...' : 'Create Account'}

@@ -67,15 +67,17 @@ function Nav(props) {
 function DesktopLayout(props) {
   return (
     <div className="app-container">
-      <div className="left-menu">
-        {/* left menu content */}
-        <header className="navigation-menu">
-          <a className="nav-link-logo" href="/home">
-            <img className="sous-chef-logo" src={SousChefLogo} width="150px"/>
-          </a>
-          {!props.isPublicPage && <Nav />}
-        </header>
-      </div>
+      {!props.isPublicPage &&
+        <div className="left-menu">
+          {/* left menu content */}
+          <header className="navigation-menu">
+            <a className="nav-link-logo" href="/home">
+              <img className="sous-chef-logo" src={SousChefLogo} width="150px"/>
+            </a>
+            <Nav />
+          </header>
+        </div>
+      }
       <div className="center-bar-left" />
       <div className="center-page">
         <div className="center-top-bar" />
@@ -99,7 +101,7 @@ function MobileLayout(props) {
     <div className="app-container">
       <div className="top-menu">
         <header className="navigation-menu">
-          <div className="hamburger-button" onClick={
+          <div className="hamburger-btn" onClick={
             () => setOpen(state => !state)
           }>
             <span>☰</span>
