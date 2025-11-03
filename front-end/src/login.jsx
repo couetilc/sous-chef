@@ -5,12 +5,25 @@ import { useNavigate } from 'react-router';
 import './style.css';
 import SousChefLogo from './souschef-logo.png';
 import { useUser } from './useUser.jsx'
+import { useApi } from './useApi.jsx';
 
 export default function Login(props) {
   let user = props.user;
   let setUser = props.setUser;
   const navigate = useNavigate();
   const { login } = useUser();
+  const { api } = useApi();
+
+  async function navAfterLogin() {
+    //check if user is onboarded already
+    const response = await api.getOnboardingStatus();
+    if ( response.onboarded == true || response.skipped == true ) {
+      navigate("/home/");
+    }
+    else {
+      navigate("/welcome");
+    }
+  }
 
   async function checkLogin() {
     const userElement = document.getElementById("userId");
@@ -27,9 +40,9 @@ export default function Login(props) {
     }
 
     try {
-      await login({ username: userText, password: pwElement.value })
-      navigate("/home/");
-    } catch (error) {
+      await login({ username: userText, password: pwElement.value });
+        navAfterLogin();
+      } catch (error) {
       alert("Invalid Credentials!");
     }
   }

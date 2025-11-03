@@ -10,11 +10,11 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.pagination import PageNumberPagination
 from django.contrib.auth.models import User, Group
+from .serializers import UserSerializer, GroupSerializer, UserRegistrationSerializer, IngredientSerializer, DietSerializer, CookedRecipeSerializer, MealSerializer, OnboardSerializer
 from decimal import Decimal, InvalidOperation
-
 from .models import (
     Ingredient, DietaryIngredient, Diet, UserDiet,
-    Recipe, CookedRecipe, Meal, FavoriteRecipe, UserInventory
+    Recipe, CookedRecipe, Meal, FavoriteRecipe, UserInventory, OnboardingSubmission
 )
 from .serializers import (
     UserSerializer, GroupSerializer, UserRegistrationSerializer,
@@ -35,6 +35,7 @@ class UserRegistrationView(generics.CreateAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
+        OnboardingSubmission.create(user=user, has_onboarded=False, skipped=False)
         return Response({
             'username': user.username,
             'email': user.email,
@@ -68,6 +69,8 @@ class LoginView(APIView):
 
         if user is not None:
             login(request, user)
+            if not user.onboarded.exists():
+                OnboardingSubmission.objects.create(user=user)
             return Response({
                 'id': user.id,
                 'username': user.username,
@@ -104,6 +107,52 @@ class CurrentUserView(APIView):
             'first_name': user.first_name,
             'last_name': user.last_name,
         }, status=status.HTTP_200_OK)
+
+class OnboardedView(APIView):
+    """Get user's onboarding completion status"""
+    permission_class = [permissions.IsAuthenticated]
+    def get(self, request):
+        user = request.user
+        return Response({
+            'onboarded': user.onboarded.first().has_onboarded,
+            'skipped': user.onboarded.first().skipped
+        }, status=status.HTTP_200_OK)
+
+class UpdateOnboardedView(APIView):
+    """Update user's onboarding completion status"""
+    permission_class = [permissions.IsAuthenticated]
+    def post(self, request):
+        user = request.user
+        user.onboarded.first().has_onboarded=request.data['new_onboarded']
+        user.onboarded.first().skipped=request.data['skipped']
+        return Response({ 'message': 'Successfully completed onboarding'}, status=status.HTTP_200_OK)
+
+class HealthView(APIView):
+    """"Get user's health information"""
+    permission_class = [permissions.IsAuthenticated]
+    def get(self, requeest):
+        user = request.user
+        return Response({
+            'age': user.health.first().age,
+            'height_ft': user.health.first().height_ft,
+            'height_in': user.health.first().height_in,
+            'weight': user.health.first().weight,
+            'activity_level': user.health.first().activity_level,
+            'goal': user.health.first().goal
+        }, status=status.HTTP_200_OK)
+
+class UpdateHealthView(APIView):
+    """Update user's health information"""
+    permission_class = [permissions.IsAuthenticated]
+    def post(self, request):
+        user = request.user
+        user.health.first().age = request.data['age']
+        user.health.first().height_ft = request.data['height_ft']
+        user.health.first().height_in = request.data['height_in']
+        user.health.first().weight = request.data['weight']
+        user.health.first().activity_level = request.data['activity_level']
+        user.health.first().goal = request.data['goal']
+
 
 
 @method_decorator(ensure_csrf_cookie, name='dispatch')

@@ -227,3 +227,38 @@ class FavoriteRecipe(models.Model):
 
     def __str__(self):
         return f"{self.user.username}:{self.recipe.title}"
+
+
+class OnboardingSubmission(models.Model):
+    """Record of whether a user has completed onboarding"""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='onboarded')
+    has_onboarded = models.BooleanField(default=False)
+    skipped = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"user {user} has_onboarded is {self.has_onboarded}"
+
+
+class HealthDetails(models.Model):
+    """Record of user's health details"""
+    ACTIVITY_CHOICES = [
+        ('low', 'Low'),
+        ('light', 'Light'),
+        ('moderate', 'Moderate'),
+        ('high', 'High'),
+    ]
+    GOAL_CHOICES =  [
+      ('lose', 'Lose Weight'),
+      ('maintain', 'Maintain Weight'),
+      ('gain', 'Gain Weight'),
+    ]
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='health')
+    age = models.IntegerField(default=0)
+    height_ft = models.IntegerField(default=0)
+    height_in = models.IntegerField(default=0)
+    weight = models.IntegerField(default=0)
+    activity_level = models.CharField(max_length=10, choices=ACTIVITY_CHOICES, default='low')
+    goal = models.CharField(max_length=20, choices=GOAL_CHOICES, default='maintain')
+
+    def __str__(self):
+        return f"age: {age}, height: {height_ft} feet {height_in} inches, weight: {weight}, {activity_level} activity, goal: {goal}"

@@ -10,6 +10,9 @@ import Recipes from './recipesPage.jsx';
 import Inventory from './inventory.jsx';
 import SettingsPage from './settingsPage.jsx';
 import CreateAccount from './createAccount.jsx';
+import WelcomePage from './welcomePage.jsx';
+import Onboarding from './onboarding';
+import HealthOnboarding from './healthOnboarding.jsx';
 import LogoutPage from './logoutPage';
 import PrivatePage from './privatePage';
 import RecipeHistory from './recipeHistory';
@@ -28,6 +31,10 @@ export default function App(props) {
   const recipes = <PrivatePage><Recipes /></PrivatePage>
   const inventory = <PrivatePage><Inventory /></PrivatePage>
   const settings = <PrivatePage><SettingsPage /></PrivatePage>
+  const welcome = <PrivatePage><WelcomePage /></PrivatePage>
+  const onboard = <PrivatePage><Onboarding /></PrivatePage>
+  const onboardHealth = <PrivatePage><HealthOnboarding/></PrivatePage>
+
   const history = <PrivatePage><RecipeHistory /></PrivatePage>
 
   return (
@@ -41,6 +48,9 @@ export default function App(props) {
         <Route path="inventory" element={inventory} />
         <Route path="settings" element={settings} />
         <Route path="history" element={history} />
+        <Route path="welcome" element={welcome} />
+        <Route path="onboarding" element={onboard} />
+        <Route path="onboard-health" element={onboardHealth} />
 
         {/* public pages */}
         <Route path="login" element={<Login />} />
