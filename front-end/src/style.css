@@ -654,6 +654,49 @@
 
 /* END RECIPES PAGE */
 
+/* Login Page */
+
+.login-page {
+  padding: 1em;
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: center;
+  gap: 1em;
+}
+
+.login-page h1 {
+  font-size: 2em;
+  text-align: center;
+}
+
+.login-page *[class*="-field"] {
+  flex: 0 1 auto;
+  display: flex;
+  flex-flow: row wrap;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-page *[class*="-field"] label {
+  width: 5em;
+}
+
+.login-page .login-buttons {
+  display: flex;
+  flex-flow: row wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 1em;
+}
+
+.login-page .create-account-button {
+}
+
+.login-page .continue-button {
+}
+
+/* end Login Page */
+
 .button {
   --button-color: var(--color-accent-light);
   --button-background: oklch(from var(--color-accent) calc(l + 1) c h);
@@ -687,6 +730,6 @@
 }
 
 .health-inline-text {
-  display: inline-block; 
+  display: inline-block;
 }
 

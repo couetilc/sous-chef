@@ -47,36 +47,32 @@ export default function Login(props) {
     }
   }
 
-  const loginDiv = {
-    border: '5px solid black',
-    backgroundColor: 'goldenrod',
-    textAlign: 'center'
-  };
   return (
-    <div className="centered-div">
-      <div style={loginDiv}>
-        <h1>Log In</h1>
-        <label>Username: <input name="userIn" id="userId" /> </label>
-        <br />
-        <br />
-        <label>Password: <input type="password" name="passIn" id="pwId"/> </label>
-        <br />
-        <br />
-        <div className="inline-div" >
-        <button className="button"
-                type="button"
-                style={{backgroundColor: 'tomato', color: 'white'}}
-                onClick={() => navigate("/create-account")}>
+    <div className="login-page">
+      <h1>Log In</h1>
+      <div className="username-field">
+        <label>Username: </label>
+        <input name="userIn" id="userId" />
+      </div>
+      <div className="password-field">
+        <label>Password: </label>
+        <input type="password" name="passIn" id="pwId"/>
+      </div>
+      <div className="login-buttons">
+        <button
+          className="button create-account-button"
+          type="button"
+          onClick={() => navigate("/create-account")}
+        >
           Create Account
         </button>
-        <div style={{width: '10px'}}></div>
-        <button className="button"
-                type="button"
-                style={{backgroundColor: 'green', color: 'white'}}
-                onClick={checkLogin}>
+        <button
+          className="button continue-button"
+          type="button"
+          onClick={checkLogin}
+        >
           Continue
         </button>
-        </div>
       </div>
     </div>
   );
