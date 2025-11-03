@@ -17,7 +17,7 @@ function formatServings(servings) {
 }
 
 export default function RecipeHistory(props) {
-  const data = useGET('recipeHistory')
+  const { data, refresh } = useGET('recipeHistory')
   const [active, setActive] = useState(null) // { cookedRecipeId, recipe }
 
   return (
@@ -62,7 +62,7 @@ export default function RecipeHistory(props) {
         <AddMealDialog
           recipe={active.recipe}
           cookedRecipeId={active.cookedRecipeId} // NOTE: pass cookedRecipeId for POST
-          onClose={() => setActive(null)}
+          onClose={() => { setActive(null); refresh() }}
           // onSuccess: if your useGET exposes a refetch, you can call it here
           // onSuccess={() => refetch?.()}
         />
