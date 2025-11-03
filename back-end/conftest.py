@@ -3,7 +3,8 @@ Pytest configuration and shared fixtures for the Django backend.
 """
 import pytest
 from django.contrib.auth.models import User, Group
-
+from api.models import Recipe, CookedRecipe
+from decimal import Decimal
 
 @pytest.fixture
 def api_client():
@@ -85,3 +86,40 @@ def multiple_groups(db):
         group = Group.objects.create(name=f'Group {i}')
         groups.append(group)
     return groups
+
+@pytest.fixture
+def test_recipe(db):
+    """Creates a test recipe with a defined total_servings."""
+    return Recipe.objects.create(
+        title='Test Recipe',
+        ingredients='1 cup flour\n2 eggs',
+        instructions='Mix and bake',
+        # NEW: total servings defined on the base recipe
+        servings=Decimal('4')
+    )
+
+
+@pytest.fixture
+def second_user(db):
+    """Creates a second test user"""
+    return User.objects.create_user(
+        username='user2',
+        email='user2@example.com',
+        password='pass123'
+    )
+
+
+@pytest.fixture
+def test_cooked_recipe(db, test_user, test_recipe):
+    """
+    Creates a cooked recipe for test_user.
+
+    Assumes CookedRecipe stores the total at cook time (copy from recipe)
+    so history is immutable even if the recipe changes later.
+    """
+    return CookedRecipe.objects.create(
+        user=test_user,
+        recipe=test_recipe,
+        # NEW: persist the servings snapshot on the cooked instance
+        total_servings_cooked=test_recipe.servings
+    )
