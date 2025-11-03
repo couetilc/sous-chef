@@ -13,6 +13,7 @@
   --color-auburn: #A52422;
   --color-blue: #3559c7;
 
+
   /* Semantic Tokens */
   --color-background: var(--color-blue);
   --color-surface: white;
@@ -662,6 +663,7 @@
   flex-flow: column nowrap;
   align-items: center;
   gap: 1em;
+  background-color: var(--color-accent-dark);
 }
 
 .login-page h1 {
@@ -681,7 +683,7 @@
   width: 5em;
 }
 
-.login-page .login-buttons {
+.login-page .submission-btns {
   display: flex;
   flex-flow: row wrap;
   align-items: center;
@@ -695,19 +697,120 @@
 .login-page .continue-button {
 }
 
+.login-page .login-box {
+  border: 1px solid var(--color-auburn);
+  border-radius: .5em;
+  padding: 2em;
+  display: flex;
+  flex-flow: column nowrap;
+  gap: 1em;
+  background-color: white;
+}
+
 /* end Login Page */
 
-.button {
-  --button-color: var(--color-accent-light);
-  --button-background: oklch(from var(--color-accent) calc(l + 1) c h);
+/* THEME PAGE */
+
+.theme-page {
+  padding: 1em;
+  display: flex;
+  flex-flow: column nowrap;
+  gap: 1em;
+  line-height: 1.5;
+}
+
+.theme-page h1 {
+  font-size: 2em;
+}
+
+.theme-page h2 {
+  font-size: 1.5em;
+}
+
+.theme-page h3 {
+  font-size: 1.25em;
+  margin: .5em 0;
+}
+
+.theme-page .sans-serif-font {
+  font-family: var(--font-sans);
+}
+
+.theme-page .serif-font {
+  font-family: var(--font-serif);
+}
+
+.theme-page .palette {
+  display: flex;
+  flex-flow: row wrap;
+}
+
+.theme-page .swatch {
+  height: 100px;
+  width: 100px;
+}
+
+.theme-page .red {
+  background-color: var(--color-auburn);
+}
+
+.theme-page .blue {
+  background-color: var(--color-blue);
+}
+
+.theme-page .yellow {
+}
+
+.theme-page .green {
+}
+
+.theme-page .black {
+}
+
+.theme-page .grey {
+}
+
+.sunny-beach-day {
+  --color-blue: #264653;
+  --color-green: #2a9d8f;
+  --color-yellow: #e9c46a;
+  --color-orange: #f4a261;
+  --color-red: #e76f51;
+}
+
+/* END THEME PAGE */
+
+*[class*="button"] {
+  --button-color: var(--color-auburn);
+  --button-shadow: oklch(from var(--button-color) calc(l + .1) c h);
+  --button-background: oklch(from var(--button-color) calc(l + 1) c h);
   padding: .25em .5em;
   border: 1px solid var(--button-color);
   border-radius: 4px;
   background-color: var(--button-background);
   color: var(--button-color);
   font-weight: bold;
-  box-shadow: 1px 1px 2px 0px var(--color-accent-lighter);
+  box-shadow: 1px 1px 2px 0px var(--button-shadow);
   cursor: pointer;
+}
+
+.button-blue {
+  --button-color: var(--color-blue);
+}
+
+*[class*="text-input"] {
+  --text-input-color: var(--color-auburn);
+  padding: .25em .5em;
+  border: 1px solid var(--text-input-color);
+  border-radius: .25em;
+}
+
+*[class*="text-input"]:focus {
+  outline: 2px solid var(--text-input-color);
+}
+
+.text-input-blue {
+  --text-input-color: var(--color-blue);
 }
 
 .continue-btn {

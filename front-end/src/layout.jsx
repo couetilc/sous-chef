@@ -33,9 +33,9 @@ export default function Layout(props) {
   }, [navList])
 
   let isPublicPage = (
-    curLocation.pathname.localeCompare("/") == 0
-    || curLocation.pathname.localeCompare("/login/") == 0
-    || curLocation.pathname.localeCompare("/create-account/") == 0
+    curLocation.pathname.match(/^\/$/)
+    || curLocation.pathname.match(/^\/login\/?$/)
+    || curLocation.pathname.match(/^\/create-account\/?$/)
   )
 
   let CurrentLayout = isMobile ? MobileLayout : DesktopLayout
@@ -73,7 +73,7 @@ function DesktopLayout(props) {
           <a className="nav-link-logo" href="/home">
             <img className="sous-chef-logo" src={SousChefLogo} width="150px"/>
           </a>
-          <Nav />
+          {!props.isPublicPage && <Nav />}
         </header>
       </div>
       <div className="center-bar-left" />
@@ -104,7 +104,7 @@ function MobileLayout(props) {
           }>
             <span>☰</span>
           </div>
-          {open && <Nav />}
+          {open && !props.isPublicPage && <Nav />}
         </header>
       </div>
       <div className="mobile-center">

@@ -49,30 +49,32 @@ export default function Login(props) {
 
   return (
     <div className="login-page">
-      <h1>Log In</h1>
-      <div className="username-field">
-        <label>Username: </label>
-        <input name="userIn" id="userId" />
-      </div>
-      <div className="password-field">
-        <label>Password: </label>
-        <input type="password" name="passIn" id="pwId"/>
-      </div>
-      <div className="login-buttons">
-        <button
-          className="button create-account-button"
-          type="button"
-          onClick={() => navigate("/create-account")}
-        >
-          Create Account
-        </button>
-        <button
-          className="button continue-button"
-          type="button"
-          onClick={checkLogin}
-        >
-          Continue
-        </button>
+      <div className="login-box">
+        <h1>Log In</h1>
+        <div className="username-field">
+          <label>Username: </label>
+          <input name="userIn" id="userId" />
+        </div>
+        <div className="password-field">
+          <label>Password: </label>
+          <input type="password" name="passIn" id="pwId"/>
+        </div>
+        <div className="submission-btns">
+          <button
+            className="button-blue create-account-button"
+            type="button"
+            onClick={() => navigate("/create-account")}
+          >
+            Create Account
+          </button>
+          <button
+            className="button continue-button"
+            type="button"
+            onClick={checkLogin}
+          >
+            Continue
+          </button>
+        </div>
       </div>
     </div>
   );

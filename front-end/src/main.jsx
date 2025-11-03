@@ -16,6 +16,7 @@ import HealthOnboarding from './healthOnboarding.jsx';
 import LogoutPage from './logoutPage';
 import PrivatePage from './privatePage';
 import RecipeHistory from './recipeHistory';
+import Theme from './theme';
 import Layout from './layout.jsx'
 
 import { BrowserRouter, Routes, Route } from "react-router";
@@ -34,8 +35,8 @@ export default function App(props) {
   const welcome = <PrivatePage><WelcomePage /></PrivatePage>
   const onboard = <PrivatePage><Onboarding /></PrivatePage>
   const onboardHealth = <PrivatePage><HealthOnboarding/></PrivatePage>
-
   const history = <PrivatePage><RecipeHistory /></PrivatePage>
+  const theme = <PrivatePage><Theme /></PrivatePage>
 
   return (
     <Layout>
@@ -51,6 +52,7 @@ export default function App(props) {
         <Route path="welcome" element={welcome} />
         <Route path="onboarding" element={onboard} />
         <Route path="onboard-health" element={onboardHealth} />
+        <Route path="theme" element={theme} />
 
         {/* public pages */}
         <Route path="login" element={<Login />} />
