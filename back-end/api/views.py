@@ -127,6 +127,33 @@ class UpdateOnboardedView(APIView):
         user.onboarded.first().skipped=request.data['skipped']
         return Response({ 'message': 'Successfully completed onboarding'}, status=status.HTTP_200_OK)
 
+class HealthView(APIView):
+    """"Get user's health information"""
+    permission_class = [permissions.IsAuthenticated]
+    def get(self, requeest):
+        user = request.user
+        return Response({
+            'age': user.health.first().age,
+            'height_ft': user.health.first().height_ft,
+            'height_in': user.health.first().height_in,
+            'weight': user.health.first().weight,
+            'activity_level': user.health.first().activity_level,
+            'goal': user.health.first().goal
+        }, status=status.HTTP_200_OK)
+
+class UpdateHealthView(APIView):
+    """Update user's health information"""
+    permission_class = [permissions.IsAuthenticated]
+    def post(self, request):
+        user = request.user
+        user.health.first().age = request.data['age']
+        user.health.first().height_ft = request.data['height_ft']
+        user.health.first().height_in = request.data['height_in']
+        user.health.first().weight = request.data['weight']
+        user.health.first().activity_level = request.data['activity_level']
+        user.health.first().goal = request.data['goal']
+
+
 
 @method_decorator(ensure_csrf_cookie, name='dispatch')
 class CSRFTokenView(APIView):

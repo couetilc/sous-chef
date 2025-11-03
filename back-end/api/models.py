@@ -253,11 +253,12 @@ class HealthDetails(models.Model):
       ('gain', 'Gain Weight'),
     ]
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='health')
-    age = models.IntegerField()
-    height_ft = models.IntegerField()
-    height_in = models.IntegerField()
+    age = models.IntegerField(default=0)
+    height_ft = models.IntegerField(default=0)
+    height_in = models.IntegerField(default=0)
+    weight = models.IntegerField(default=0)
     activity_level = models.CharField(max_length=10, choices=ACTIVITY_CHOICES, default='low')
     goal = models.CharField(max_length=20, choices=GOAL_CHOICES, default='maintain')
 
     def __str__(self):
-        return f"age: {age}, height: {height_ft} feet {height_in} inches, {activity_level} activity, goal: {goal}"
+        return f"age: {age}, height: {height_ft} feet {height_in} inches, weight: {weight}, {activity_level} activity, goal: {goal}"

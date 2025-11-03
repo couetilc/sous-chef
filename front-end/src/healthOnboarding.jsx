@@ -3,6 +3,7 @@ import {useNavigate, Navigate} from 'react-router';
 import Home from './home.jsx';
 import { useUser } from './useUser.jsx';
 import { useState } from 'react';
+import { useApi } from './useApi.jsx';
 
 const HealthComponent = () => {
   const { api } = useApi();
@@ -18,21 +19,24 @@ const HealthComponent = () => {
 export default function HealthOnboarding(props) {
   const navigate = useNavigate();
   const { user } = useUser();
+  const { api } = useApi();
+  const [boolTrue, setBoolTrue] = useState(true);
+  const [boolFalse, setBoolFalse] = useState(false);
+
   function navToHome() {
     return navigate("/home");
   }
 
   function submit() {
-   /*
+    /*
     submit button onclick
-    api call setage
-    api call setheight
-    api call setweight
-    api call setactivitylevel
-    api call setgoal
+    api call setHealthInfo({age, height_ft, height_in, weight, activity_level, goal})
     */
     alert("1");
+    //update user onboarded status
+    api.setOnboardingStatus(boolTrue, boolFalse);
   }
+
   return (
     <div className="health">
       <div className="health-row">

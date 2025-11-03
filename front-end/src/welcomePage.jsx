@@ -10,14 +10,17 @@ export default function WelcomePage(props) {
   const navigate = useNavigate();
   const { user } = useUser();
   const { api } = useApi();
+  const [ boolFalse, setBoolFalse] = useState(false);
+  const [ boolTrue, setBoolTrue] = useState(true);
 
   function navToHome() {
     //update onboarding skipped property
-    api.setOnboardingStatus({false, true});
+    api.setOnboardingStatus({boolFalse, boolTrue});
     return navigate("/home");
   }
 
   function navToOnboard() {
+    api.setOnboardingStatus({boolFalse, boolFalse});
     return navigate("/onboarding");
   }
   
