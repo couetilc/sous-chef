@@ -113,6 +113,8 @@ class OnboardedView(APIView):
     permission_class = [permissions.IsAuthenticated]
     def get(self, request):
         user = request.user
+        print("onboard: ", user.onboarded.first().has_onboarded)
+        print("skip: ", user.onboarded.first().skipped)
         return Response({
             'onboarded': user.onboarded.first().has_onboarded,
             'skipped': user.onboarded.first().skipped
@@ -124,7 +126,9 @@ class UpdateOnboardedView(APIView):
     def post(self, request):
         user = request.user
         user.onboarded.first().has_onboarded=request.data['new_onboarded']
-        user.onboarded.first().skipped=request.data['skipped']
+        user.onboarded.first().skipped=request.data['new_skipped']
+        print("new onboard: ", user.onboarded.first().has_onboarded)
+        print("new skip: ", user.onboarded.first().skipped)
         return Response({ 'message': 'Successfully completed onboarding'}, status=status.HTTP_200_OK)
 
 class HealthView(APIView):
@@ -138,7 +142,8 @@ class HealthView(APIView):
             'height_in': user.health.first().height_in,
             'weight': user.health.first().weight,
             'activity_level': user.health.first().activity_level,
-            'goal': user.health.first().goal
+            'goal': user.health.first().goal,
+            'sex': user.health.first().sex
         }, status=status.HTTP_200_OK)
 
 class UpdateHealthView(APIView):
@@ -152,6 +157,7 @@ class UpdateHealthView(APIView):
         user.health.first().weight = request.data['weight']
         user.health.first().activity_level = request.data['activity_level']
         user.health.first().goal = request.data['goal']
+        user.health.first().sex = request.data['sex']
 
 
 
