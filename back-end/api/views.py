@@ -22,9 +22,8 @@ from .serializers import (
     CookedRecipeSerializer, MealSerializer, RecipeSerializer
 )
 
-# Create your views here.
-def index(request):
-    return HttpResponse("<h1>Hello, World!</h1>")
+class Paginator(PageNumberPagination):
+    page_size = 100
 
 class UserRegistrationView(generics.CreateAPIView):
     """Public endpoint for user registration"""
@@ -240,6 +239,7 @@ class IngredientList(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
+    pagination_class = Paginator
 
 
 class DietaryIngredientList(generics.ListAPIView):
@@ -412,8 +412,7 @@ class GetRecipesFiltered(APIView):
         if searchFavorite and searchFavorite == 'True':
             queryset = queryset.filter(user_favorites__isnull=False)
 
-        paginator = PageNumberPagination()
-        paginator.page_size = 100
+        paginator = Paginator()
         page = paginator.paginate_queryset(queryset, request)
         serializer = RecipeSerializer(page, many=True)
 
@@ -435,7 +434,7 @@ class CreateFavoriteRecipe(APIView):
 class UserInventoryList(APIView):
     """List user inventory for the authenticated user"""
     permission_classes = [permissions.IsAuthenticated]
-    
+
     def get(self, request):
         inventories = UserInventory.objects.filter(user=request.user).order_by('ingredient__name')
 
@@ -466,17 +465,17 @@ class UserInventoryList(APIView):
         }
 
         return Response(serializer_data, status=status.HTTP_201_CREATED)
-    
+
 class UserInventoryDetail(APIView):
     """Retrieve, update or delete a user inventory item"""
     permission_classes = [permissions.IsAuthenticated]
-    
+
     def get(self, request, id):
         try:
             inventory = UserInventory.objects.get(id=id, user=request.user)
         except UserInventory.DoesNotExist:
             return Response({'error': 'Not found'}, status=status.HTTP_404_NOT_FOUND)
-        
+
         data = {
             'id': inventory.id,
             'ingredient': IngredientSerializer(inventory.ingredient).data,

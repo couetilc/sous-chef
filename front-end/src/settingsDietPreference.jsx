@@ -19,7 +19,7 @@ const DietComponent = () => {
         api.listIngredients()
             .then((result) => {
                 console.log(result)
-                setIngredients(result)
+                setIngredients(result.results)
             });
         api.listRestricted()
             .then((result) => {
