@@ -107,7 +107,7 @@ export default function Nutrition() {
   }, []);
 
   return (
-    <div className="centered-div">
+    <div className="nutrition-page">
       <h1>Daily Nutrition Tracker</h1>
 
       <div className="nutrition-section">
