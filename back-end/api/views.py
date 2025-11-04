@@ -409,9 +409,12 @@ class GetRecipesFiltered(APIView):
         paginator = PageNumberPagination()
         paginator.page_size = 100
         page = paginator.paginate_queryset(queryset, request)
-        serializer = RecipeSerializer(page, many=True)
+        
+        serializer = RecipeSerializer(page, many=True, context = {'user': request.user})
 
-        return paginator.get_paginated_response(serializer.data)
+        response = paginator.get_paginated_response(serializer.data)
+        print(response.data)
+        return response
 
 class CreateFavoriteRecipe(APIView):
     permission_classes = [permissions.IsAuthenticated]

@@ -78,12 +78,23 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         return user
 
 class RecipeSerializer(serializers.ModelSerializer):
+    is_favorited = serializers.SerializerMethodField('check_favorited')
+
+    def check_favorited(self, instance):
+        user = self.context['user']
+        if not user: return False
+
+        userQuery = instance.user_favorites.all()
+        userQuery = userQuery.filter(id=user.id).first()
+        return userQuery != None
+
     class Meta:
         model = Recipe
         fields = (
             'id', 'title', 'ingredients', 'instructions',
             'image_url', 'source_url',
             'servings',
+            'is_favorited',
         )
         read_only_fields = ('id',)
 
