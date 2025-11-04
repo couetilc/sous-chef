@@ -120,8 +120,8 @@ export class Api {
     })
   }
 
-  async listIngredients() {
-    return this.fetch('/api/ingredients/', {});
+  async listIngredients({ page = 1 } = {}) {
+    return this.fetch(`/api/ingredients/?page=${page}`, {});
   }
 
   async listRestricted() {
@@ -201,7 +201,7 @@ export class Api {
       })
     })
   }
-    
+
   async getRecipesFiltered({title, searchFavorite, page = 1}) {
     return this.fetch(`/api/recipes/searchFiltered/?page=${page}`, {
       body: JSON.stringify({
