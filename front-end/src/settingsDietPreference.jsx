@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './style.css';
 import SousChefLogo from './souschef-logo.png';
 import { useApi } from './useApi';
+import IngredientsSelect from './ingredientsSelect'
 
 const DietComponent = () => {
     const { api } = useApi();
@@ -19,7 +20,7 @@ const DietComponent = () => {
         api.listIngredients()
             .then((result) => {
                 console.log(result)
-                setIngredients(result)
+                setIngredients(result.results)
             });
         api.listRestricted()
             .then((result) => {
@@ -178,6 +179,7 @@ const DietComponent = () => {
       <div className="settings-container">
         <h3>Edit Ingredient Restrictions</h3>
         <form className="ingredient-restriction-form" onSubmit={publishRestrictions}>
+          <IngredientsSelect />
           <p>
             <label>
               Select ingredients: <br />

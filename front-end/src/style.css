@@ -39,7 +39,12 @@
   --color-accent-lighter: oklch(from var(--color-accent-dark) calc(l + .2) c h);
 }
 
+body {
+  background-color: var(--color-accent-dark);
+}
+
 .app-container {
+  background-color: white;
   display: flex;
   flex-flow: row nowrap;
   font-size: 16px;
