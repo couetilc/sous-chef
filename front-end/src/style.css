@@ -12,7 +12,7 @@
   --color-rich-black: #101419;
   --color-auburn: #A52422;
   --color-blue: #3559c7;
-
+  --color-yellow: #fb8500;
 
   /* Semantic Tokens */
   --color-background: var(--color-blue);
@@ -308,40 +308,77 @@
   z-index: 2;
 }
 
-
-.settingsGrid {
+.settings-page {
   padding: 1em;
-  gap: 10px;
-  background-color:coral;
-  display: grid;
-  grid-template-areas:
-  'diet pass pass'
-  'diet pass pass'
-  'diet delete delete'
-  ;
-}
-
-.settingsGrid > div {
   display: flex;
+  flex-flow: column nowrap;
   align-items: center;
-  justify-content: center;
-  background-color:white;
-  border: 3px solid black;
+}
+
+.settings-page .settings-sections {
+  display: flex;
+  flex-flow: row wrap;
+  gap: 1em;
+}
+
+.settings-page .settings-container {
+  border: 1px solid var(--color-accent);
+  background-color: oklch(from var(--color-accent) calc(l + 1) c h);
   padding: 1em;
+  border-radius: .5em;
+  display: flex;
+  flex-flow: column wrap;
+  gap: 1em;
 }
 
-.settingsGrid > div.diet {
-  grid-area: diet;
-  justify-content: left;
+.settings-page .email-form,
+.settings-page .password-form,
+.settings-page .diet-form,
+.settings-page .ingredient-restriction-form
+{
+  display: flex;
+  flex-flow: column wrap;
+  gap: 1em;
 }
 
-.settingsGrid > div.pass{
-  grid-area: pass;
+.settings-page .ingredient-restriction-form select {
+  width: 100%;
+  overflow-x: scroll;
+}
+.settings-page .ingredient-restriction-form option {
+  overflow-x: scroll;
 }
 
+.settings-page h3 {
+  font-size: 1.25em;
+  text-align: center;
+  color: var(--color-accent-dark);
+}
 
-.settingsGrid > div.delete{
-  grid-area: delete;
+.settings-page .current-email {
+  display: flex;
+  flex-flow: column wrap;
+  align-items: center;
+  line-height: 1;
+}
+
+.settings-page .current-email p:nth-child(2) {
+  font-size: 1.125em;
+}
+
+#deleteAccountDialog:open {
+  display: flex;
+  flex-flow: column;
+  gap: 1em;
+  border: 2px solid var(--color-yellow);
+  border-radius: .5em;
+  box-shadow: 0px 0px 4px 4px color-mix(in srgb, var(--color-yellow) 40%, transparent);
+}
+
+#deleteAccountDialog form {
+  display: flex;
+  flex-flow: column;
+  gap: .5em;
 }
 
 .recipeFilterGrid {
@@ -840,7 +877,7 @@
 
 /* END CREATE ACCOUNT PAGE */
 
-.button, .button-blue {
+.button, .button-blue, .button-yellow {
   --button-color: var(--color-auburn);
   --button-shadow: oklch(from var(--button-color) calc(l + .1) c h);
   --button-background: oklch(from var(--button-color) calc(l + 1) c h);
@@ -856,6 +893,10 @@
 
 .button-blue {
   --button-color: var(--color-blue);
+}
+
+.button-yellow {
+  --button-color: var(--color-yellow);
 }
 
 .text-input, .text-input-blue {
