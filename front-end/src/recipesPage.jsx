@@ -88,6 +88,14 @@ export default function Recipes() {
               <li key={i}>{step}</li>
               ))}</ul>
             </div>
+            <button 
+              className={recipe.is_favorited ? "button-toggledOn" : "button"}
+              onClick = {() => {
+                
+              }}
+            >
+                {recipe.is_favorited ? 'Unfavorite this recipe' : 'Favorite this recipe'}
+            </button>
             {recipe.source_url &&
               <a className="source-url" href={recipe.source_url}>source</a>}
           </div>

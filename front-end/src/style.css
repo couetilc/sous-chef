@@ -849,6 +849,10 @@
   --button-color: var(--color-blue);
 }
 
+.button-toggledOn {
+  --button-color: var(--color-blue);
+}
+
 *[class*="text-input"] {
   --text-input-color: var(--color-auburn);
   padding: .25em .5em;
