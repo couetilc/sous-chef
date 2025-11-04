@@ -45,6 +45,8 @@ export default function Nutrition() {
     // Compute cumulative averages for trend line
     const trendData = calories.map((_, i) => {
       const subset = calories.slice(0, i + 1);
+
+      // Round to one decimal place
       const avg = Number((subset.reduce((a, b) => a + b, 0) / subset.length).toFixed(1));
       return avg;
     });
@@ -63,6 +65,7 @@ export default function Nutrition() {
       yAxis: {
         type: 'value',
         name: 'Calories',
+        nameLocation: 'middle',
       },
       series: [
         {
@@ -93,6 +96,7 @@ export default function Nutrition() {
               position: 'insideEndTop',
               color: '#666',
               backgroundColor: 'rgba(255,255,255,0.7)',
+              // Padding so the goal label doesn't get cut off
               padding: [2, 4],
               borderRadius: 3,
             },
