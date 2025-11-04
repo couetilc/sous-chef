@@ -27,20 +27,16 @@ export default function WelcomePage(props) {
          <h1> Welcome to Sous Chef! </h1>
          <p> Please complete the onboarding process, and tell us a little about yourself. </p>
          <div className="welcome-grid">
-           <div className="img-button-cont">
              <button
-                 className="btn"
+                 className="button"
                  onClick={navToOnboard}>
                Complete Onboarding Now
              </button>
-           </div>
-           <div className="img-button-cont">
              <button
-                 className="btn"
+                 className="button"
                  onClick={navToHome}>
                Maybe Later
              </button>
-           </div>
          </div>
        </div>
    );
