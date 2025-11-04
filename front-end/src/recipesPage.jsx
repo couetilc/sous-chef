@@ -91,7 +91,7 @@ export default function Recipes() {
             <button 
               className={recipe.is_favorited ? "button-toggledOn" : "button"}
               onClick = {() => {
-                
+                api.updateFavoriteRecipe({id: recipe.id})
               }}
             >
                 {recipe.is_favorited ? 'Unfavorite this recipe' : 'Favorite this recipe'}
