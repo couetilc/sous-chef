@@ -30,30 +30,84 @@ export default function Nutrition() {
   useEffect(() => {
     var chartDom = document.getElementById('main');
     var myChart = echarts.init(chartDom);
-    var option;
 
-    option = {
+    const days = [];
+    const calories = [2100, 2300, 1950, 2600, 2400, 2200, 2000];
+    const today = new Date();
+
+    // Generate past 7 days labels
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(today.getDate() - i);
+      days.push(d.toLocaleDateString(undefined, { weekday: 'short' }));
+    } 
+
+    const option = {
+      tooltip: {
+        trigger: 'axis',
+      },
       xAxis: {
         type: 'category',
-        data: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+        data: days,
       },
       yAxis: {
-        type: 'value'
+        type: 'value',
+        name: 'Calories',
       },
       series: [
         {
-          data: [150, 230, 224, 218, 135, 147, 260],
-          type: 'line'
-        }
-      ]
+          name: 'Calories Consumed',
+          data: calories,
+          type: 'line',
+          smooth: true,
+          symbol: 'circle',
+          symbolSize: 8,
+          lineStyle: {
+            width: 3,
+            color: '#f87171',
+          },
+          itemStyle: {
+            color: '#f87171',
+          },
+          areaStyle: {
+            color: 'rgba(248,113,113,0.15)',
+          },
+          markLine: {
+            data: [
+              {
+                yAxis: 2500,
+                name: 'Goal',
+              },
+            ],
+            lineStyle: {
+              type: 'dotted',
+              color: '#666',
+            },
+            label: {
+              formatter: 'Goal: 2500',
+              position: 'insideEndTop',
+              color: '#666',
+              backgroundColor: 'rgba(255,255,255,0.7)',
+              padding: [2, 4],
+              borderRadius: 3,
+            },
+          },
+        },
+      ],
     };
 
     myChart.setOption(option);
+    window.addEventListener('resize', () => myChart.resize());
+
+    return () => {
+      window.removeEventListener('resize', () => myChart.resize());
+      myChart.dispose();
+    };
 
   }, []);
 
   return (
-    <div className="centered-div">
+    <div className="nutrition-page">
       <h1>Daily Nutrition Tracker</h1>
 
       <div className="nutrition-section">
@@ -83,10 +137,10 @@ export default function Nutrition() {
             );
           })}
         </div>
-
-        <div className="chart-container">
-          <div id="main" style={{ width: '600px', height: '400px' }}></div>
-
+        
+        <div className="chart-section">
+          <h2 className="chart-title">Calorie Intake (Past 7 Days)</h2>
+          <div id="main" className="nutrition-chart"></div>
         </div>
       </div>
     </div>
