@@ -1,72 +1,49 @@
-import { useState, useMemo } from 'react'
 import { useGET } from './useGET'
-import Calendar from 'react-calendar'
-import 'react-calendar/dist/Calendar.css'
+import { useState } from 'react'
+import AddMealDialog from './addMealDialog'
 
 function formatDate(dateString) {
   const date = new Date(dateString)
-  const monthDay = date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric'
-  })
+  const monthDay = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
   const year = date.getFullYear()
-  const time = date.toLocaleTimeString('en-US', {
-    hour: 'numeric',
-    minute: '2-digit'
-  })
+  const time = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
   return { monthDay, year, time }
 }
 
-function formatPortion(portion) {
-  return `${Math.round(portion * 100)}%`
+function formatServings(servings) {
+  const num = parseFloat(servings)
+  if (num === 1) return '1 serving'
+  return `${num.toFixed(num % 1 === 0 ? 0 : 2)} servings`
 }
 
 export default function RecipeHistory(props) {
-  const data = useGET('recipeHistory')
-  const [calendarValue, setCalendarValue] = useState(new Date())
-
-  // Create a Set of dates that have meals for fast lookup
-  const datesWithMeals = useMemo(() => {
-    const dates = new Set()
-    if (Array.isArray(data)) {
-      data.forEach(({ meals }) => {
-        meals.forEach(meal => {
-          // Format date as YYYY-MM-DD for comparison
-          const date = new Date(meal.eaten_at)
-          const dateStr = date.toISOString().split('T')[0]
-          dates.add(dateStr)
-        })
-      })
-    }
-    return dates
-  }, [data])
-
-  // Highlight dates that have meals
-  const tileClassName = ({ date, view }) => {
-    if (view === 'month') {
-      const dateStr = date.toISOString().split('T')[0]
-      if (datesWithMeals.has(dateStr)) {
-        return 'has-meal'
-      }
-    }
-    return null
-  }
+  const { data, refresh } = useGET('recipeHistory')
+  const [active, setActive] = useState(null) // { cookedRecipeId, recipe }
 
   return (
-    <div id="recipe-history">
-      <div className="recipe-history-calendar">
-        <Calendar
-          onChange={setCalendarValue}
-          value={calendarValue}
-          tileClassName={tileClassName}
-        />
-      </div>
+    <div className="recipe-history-page">
+      <h1>Activity History</h1>
+      {data?.length == 0 &&
+        <p>
+          You have no activity history
+        </p>
+      }
+      {data?.length > 0 && data.map(({ id, recipe, meals }) => ( // NOTE: use top-level id as cookedRecipeId
+        <div key={id} className="recipe-history-recipe">
+          <div className="recipe-history-recipe-title">
+            <h2>{recipe.title}</h2>
+            <button
+              className="button"
+              onClick={() => setActive({ cookedRecipeId: id, recipe })}
+            >
+              Add Meal
+            </button>
+          </div>
 
-      {data?.length > 0 && data.map(({ recipe, meals }) => (
-        <div key={recipe.id} className="recipe-history-recipe box">
-          <h2>{recipe.title}</h2>
           <div className="recipe-history-summary">
-            <img src={recipe.image_url} />
+            { recipe.image_url &&
+              <img src={recipe.image_url} alt={recipe.title} />
+            }
             <div className="recipe-history-meals">
               {meals.map(meal => {
                 const { monthDay, year, time } = formatDate(meal.eaten_at)
@@ -77,9 +54,9 @@ export default function RecipeHistory(props) {
                       <span className="date-time">{time}</span>
                       <span className="date-full">{monthDay}, {year}</span>
                     </div>
-                    <div className="meal-portion">
-                      <span className="portion-value">{formatPortion(meal.portion)}</span>
-                      <span className="portion-label">portion</span>
+                    <div className="meal-servings">
+                      <span className="servings-value">{formatServings(meal.servings)}</span>
+                      <span className="servings-label"> eaten</span>
                     </div>
                   </div>
                 )
@@ -88,6 +65,16 @@ export default function RecipeHistory(props) {
           </div>
         </div>
       ))}
+
+      {active && (
+        <AddMealDialog
+          recipe={active.recipe}
+          cookedRecipeId={active.cookedRecipeId} // NOTE: pass cookedRecipeId for POST
+          onClose={() => { setActive(null); refresh() }}
+          // onSuccess: if your useGET exposes a refetch, you can call it here
+          // onSuccess={() => refetch?.()}
+        />
+      )}
     </div>
   )
 }

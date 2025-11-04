@@ -3,12 +3,17 @@ from django.contrib import admin
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
-from .models import Ingredient, Diet, CookedRecipe, Meal, Recipe
+from .models import Ingredient, Diet, CookedRecipe, Meal, Recipe, FavoriteRecipe, OnboardingSubmission
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ('username', 'email', "first_name", "last_name")
+
+class OnboardSerializer(serializers.ModelSerializer):
+    class Meta:
+      model = OnboardingSubmission
+      fields = ('has_onboarded')
 
 class GroupSerializer(serializers.ModelSerializer):
     class Meta:
@@ -75,20 +80,34 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 class RecipeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Recipe
-        fields = ('id', 'title', 'ingredients', 'instructions', 'image_url', 'source_url')
+        fields = (
+            'id', 'title', 'ingredients', 'instructions',
+            'image_url', 'source_url',
+            'servings',
+        )
         read_only_fields = ('id',)
 
 class MealSerializer(serializers.ModelSerializer):
+    servings = serializers.DecimalField(max_digits=6, decimal_places=2)
+
     class Meta:
         model = Meal
-        fields = ('id', 'cooked_recipe', 'portion', 'eaten_at')
+        fields = ('id', 'cooked_recipe', 'servings', 'eaten_at')
         read_only_fields = ('id', 'cooked_recipe', 'eaten_at')
+
 
 class CookedRecipeSerializer(serializers.ModelSerializer):
     recipe = RecipeSerializer(read_only=True)
     meals = MealSerializer(many=True, read_only=True)
+    total_servings_cooked = serializers.DecimalField(max_digits=6, decimal_places=2)  # <-- add this
 
     class Meta:
         model = CookedRecipe
-        fields = ('id', 'user', 'recipe', 'cooked_at', 'meals')
-        read_only_fields = ('id', 'user', 'cooked_at')
+        fields = (
+            'id',
+            'recipe',
+            'cooked_at',
+            'meals',
+            'total_servings_cooked',
+        )
+        read_only_fields = ('id', 'cooked_at')

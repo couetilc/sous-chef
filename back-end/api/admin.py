@@ -182,7 +182,7 @@ class RecipeAdmin(admin.ModelAdmin):
 
 @admin.register(Ingredient)
 class IngredientAdmin(admin.ModelAdmin):
-	list_display = ('name',)
+	list_display = ('name', 'calories', 'protein_g', 'fat_g', 'carbs_g')
 	search_fields = ('name',)
 	ordering = ('name',)
 
@@ -235,7 +235,7 @@ class CookedRecipeAdmin(admin.ModelAdmin):
 
 @admin.register(Meal)
 class MealAdmin(admin.ModelAdmin):
-	list_display = ('cooked_recipe', 'portion', 'eaten_at')
-	search_fields = ('cooked_recipe__recipe__title', 'cooked_recipe__user__username')
-	list_filter = ('eaten_at',)
-	ordering = ('-eaten_at',)
+    list_display = ('cooked_recipe', 'servings', 'eaten_at')
+    search_fields = ('cooked_recipe__recipe__title', 'cooked_recipe__user__username')
+    list_filter = ('eaten_at',)
+    ordering = ('-eaten_at',)

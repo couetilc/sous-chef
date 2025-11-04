@@ -171,12 +171,67 @@ export class Api {
     })
   }
 
+  async getOnboardingStatus() {
+    return this.fetch('/api/user/isOnboarded/')
+  }
+
+  async setOnboardingStatus({new_onboarded, new_skipped}) {
+   return this.fetch('/api/user/updateOnboarded/', {method: "POST",
+     body: JSON.stringify({
+       new_onboarded,
+       new_skipped
+     })
+   })
+  }
+
+  async getHealthInfo() {
+    return this.fetch('/api/user/health');
+  }
+
+  async setHealthInfo({age, height_ft, height_in, weight, activity_level, goal}) {
+    return this.fetch('/api/user/updateHealth/', {method: "POST",
+      body: JSON.stringify({
+        age,
+        height_ft,
+        height_in,
+        weight,
+        activity_level,
+        goal
+      })
+    })
+  }
+    
+  async getRecipesFiltered({title, searchFavorite, page = 1}) {
+    return this.fetch(`/api/recipes/searchFiltered/?page=${page}`, {
+      body: JSON.stringify({
+        title,
+        searchFavorite
+      })
+    })
+  }
+
   async recipeHistory() {
     return this.fetch('/api/recipe_history/')
   }
 
   async recipeHistoryCreateMeal({ recipe_id }) {
     return this.fetch(`/api/recipe_history/${recipe_id}/meal/`)
+  }
+
+  async UserInventory() {
+    return this.fetch('/api/user_inventory/')
+  }
+
+  async UserInventoryDeleteEntry({ inventory_id }) {
+    return this.fetch(`/api/user_inventory/${inventory_id}/`,
+      { method: `DELETE` }
+    )
+  }
+
+  async UserInventoryAddEntry({ ingredient_id }) {
+    return this.fetch(`/api/user_inventory/`, {
+      body: JSON.stringify({ ingredient_id })
+    })
   }
 }
 

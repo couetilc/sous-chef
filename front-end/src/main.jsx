@@ -11,9 +11,13 @@ import Recipes from './recipesPage.jsx';
 import Inventory from './inventory.jsx';
 import SettingsPage from './settingsPage.jsx';
 import CreateAccount from './createAccount.jsx';
+import WelcomePage from './welcomePage.jsx';
+import Onboarding from './onboarding';
+import HealthOnboarding from './healthOnboarding.jsx';
 import LogoutPage from './logoutPage';
 import PrivatePage from './privatePage';
 import RecipeHistory from './recipeHistory';
+import Theme from './theme';
 import Layout from './layout.jsx'
 
 import { BrowserRouter, Routes, Route } from "react-router";
@@ -30,7 +34,11 @@ export default function App(props) {
   const inventory = <PrivatePage><Inventory /></PrivatePage>
   const nutrition = <PrivatePage><Nutrition /></PrivatePage>
   const settings = <PrivatePage><SettingsPage /></PrivatePage>
+  const welcome = <PrivatePage><WelcomePage /></PrivatePage>
+  const onboard = <PrivatePage><Onboarding /></PrivatePage>
+  const onboardHealth = <PrivatePage><HealthOnboarding/></PrivatePage>
   const history = <PrivatePage><RecipeHistory /></PrivatePage>
+  const theme = <PrivatePage><Theme /></PrivatePage>
 
   return (
     <Layout>
@@ -44,6 +52,10 @@ export default function App(props) {
         <Route path="nutrition" element={nutrition} />
         <Route path="settings" element={settings} />
         <Route path="history" element={history} />
+        <Route path="welcome" element={welcome} />
+        <Route path="onboarding" element={onboard} />
+        <Route path="onboard-health" element={onboardHealth} />
+        <Route path="theme" element={theme} />
 
         {/* public pages */}
         <Route path="login" element={<Login />} />
