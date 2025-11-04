@@ -331,10 +331,22 @@
   gap: 1em;
 }
 
-.settings-page .email-form, .settings-page .password-form {
+.settings-page .email-form,
+.settings-page .password-form,
+.settings-page .diet-form,
+.settings-page .ingredient-restriction-form
+{
   display: flex;
   flex-flow: column wrap;
   gap: 1em;
+}
+
+.settings-page .ingredient-restriction-form select {
+  width: 100%;
+  overflow-x: scroll;
+}
+.settings-page .ingredient-restriction-form option {
+  overflow-x: scroll;
 }
 
 .settings-page h3 {

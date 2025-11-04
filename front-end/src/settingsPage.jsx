@@ -14,8 +14,8 @@ const SettingsPage = () => {
                 <h1>Settings</h1>
                 <div className="settings-sections">
                   <PasswordComponent />
-                  <DietComponent />
                   <DeleteComponent />
+                  <DietComponent />
                 </div>
             </div>
     );
