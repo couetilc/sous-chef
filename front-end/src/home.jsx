@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Navigate } from 'react-router';
 import './style.css';
 import ChefHat from './chefhat.png';
-import Nutrition from './nutrition.png';
+import Nutritionist from './nutritionist.png';
+import Nutrition from './nutrition.png'
 import Recipe from './recipe.png';
 import Inventory from './inventory.png';
 import { useUser } from './useUser.jsx'
@@ -66,6 +67,10 @@ export default function Home(props) {
     return navigate("/inventory");
   }
 
+  function navToNutrition() {
+    return navigate("/nutrition");
+  }
+
   function navToLogout() {
     return navigate("/logout/");
   }
@@ -76,47 +81,58 @@ export default function Home(props) {
       <Navigate to="/login"/>
     )
   }
-  console.log({user});
+
   return (
-  <>
-   <div className="centered-div">
-     <p> Hello {user.username}! </p>
-     <OnboardWarning/>
-     <div className="home-grid">
-       <div className="img-button-cont">
-         <img src={ChefHat}/>
-         <button
-             className="btn"
-             onClick={navToSousChef}>
-           AI Sous Chef
-         </button>
-       </div>
-       <div className="img-button-cont">
-         <img src={Nutrition}/>
-         <button
-             className="btn"
-             onClick={navToNutritionist}>
-           Nutritionist
-       </button>
-       </div>
-       <div className="img-button-cont">
-         <img src={Recipe}/>
-         <button
-             className="btn"
-             onClick={navToRecipes}>
-           Recipes
-       </button>
-       </div>
-       <div className="img-button-cont">
-         <img src={Inventory}/>
-         <button
-             className="btn"
-             onClick={navToInventory}>
-           Inventory
-         </button>
-       </div>
-     </div>
-   </div>
-   </>
+    <div className="home-page">
+      <p> Hello {user.username}! </p>
+      <div className="home-grid">
+        <div className="grid-row">
+          <div className="img-button-cont">
+            <img src={ChefHat}/>
+            <button
+              className="button"
+              onClick={navToSousChef}>
+              AI Sous Chef
+            </button>
+          </div>
+          <div className="img-button-cont">
+            <img src={Nutritionist}/>
+            <button
+              className="button"
+              onClick={navToNutritionist}>
+              Nutritionist
+            </button>
+          </div>
+        </div>
+        <div className="grid-row">
+          <div className="img-button-cont">
+            <img src={Recipe}/>
+            <button
+              className="button"
+              onClick={navToRecipes}>
+              Recipes
+            </button>
+          </div>
+          <div className="img-button-cont">
+            <img src={Inventory}/>
+            <button
+              className="button"
+              onClick={navToInventory}>
+              Inventory
+            </button>
+          </div>
+        </div>
+        <div className="grid-row">
+          <div className="img-button-cont">
+            <img src={Nutrition}/>
+            <button
+                className="button"
+                onClick={navToNutrition}>
+              Nutrition
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }

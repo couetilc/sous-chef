@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useForm } from 'react-hook-form';
 import { useApi } from './useApi.jsx';
-import './style.css';
+import SousChefLogo from './souschef-logo.png';
 
 export default function CreateAccount(props) {
   const navigate = useNavigate();
@@ -59,131 +59,109 @@ export default function CreateAccount(props) {
     }
   };
 
-  const formDiv = {
-    border: '5px solid black',
-    backgroundColor: 'goldenrod',
-    textAlign: 'center',
-    padding: '20px'
-  };
-
-  const errorStyle = {
-    color: 'darkred',
-    fontSize: '0.9em',
-    marginTop: '5px'
-  };
-
   return (
-    <div className="centered-div">
-      <div style={formDiv}>
+    <div className="create-account-page">
+      <img className="sous-chef-logo" src={SousChefLogo} width="150px"/>
+
+      <div className="create-account-box">
         <h1>Create Account</h1>
 
         {serverError && (
-          <div style={{ ...errorStyle, marginBottom: '15px' }}>
+          <div className="errors">
             {serverError}
           </div>
         )}
 
         <form onSubmit={handleSubmit(onSubmit)}>
-          <div style={{ marginBottom: '15px' }}>
+          <div>
             <label>
               Username: *
-              <br />
-              <input
-                {...register('username', {
-                  required: 'Username is required',
-                  maxLength: {
-                    value: 150,
-                    message: 'Username must be 150 characters or less'
-                  },
-                  pattern: {
-                    value: /^[\w.@+-]+$/,
-                    message: 'Username can only contain letters, digits, and @/./+/-/_'
-                  }
-                })}
-                style={{ marginTop: '5px' }}
-              />
             </label>
-            {errors.username && <div style={errorStyle}>{errors.username.message}</div>}
+            <input
+              {...register('username', {
+                required: 'Username is required',
+                maxLength: {
+                  value: 150,
+                  message: 'Username must be 150 characters or less'
+                },
+                pattern: {
+                  value: /^[\w.@+-]+$/,
+                  message: 'Username can only contain letters, digits, and @/./+/-/_'
+                }
+              })}
+            />
+            {errors.username && <div className="errors">{errors.username.message}</div>}
           </div>
 
-          <div style={{ marginBottom: '15px' }}>
+          <div>
             <label>
               Email: *
-              <br />
-              <input
-                type="email"
-                {...register('email', {
-                  required: 'Email is required',
-                  maxLength: {
-                    value: 254,
-                    message: 'Email must be 254 characters or less'
-                  },
-                  pattern: {
-                    value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                    message: 'Invalid email address'
-                  }
-                })}
-                style={{ marginTop: '5px' }}
-              />
             </label>
-            {errors.email && <div style={errorStyle}>{errors.email.message}</div>}
+            <input
+              type="email"
+              {...register('email', {
+                required: 'Email is required',
+                maxLength: {
+                  value: 254,
+                  message: 'Email must be 254 characters or less'
+                },
+                pattern: {
+                  value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                  message: 'Invalid email address'
+                }
+              })}
+            />
+            {errors.email && <div className="errors">{errors.email.message}</div>}
           </div>
 
-          <div style={{ marginBottom: '15px' }}>
+          <div>
             <label>
               Password: *
-              <br />
-              <input
-                type="password"
-                {...register('password', {
-                  required: 'Password is required',
-                  minLength: {
-                    value: 8,
-                    message: 'Password must be at least 8 characters'
-                  }
-                })}
-                style={{ marginTop: '5px' }}
-              />
             </label>
-            {errors.password && <div style={errorStyle}>{errors.password.message}</div>}
+            <input
+              type="password"
+              {...register('password', {
+                required: 'Password is required',
+                minLength: {
+                  value: 8,
+                  message: 'Password must be at least 8 characters'
+                }
+              })}
+            />
+            {errors.password && <div className="errors">{errors.password.message}</div>}
           </div>
 
-          <div style={{ marginBottom: '15px' }}>
+          <div>
             <label>
               Confirm Password: *
-              <br />
-              <input
-                type="password"
-                {...register('password_confirm', {
-                  required: 'Please confirm your password',
-                  validate: value =>
-                    value === password || 'Passwords do not match'
-                })}
-                style={{ marginTop: '5px' }}
-              />
             </label>
-            {errors.password_confirm && <div style={errorStyle}>{errors.password_confirm.message}</div>}
+            <input
+              type="password"
+              {...register('password_confirm', {
+                required: 'Please confirm your password',
+                validate: value =>
+                  value === password || 'Passwords do not match'
+              })}
+            />
+            {errors.password_confirm && <div className="errors">{errors.password_confirm.message}</div>}
           </div>
 
-          <div style={{ fontSize: '0.9em', marginBottom: '15px' }}>
+          <div style={{textAlign: 'center'}}>
             * Required fields
           </div>
 
-          <div className="inline-div">
+          <div>
             <button
-              className="button"
+              className="button-blue"
               type="button"
-              style={{ backgroundColor: 'gray', color: 'white' }}
               onClick={() => navigate('/login')}
               disabled={isSubmitting}
             >
               Back to Login
             </button>
-            <div style={{ width: '10px' }}></div>
             <button
               className="button"
               type="submit"
-              style={{ backgroundColor: 'green', color: 'white' }}
               disabled={isSubmitting}
             >
               {isSubmitting ? 'Creating Account...' : 'Create Account'}

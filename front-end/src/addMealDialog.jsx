@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useApi } from './useApi'
 
 export default function AddMealDialog({ recipe, cookedRecipeId, onClose, onSuccess }) {
   const [servingsEaten, setServingsEaten] = useState('1')
   const [ateAt, setAteAt] = useState(() => new Date().toISOString().slice(0, 16)) // YYYY-MM-DDTHH:mm
+  const {api} = useApi()
 
   // Preview (GET) state
   const [preview, setPreview] = useState(null)
@@ -101,13 +103,10 @@ export default function AddMealDialog({ recipe, cookedRecipeId, onClose, onSucce
     if (servingsNumber <= 0 || submitting) return
     setSubmitting(true)
     try {
-      // === POST placeholder: connect to your Django endpoint ===
       // Endpoint: POST /api/cooked-recipes/<cooked_recipe_id>/meals/
       // Body: { servings, eaten_at }
-      const res = await fetch(`/api/cooked-recipes/${cookedRecipeId}/meals/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
+      const res = await api.fetch(`/api/recipe_history/${cookedRecipeId}/meal/`, {
+
         body: JSON.stringify({
           servings: servingsNumber,
           eaten_at: new Date(ateAt).toISOString(),
