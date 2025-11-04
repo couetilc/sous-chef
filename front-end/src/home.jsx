@@ -42,44 +42,46 @@ export default function Home(props) {
   }
   console.log({user});
   return (
-  <>
-   <div className="centered-div">
-     <p> Hello {user.username}! </p>
-     <div className="home-grid">
-       <div className="img-button-cont">
-         <img src={ChefHat}/>
-         <button
-             className="btn"
-             onClick={navToSousChef}>
-           AI Sous Chef
-         </button>
-       </div>
-       <div className="img-button-cont">
-         <img src={Nutrition}/>
-         <button
-             className="btn"
-             onClick={navToNutritionist}>
-           Nutritionist
-       </button>
-       </div>
-       <div className="img-button-cont">
-         <img src={Recipe}/>
-         <button
-             className="btn"
-             onClick={navToRecipes}>
-           Recipes
-       </button>
-       </div>
-       <div className="img-button-cont">
-         <img src={Inventory}/>
-         <button
-             className="btn"
-             onClick={navToInventory}>
-           Inventory
-         </button>
-       </div>
-     </div>
-   </div>
-   </>
+    <div className="home-page">
+      <p> Hello {user.username}! </p>
+      <div className="home-grid">
+        <div className="grid-row">
+          <div className="img-button-cont">
+            <img src={ChefHat}/>
+            <button
+              className="button"
+              onClick={navToSousChef}>
+              AI Sous Chef
+            </button>
+          </div>
+          <div className="img-button-cont">
+            <img src={Nutrition}/>
+            <button
+              className="button"
+              onClick={navToNutritionist}>
+              Nutritionist
+            </button>
+          </div>
+        </div>
+        <div className="grid-row">
+          <div className="img-button-cont">
+            <img src={Recipe}/>
+            <button
+              className="button"
+              onClick={navToRecipes}>
+              Recipes
+            </button>
+          </div>
+          <div className="img-button-cont">
+            <img src={Inventory}/>
+            <button
+              className="button"
+              onClick={navToInventory}>
+              Inventory
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }
