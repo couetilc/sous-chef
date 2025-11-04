@@ -110,7 +110,7 @@ class CurrentUserView(APIView):
 
 class OnboardedView(APIView):
     """Get user's onboarding completion status"""
-    permission_class = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated]
     def get(self, request):
         user = request.user
         return Response({
@@ -120,7 +120,7 @@ class OnboardedView(APIView):
 
 class UpdateOnboardedView(APIView):
     """Update user's onboarding completion status"""
-    permission_class = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated]
     def post(self, request):
         user = request.user
         user.onboarded.first().has_onboarded=request.data['new_onboarded']
@@ -129,7 +129,7 @@ class UpdateOnboardedView(APIView):
 
 class HealthView(APIView):
     """"Get user's health information"""
-    permission_class = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated]
     def get(self, requeest):
         user = request.user
         return Response({
@@ -143,7 +143,7 @@ class HealthView(APIView):
 
 class UpdateHealthView(APIView):
     """Update user's health information"""
-    permission_class = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated]
     def post(self, request):
         user = request.user
         user.health.first().age = request.data['age']
@@ -485,3 +485,8 @@ class UserInventoryDetail(APIView):
 
         inventory.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+class GetUserTags(APIView):
+    """Retrieve list of the current user's recipe tags"""
+    permission_classes = [permissions.IsAuthenticated]
+

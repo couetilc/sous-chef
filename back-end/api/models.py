@@ -262,3 +262,8 @@ class HealthDetails(models.Model):
 
     def __str__(self):
         return f"age: {age}, height: {height_ft} feet {height_in} inches, weight: {weight}, {activity_level} activity, goal: {goal}"
+
+class RecipeTag(models.Model):
+    """Connects a User to multiple recipes with the same tag"""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='recipe_tag')
+    tag_name = models.CharField(max_length=200)
