@@ -576,6 +576,12 @@
   padding: .5em;
 }
 
+.recipes-page h2 {
+  font-size: 1em;
+  text-align: center;
+  padding: 0.1em;
+}
+
 .recipes-page .filter-bar {
   display: flex;
   flex-flow: row wrap;
