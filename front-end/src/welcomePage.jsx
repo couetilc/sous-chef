@@ -10,21 +10,18 @@ export default function WelcomePage(props) {
   const navigate = useNavigate();
   const { user } = useUser();
   const { api } = useApi();
-  const [ boolFalse, setBoolFalse] = useState(false);
-  const [ boolTrue, setBoolTrue] = useState(true);
 
   function navToHome() {
     //update onboarding skipped property
-    api.setOnboardingStatus({boolFalse, boolTrue});
+    api.setOnboardingStatus({new_onboarded: false, new_skipped: true});
     return navigate("/home");
   }
 
   function navToOnboard() {
-    api.setOnboardingStatus({boolFalse, boolFalse});
+    api.setOnboardingStatus({new_onboarded: false, new_skipped: false});
     return navigate("/onboarding");
   }
-  
-   
+
    return (
        <div className="centered-div">
          <h1> Welcome to Sous Chef! </h1>

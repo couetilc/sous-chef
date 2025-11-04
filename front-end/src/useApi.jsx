@@ -188,7 +188,7 @@ export class Api {
     return this.fetch('/api/user/health');
   }
 
-  async setHealthInfo({age, height_ft, height_in, weight, activity_level, goal}) {
+  async setHealthInfo({age, height_ft, height_in, weight, activity_level, goal, sex}) {
     return this.fetch('/api/user/updateHealth/', {method: "POST",
       body: JSON.stringify({
         age,
@@ -196,7 +196,8 @@ export class Api {
         height_in,
         weight,
         activity_level,
-        goal
+        goal,
+        sex
       })
     })
   }
