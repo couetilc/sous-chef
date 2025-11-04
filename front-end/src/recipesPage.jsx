@@ -95,6 +95,8 @@ export default function Recipes() {
               onClick = {() => {
                 api.updateFavoriteRecipe({id: recipe.id})
                 .then(updateList())
+                // Page gets refetched every time you un/favorite a recipe.
+                // Could avoid this by attaching state but I was having trouble implementing it - might return later on
               }}
             >
                 {recipe.is_favorited ? 'Unfavorite this recipe' : 'Favorite this recipe'}
