@@ -32,23 +32,17 @@ export default function Nutrition() {
     var myChart = echarts.init(chartDom);
 
     const days = [];
-    const calories = [2100, 2300, 1950, 2600, 2400, 2200, 2500]; // example values
+    const calories = [2100, 2300, 1950, 2600, 2400, 2200, 2000];
     const today = new Date();
 
+    // Generate past 7 days labels
     for (let i = 6; i >= 0; i--) {
       const d = new Date(today);
       d.setDate(today.getDate() - i);
       days.push(d.toLocaleDateString(undefined, { weekday: 'short' }));
     } 
+
     const option = {
-      title: {
-        text: 'Calorie Intake (Past 7 Days)',
-        left: 'left',
-        textStyle: {
-          fontSize: 16,
-          fontWeight: 600,
-        },
-      },
       tooltip: {
         trigger: 'axis',
       },
@@ -143,10 +137,10 @@ export default function Nutrition() {
             );
           })}
         </div>
-
-        <div className="chart-container">
-          <div id="main" style={{ width: '600px', height: '400px' }}></div>
-
+        
+        <div className="chart-section">
+          <h2 className="chart-title">Calorie Intake (Past 7 Days)</h2>
+          <div id="main" className="nutrition-chart"></div>
         </div>
       </div>
     </div>
