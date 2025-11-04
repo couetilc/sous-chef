@@ -40,11 +40,21 @@ export default function Nutrition() {
       const d = new Date(today);
       d.setDate(today.getDate() - i);
       days.push(d.toLocaleDateString(undefined, { weekday: 'short' }));
-    } 
+    }
+
+    // Compute cumulative averages for trend line
+    const trendData = calories.map((_, i) => {
+      const subset = calories.slice(0, i + 1);
+      const avg = Number((subset.reduce((a, b) => a + b, 0) / subset.length).toFixed(1));
+      return avg;
+    });
 
     const option = {
       tooltip: {
         trigger: 'axis',
+      },
+      legend: {
+        data: ['Calories Consumed', 'Trend (Average)'],
       },
       xAxis: {
         type: 'category',
@@ -73,12 +83,7 @@ export default function Nutrition() {
             color: 'rgba(248,113,113,0.15)',
           },
           markLine: {
-            data: [
-              {
-                yAxis: 2500,
-                name: 'Goal',
-              },
-            ],
+            data: [{ yAxis: 2500, name: 'Goal' }],
             lineStyle: {
               type: 'dotted',
               color: '#666',
@@ -93,6 +98,21 @@ export default function Nutrition() {
             },
           },
         },
+        {
+          name: 'Trend (Average)',
+          data: trendData,
+          type: 'line',
+          smooth: true,
+          symbol: 'none',
+          lineStyle: {
+            width: 2,
+            color: '#60a5fa',
+            type: 'dashed',
+          },
+          itemStyle: {
+            color: '#60a5fa',
+          },
+        },
       ],
     };
 
@@ -103,7 +123,6 @@ export default function Nutrition() {
       window.removeEventListener('resize', () => myChart.resize());
       myChart.dispose();
     };
-
   }, []);
 
   return (
