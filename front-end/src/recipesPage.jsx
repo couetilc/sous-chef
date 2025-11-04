@@ -12,7 +12,7 @@ export default function Recipes() {
   const [page, setPage] = useState(1)
   const [recipes, setRecipes ] = useState();
 
-  useEffect(() => {
+  const updateList = () => {
     const param = { page }
     if (enteredName && enteredName != '') {
       param.title = enteredName
@@ -21,7 +21,9 @@ export default function Recipes() {
       param.searchFavorite = 'True'
     }
     api.getRecipesFiltered(param).then(setRecipes)
-  }, [api, enteredName, filterFavorites, page])
+  }
+
+  useEffect(updateList, [api, enteredName, filterFavorites, page])
 
   const onFilterFavorites = () => {
     setFilterFavorites(!filterFavorites)
@@ -92,6 +94,7 @@ export default function Recipes() {
               className={recipe.is_favorited ? "button-toggledOn" : "button"}
               onClick = {() => {
                 api.updateFavoriteRecipe({id: recipe.id})
+                .then(updateList())
               }}
             >
                 {recipe.is_favorited ? 'Unfavorite this recipe' : 'Favorite this recipe'}
