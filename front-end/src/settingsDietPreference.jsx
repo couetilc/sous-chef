@@ -147,33 +147,36 @@ const DietComponent = () => {
     }
 
     return (
-        <div className="diet">
-            <form onSubmit={publishDiet}>
-                <p>
-                    <label>
-                        Select diets: <br />
-                        <select
-                            name="dietSelect"
-                            multiple={true}
-                            value={selectedDiets}
-                            onChange={e => {
-                                const options = [...e.target.selectedOptions]
-                                const values = options.map(option => option.value)
-                                setSelectedDiets(values)
-                            }}
-                        >
-                            {
-                                diets.map((diet) =>
-                                    <option value={diet.id}>{diet.name}</option>
-                                )
-                            }
-                        </select>
-                    </label>
-                </p>
-                <p>
-                    <button type='submit'>Update Diet</button>
-                </p>
-            </form>
+        <>
+            <div className="settings-container">
+              <form onSubmit={publishDiet}>
+                  <p>
+                      <label>
+                          Select diets: <br />
+                          <select
+                              name="dietSelect"
+                              multiple={true}
+                              value={selectedDiets}
+                              onChange={e => {
+                                  const options = [...e.target.selectedOptions]
+                                  const values = options.map(option => option.value)
+                                  setSelectedDiets(values)
+                              }}
+                          >
+                              {
+                                  diets.map((diet) =>
+                                      <option value={diet.id}>{diet.name}</option>
+                                  )
+                              }
+                          </select>
+                      </label>
+                  </p>
+                  <p>
+                      <button type='submit'>Update Diet</button>
+                  </p>
+              </form>
+            </div>
+      <div className="settings-container">
             <form onSubmit={publishRestrictions}>
                 <p>
                     <label>
@@ -200,7 +203,8 @@ const DietComponent = () => {
                     <button type='submit'>Update Ingredients</button>
                 </p>
             </form>
-        </div>
+            </div>
+        </>
     );
 };
 
