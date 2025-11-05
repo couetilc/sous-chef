@@ -14,7 +14,7 @@ from .serializers import UserSerializer, GroupSerializer, UserRegistrationSerial
 from decimal import Decimal, InvalidOperation
 from .models import (
     Ingredient, DietaryIngredient, Diet, UserDiet,
-    Recipe, CookedRecipe, Meal, FavoriteRecipe, UserInventory, OnboardingSubmission
+    Recipe, CookedRecipe, Meal, FavoriteRecipe, UserInventory, OnboardingSubmission, RecipeIngredient
 )
 from .serializers import (
     UserSerializer, GroupSerializer, UserRegistrationSerializer,
@@ -407,6 +407,12 @@ class GetRecipesFiltered(APIView):
         title = request.data.get('title')
         if title:
             queryset = queryset.filter(title__icontains=title)
+
+        ingredients = request.data.get('ingredients')
+        if ingredients:
+            for id in ingredients:
+                recipes = Recipe.objects.filter(ingredients_list__ingredient__id=id)
+                queryset = queryset.intersection(recipes)
 
         searchFavorite = request.data.get('searchFavorite')
         if searchFavorite and searchFavorite == 'True':
