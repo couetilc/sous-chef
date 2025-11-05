@@ -63,10 +63,11 @@ class TestIngredientListEndpoint:
         response = authenticated_client.get('/api/ingredients/')
 
         assert response.status_code == status.HTTP_200_OK
-        assert len(response.data) == 5
+        assert len(response.data['results']) == 5
+        assert response.data['count'] == 5
 
         # Verify all ingredients are returned (ordered by name)
-        ingredient_names = [item['name'] for item in response.data]
+        ingredient_names = [item['name'] for item in response.data['results']]
         assert ingredient_names == ['Eggs', 'Milk', 'Peanuts', 'Soy', 'Wheat']
 
     def test_ingredient_serialization(self, authenticated_client, test_ingredients):
@@ -76,7 +77,7 @@ class TestIngredientListEndpoint:
         assert response.status_code == status.HTTP_200_OK
 
         # Check that each ingredient has id and name fields
-        for ingredient_data in response.data:
+        for ingredient_data in response.data['results']:
             assert 'id' in ingredient_data
             assert 'name' in ingredient_data
             assert isinstance(ingredient_data['id'], int)
@@ -87,8 +88,9 @@ class TestIngredientListEndpoint:
         response = authenticated_client.get('/api/ingredients/')
 
         assert response.status_code == status.HTTP_200_OK
-        assert len(response.data) == 0
-        assert response.data == []
+        assert len(response.data['results']) == 0
+        assert response.data['count'] == 0
+        assert response.data['results'] == []
 
     def test_ingredient_list_ordering(self, authenticated_client):
         """Test that ingredients are ordered alphabetically by name"""
@@ -100,7 +102,7 @@ class TestIngredientListEndpoint:
         response = authenticated_client.get('/api/ingredients/')
 
         assert response.status_code == status.HTTP_200_OK
-        ingredient_names = [item['name'] for item in response.data]
+        ingredient_names = [item['name'] for item in response.data['results']]
         assert ingredient_names == ['Apple', 'Mango', 'Zucchini']
 
 
@@ -260,7 +262,7 @@ class TestIngredientEndpointsIntegration:
         """Test that restricted ingredients are a subset of all ingredients"""
         # Get all ingredients
         all_response = authenticated_client.get('/api/ingredients/')
-        all_ids = {item['id'] for item in all_response.data}
+        all_ids = {item['id'] for item in all_response.data['results']}
 
         # Get restricted ingredients
         restricted_response = authenticated_client.get('/api/ingredients/restricted/')
@@ -277,12 +279,30 @@ class TestIngredientEndpointsIntegration:
         restricted_response = authenticated_client.get('/api/ingredients/restricted/')
 
         # Both should be lists
-        assert isinstance(all_response.data, list)
+        assert isinstance(all_response.data['results'], list)
         assert isinstance(restricted_response.data, list)
 
         # If both have data, check structure matches
         if all_response.data and restricted_response.data:
-            all_keys = set(all_response.data[0].keys())
+            all_keys = set(all_response.data['results'][0].keys())
             restricted_keys = set(restricted_response.data[0].keys())
             assert all_keys == restricted_keys
             assert all_keys == {'id', 'name'}
+
+@pytest.mark.django_db
+class TestIngredientSearch:
+    def test_ordered_by_name(self, authenticated_client):
+        Ingredient.objects.create(name='foo')
+        Ingredient.objects.create(name='bar')
+        response = authenticated_client.get('/api/ingredients/')
+        assert response.data['results'][0]['name'] == 'bar'
+        assert response.data['results'][1]['name'] == 'foo'
+
+    def test_search_by_ingredient_name(self, authenticated_client):
+        Ingredient.objects.create(name='foo')
+        Ingredient.objects.create(name='bar')
+
+        response = authenticated_client.get('/api/ingredients/?search=foo')
+
+        assert response.data['count'] == 1
+        assert len(response.data['results']) == 1

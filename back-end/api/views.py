@@ -1,10 +1,13 @@
 from django.shortcuts import render, redirect
+from rest_framework.filters import SearchFilter, OrderingFilter
+from django.db import transaction
 from django.http import HttpResponse
 from django.contrib.auth import authenticate, login, logout
 from django.middleware.csrf import get_token
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.utils.decorators import method_decorator
 from django.utils.dateparse import parse_datetime
+from django.db.models import Exists, OuterRef
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -35,7 +38,7 @@ class UserRegistrationView(generics.CreateAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
-        OnboardingSubmission.create(user=user, has_onboarded=False, skipped=False)
+        OnboardingSubmission.objects.create(user=user, has_onboarded=False, skipped=False)
         return Response({
             'username': user.username,
             'email': user.email,
@@ -252,7 +255,9 @@ class IngredientList(generics.ListAPIView):
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
     pagination_class = Paginator
-
+    filter_backends = [SearchFilter, OrderingFilter]
+    search_fields = ['name', '^name']
+    ordering = ['name']
 
 class DietaryIngredientList(generics.ListAPIView):
     """List restricted ingredients for the authenticated user"""
@@ -288,8 +293,60 @@ class UpdateDietaryIngredientList(APIView):
 class DietList(generics.ListAPIView):
     """List all available diets in the database"""
     permission_classes = [permissions.IsAuthenticated]
-    queryset = Diet.objects.all()
     serializer_class = DietSerializer
+
+    def get_queryset(self):
+        return Diet.objects.annotate(
+            is_restricted=Exists(
+                UserDiet.objects.filter(
+                    diet=OuterRef('pk'),
+                    user=self.request.user
+                )
+            )
+        )
+
+class DietListSync(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        diet_ids = request.data.get('diet_ids', [])
+
+        if not isinstance(diet_ids, list):
+            print('diet_ids: ', diet_ids)
+            return Response(
+                {'error': 'diet_ids must be a list'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if len(diet_ids) > 0 and not Diet.objects.filter(id__in=diet_ids).exists():
+            return Response(
+                {'error': 'One or more diet IDs are invalid'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        with transaction.atomic():
+            current_diet_ids = set(
+                UserDiet.objects
+                    .filter(user=request.user)
+                    .values_list('diet_id', flat=True)
+            )
+            request_diet_ids = set(diet_ids)
+
+            to_create = request_diet_ids - current_diet_ids
+            to_delete = current_diet_ids - request_diet_ids
+
+            UserDiet.objects.filter(user=request.user, diet_id__in=to_delete).delete()
+            UserDiet.objects.bulk_create(
+                UserDiet(user=request.user, diet_id=diet_id)
+                for diet_id in to_create
+            )
+
+        return Response(
+            {'message': 'Successfully updated diets'},
+            status=status.HTTP_200_OK
+        )
+
+
 
 class SelectedDietList(generics.ListAPIView):
     """List selected diets for the authenticated user"""
@@ -420,28 +477,27 @@ class GetRecipesFiltered(APIView):
         if title:
             queryset = queryset.filter(title__icontains=title)
 
-        ingredients = request.POST.getlist('ingredients')
+        ingredients = request.data.get('ingredients')
         if ingredients:
-            for id in ingredients:
-                recipes = Recipe.objects.filter(ingredients_list__ingredient__id=id)
-                queryset = queryset.intersection(recipes)
+            for ingredient_id in ingredients:
+                queryset = queryset.filter(
+                    ingredients_list__ingredient_id=ingredient_id
+                )
 
         searchInventory = request.data.get('searchInventory')
-        if searchInventory and searchInventory == 'True':
-            inventoryRecipes = Recipe.objects.none()
-            ingredients = Ingredient.objects.filter(in_inventories__user=request.user)
-            for ingredient in ingredients:
-                recipes = Recipe.objects.filter(ingredients_list__ingredient=ingredient)
-                inventoryRecipes = inventoryRecipes.union(recipes)
-            queryset = queryset.intersection(inventoryRecipes)
+        if searchInventory:
+            ingredient_ids = request.user.inventory_items.values_list('ingredient_id')
+            queryset = queryset.filter(
+                ingredients_list__ingredient_id__in=ingredient_ids
+            )
 
         searchFavorite = request.data.get('searchFavorite')
-        if searchFavorite and searchFavorite == 'True':
+        if searchFavorite:
             queryset = queryset.filter(user_favorites__isnull=False)
 
         paginator = Paginator()
         page = paginator.paginate_queryset(queryset, request)
-        
+
         serializer = RecipeSerializer(page, many=True, context = {'user': request.user})
         return paginator.get_paginated_response(serializer.data)
 
@@ -452,7 +508,7 @@ class CreateFavoriteRecipe(APIView):
         recipeID = request.data.get('recipeID')
         recipe = Recipe.objects.get(id=recipeID)
 
-        oldFavorite = FavoriteRecipe.objects.filter(recipe=recipe).first() 
+        oldFavorite = FavoriteRecipe.objects.filter(recipe=recipe).first()
         if (oldFavorite != None) :
             oldFavorite.delete()
             return Response({'message': 'Successfully unfavorited recipe'}, status=status.HTTP_200_OK)
@@ -462,8 +518,8 @@ class CreateFavoriteRecipe(APIView):
             newFavorite.save()
             return Response({'message': 'Successfully favorited recipe'}, status=status.HTTP_200_OK)
 
-        
-       
+
+
 class UserInventoryList(APIView):
     """List user inventory for the authenticated user"""
     permission_classes = [permissions.IsAuthenticated]

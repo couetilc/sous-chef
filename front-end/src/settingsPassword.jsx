@@ -59,8 +59,8 @@ const PasswordComponent = () => {
             <div className="settings-container">
               <h3>Edit Password</h3>
               <form className="password-form" action={publishPassword}>
-                <input  name="password" onChange={e=>matchPasswords(e.target.value, confirm)} placeholder="Enter Password" />
-                <input name="confirmpassword" onChange={e=>matchPasswords(pass, e.target.value)} placeholder="Confirm Password" />
+                <input className="text-input-blue" name="password" onChange={e=>matchPasswords(e.target.value, confirm)} placeholder="Enter Password" />
+                <input className="text-input-blue" name="confirmpassword" onChange={e=>matchPasswords(pass, e.target.value)} placeholder="Confirm Password" />
                 <button className="button-blue" type="submit" name="button" disabled={!matching}>Change Password</button>
               </form>
             </div>
