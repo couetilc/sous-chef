@@ -95,6 +95,10 @@ class RecipeSerializer(serializers.ModelSerializer):
             'image_url', 'source_url',
             'servings',
             'is_favorited',
+            'calories_per_serving',
+            'fat_g',
+            'carbs_g',
+            'protein_g',
         )
         read_only_fields = ('id',)
 
