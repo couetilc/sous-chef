@@ -468,16 +468,16 @@ class GetRecipesFiltered(APIView):
         ingredients = request.data.get('ingredients')
         if ingredients:
             for ingredient_id in ingredients:
-                queryset = queryset.filter(ingredients_list__ingredient_id=ingredient_id)
+                queryset = queryset.filter(
+                    ingredients_list__ingredient_id=ingredient_id
+                )
 
         searchInventory = request.data.get('searchInventory')
-        if searchInventory and searchInventory == 'True':
-            inventoryRecipes = Recipe.objects.none()
-            ingredients = Ingredient.objects.filter(in_inventories__user=request.user)
-            for ingredient in ingredients:
-                recipes = Recipe.objects.filter(ingredients_list__ingredient=ingredient)
-                inventoryRecipes = inventoryRecipes.union(recipes)
-            queryset = queryset.intersection(inventoryRecipes)
+        if searchInventory:
+            ingredient_ids = request.user.inventory_items.values_list('ingredient_id')
+            queryset = queryset.filter(
+                ingredients_list__ingredient_id__in=ingredient_ids
+            )
 
         searchFavorite = request.data.get('searchFavorite')
         if searchFavorite and searchFavorite == 'True':
