@@ -30,6 +30,7 @@ urlpatterns = [
     path('diets/', views.DietList.as_view(), name='diet-list'),
     path('diets/selected/', views.SelectedDietList.as_view(), name='selected-diet-list'),
     path('diets/updateSelected/', views.UpdateDiets.as_view(), name='selected-diet-update'),
+    path('diets/sync/', views.DietListSync.as_view(), name="diet-list-sync"),
 
     # Recipe endpoints
     path('recipes/searchFiltered/', views.GetRecipesFiltered.as_view(), name='recipes-search-filtered'),

@@ -1,4 +1,5 @@
 from django.shortcuts import render, redirect
+from django.db import transaction
 from django.http import HttpResponse
 from django.contrib.auth import authenticate, login, logout
 from django.middleware.csrf import get_token
@@ -288,6 +289,48 @@ class DietList(generics.ListAPIView):
                 )
             )
         )
+
+class DietListSync(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        diet_ids = request.data.get('diet_ids', [])
+
+        if not isinstance(diet_ids, list):
+            print('diet_ids: ', diet_ids)
+            return Response(
+                {'error': 'diet_ids must be a list'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if len(diet_ids) > 0 and not Diet.objects.filter(id__in=diet_ids).exists():
+            return Response(
+                {'error': 'One or more diet IDs are invalid'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        with transaction.atomic():
+            current_diet_ids = set(
+                UserDiet.objects
+                    .filter(user=request.user)
+                    .values_list('diet_id', flat=True)
+            )
+            request_diet_ids = set(diet_ids)
+
+            to_create = request_diet_ids - current_diet_ids
+            to_delete = current_diet_ids - request_diet_ids
+
+            UserDiet.objects.filter(user=request.user, diet_id__in=to_delete).delete()
+            UserDiet.objects.bulk_create(
+                UserDiet(user=request.user, diet_id=diet_id)
+                for diet_id in to_create
+            )
+
+        return Response(
+            {'message': 'Successfully updated diets'},
+            status=status.HTTP_200_OK
+        )
+
 
 
 class SelectedDietList(generics.ListAPIView):
