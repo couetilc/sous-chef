@@ -231,7 +231,7 @@ class TestFilterRecipes:
         bfries = Recipe.objects.create(title='Bfries')
         chips = Recipe.objects.create(title='Chips')
 
-        favoriteFries = FavoriteRecipe.objects.create(user=test_user, recipe=fries)
+        FavoriteRecipe.objects.create(user=test_user, recipe=fries)
 
         response = authenticated_client.post('/api/recipes/searchFiltered/', {
             "searchFavorite": True,

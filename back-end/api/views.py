@@ -480,7 +480,7 @@ class GetRecipesFiltered(APIView):
             )
 
         searchFavorite = request.data.get('searchFavorite')
-        if searchFavorite and searchFavorite == 'True':
+        if searchFavorite:
             queryset = queryset.filter(user_favorites__isnull=False)
 
         paginator = Paginator()
