@@ -22,6 +22,11 @@ export default function Recipes() {
     if (filterFavorites) {
       param.searchFavorite = 'True'
     }
+    if (selectedOptions.length != 0) {
+      const ingredients = selectedOptions.map(option => option.value)
+      console.log(ingredients)
+      param.ingredients = ingredients
+    }
     api.getRecipesFiltered(param).then(setRecipes)
   }
 
