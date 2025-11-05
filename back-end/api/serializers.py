@@ -27,10 +27,11 @@ class IngredientSerializer(serializers.ModelSerializer):
         read_only_fields = ('id',)
 
 class DietSerializer(serializers.ModelSerializer):
+    is_restricted = serializers.BooleanField(read_only=True)
+
     class Meta:
-        model = Ingredient
-        fields = ('id', 'name')
-        read_only_fields = ('id',)
+        model = Diet
+        fields = ('id', 'name', 'is_restricted')
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})

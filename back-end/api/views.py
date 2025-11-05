@@ -5,6 +5,7 @@ from django.middleware.csrf import get_token
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.utils.decorators import method_decorator
 from django.utils.dateparse import parse_datetime
+from django.db.models import Exists, OuterRef
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -279,7 +280,14 @@ class DietList(generics.ListAPIView):
     serializer_class = DietSerializer
 
     def get_queryset(self):
-        return Diet.objects.all()
+        return Diet.objects.annotate(
+            is_restricted=Exists(
+                UserDiet.objects.filter(
+                    diet=OuterRef('pk'),
+                    user=self.request.user
+                )
+            )
+        )
 
 
 class SelectedDietList(generics.ListAPIView):
@@ -432,7 +440,7 @@ class GetRecipesFiltered(APIView):
 
         paginator = Paginator()
         page = paginator.paginate_queryset(queryset, request)
-        
+
         serializer = RecipeSerializer(page, many=True, context = {'user': request.user})
         return paginator.get_paginated_response(serializer.data)
 
@@ -443,7 +451,7 @@ class CreateFavoriteRecipe(APIView):
         recipeID = request.data.get('recipeID')
         recipe = Recipe.objects.get(id=recipeID)
 
-        oldFavorite = FavoriteRecipe.objects.filter(recipe=recipe).first() 
+        oldFavorite = FavoriteRecipe.objects.filter(recipe=recipe).first()
         if (oldFavorite != None) :
             oldFavorite.delete()
             return Response({'message': 'Successfully unfavorited recipe'}, status=status.HTTP_200_OK)
@@ -453,8 +461,8 @@ class CreateFavoriteRecipe(APIView):
             newFavorite.save()
             return Response({'message': 'Successfully favorited recipe'}, status=status.HTTP_200_OK)
 
-        
-       
+
+
 class UserInventoryList(APIView):
     """List user inventory for the authenticated user"""
     permission_classes = [permissions.IsAuthenticated]
