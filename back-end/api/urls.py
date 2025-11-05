@@ -13,7 +13,8 @@ urlpatterns = [
     path('user/isOnboarded/', views.OnboardedView.as_view(), name='user-is-onboarded'),
     path('user/updateOnboarded/', views.UpdateOnboardedView.as_view(), name='user-update-onboarded'),
     path('user/health/', views.HealthView.as_view(), name='user-health'),
-    path('user/updateHealth/', views.HealthView.as_view(), name="user-update-health"),
+    path('user/updateHealth/', views.UpdateHealthView.as_view(), name="user-update-health"),
+    path('user/health/recommendations/', views.HealthRecommendationsView.as_view(), name='user-health-recommendations'), 
     path('csrf/', views.CSRFTokenView.as_view(), name='csrf-token'),
 
     # User and group management
