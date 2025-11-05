@@ -122,6 +122,24 @@ export default function Recipes() {
               <li key={i}>{step}</li>
               ))}</ul>
             </div>
+            <br></br>
+            <br></br>
+            <div className="servings">
+              <h4>Servings:</h4>
+              <ul>
+                <li>{recipe.servings}</li>
+              </ul>
+            </div>
+            <br></br>
+            <div className="nutrition">
+              <h4>Nutrition (per serving):</h4>
+              <ul>
+                <li>{"Calories: " + recipe.calories_per_serving}</li>
+                <li>{"Fat: " + recipe.fat_g + "g"}</li>
+                <li>{"Protein: " + recipe.protein_g + "g"}</li>
+                <li>{"Carbs: " + recipe.carbs_g + "g"}</li>
+              </ul>
+            </div>
             <button 
               className={recipe.is_favorited ? "button-toggledOn" : "button"}
               onClick = {() => {
