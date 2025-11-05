@@ -1,4 +1,5 @@
 from django.shortcuts import render, redirect
+from rest_framework.filters import SearchFilter, OrderingFilter
 from django.db import transaction
 from django.http import HttpResponse
 from django.contrib.auth import authenticate, login, logout
@@ -36,7 +37,7 @@ class UserRegistrationView(generics.CreateAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
-        OnboardingSubmission.create(user=user, has_onboarded=False, skipped=False)
+        OnboardingSubmission.objects.create(user=user, has_onboarded=False, skipped=False)
         return Response({
             'username': user.username,
             'email': user.email,
@@ -242,7 +243,9 @@ class IngredientList(generics.ListAPIView):
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
     pagination_class = Paginator
-
+    filter_backends = [SearchFilter, OrderingFilter]
+    search_fields = ['name', '^name']
+    ordering = ['name']
 
 class DietaryIngredientList(generics.ListAPIView):
     """List restricted ingredients for the authenticated user"""
@@ -462,11 +465,10 @@ class GetRecipesFiltered(APIView):
         if title:
             queryset = queryset.filter(title__icontains=title)
 
-        ingredients = request.POST.getlist('ingredients')
+        ingredients = request.data.get('ingredients')
         if ingredients:
-            for id in ingredients:
-                recipes = Recipe.objects.filter(ingredients_list__ingredient__id=id)
-                queryset = queryset.intersection(recipes)
+            for ingredient_id in ingredients:
+                queryset = queryset.filter(ingredients_list__ingredient_id=ingredient_id)
 
         searchInventory = request.data.get('searchInventory')
         if searchInventory and searchInventory == 'True':

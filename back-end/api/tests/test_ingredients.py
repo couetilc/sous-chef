@@ -286,3 +286,21 @@ class TestIngredientEndpointsIntegration:
             restricted_keys = set(restricted_response.data[0].keys())
             assert all_keys == restricted_keys
             assert all_keys == {'id', 'name'}
+
+@pytest.mark.django_db
+class TestIngredientSearch:
+    def test_ordered_by_name(self, authenticated_client):
+        Ingredient.objects.create(name='foo')
+        Ingredient.objects.create(name='bar')
+        response = authenticated_client.get('/api/ingredients/')
+        assert response.data['results'][0]['name'] == 'bar'
+        assert response.data['results'][1]['name'] == 'foo'
+
+    def test_search_by_ingredient_name(self, authenticated_client):
+        Ingredient.objects.create(name='foo')
+        Ingredient.objects.create(name='bar')
+
+        response = authenticated_client.get('/api/ingredients/?search=foo')
+
+        assert response.data['count'] == 1
+        assert len(response.data['results']) == 1
