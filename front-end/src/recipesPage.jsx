@@ -14,6 +14,7 @@ export default function Recipes() {
   const [page, setPage] = useState(1)
   const [recipes, setRecipes ] = useState();
   const [selectedOptions, setSelectedOptions] = useState([])
+  const [ count, setCount ] = useState(0);
 
   const updateList = () => {
     const param = { page }
@@ -31,7 +32,11 @@ export default function Recipes() {
       console.log(ingredients)
       param.ingredients = ingredients
     }
-    api.getRecipesFiltered(param).then(setRecipes)
+
+    api.getRecipesFiltered(param).then( (result) => {
+      setCount(result.count)
+      return result
+    }).then(setRecipes)
   }
 
   useEffect(updateList, [api, enteredName, filterFavorites, page])
@@ -54,6 +59,7 @@ export default function Recipes() {
   return (
     <div className="recipes-page">
       <h1>Recipe Page</h1>
+      <h2>Displaying {count} recipes</h2>
       <div className="filter-bar">
         <div className="filter-name">
           <form onSubmit={e => {
