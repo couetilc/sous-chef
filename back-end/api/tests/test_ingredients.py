@@ -262,7 +262,7 @@ class TestIngredientEndpointsIntegration:
         """Test that restricted ingredients are a subset of all ingredients"""
         # Get all ingredients
         all_response = authenticated_client.get('/api/ingredients/')
-        all_ids = {item['id'] for item in all_response.data}
+        all_ids = {item['id'] for item in all_response.data['results']}
 
         # Get restricted ingredients
         restricted_response = authenticated_client.get('/api/ingredients/restricted/')
@@ -279,12 +279,12 @@ class TestIngredientEndpointsIntegration:
         restricted_response = authenticated_client.get('/api/ingredients/restricted/')
 
         # Both should be lists
-        assert isinstance(all_response.data, list)
+        assert isinstance(all_response.data['results'], list)
         assert isinstance(restricted_response.data, list)
 
         # If both have data, check structure matches
         if all_response.data and restricted_response.data:
-            all_keys = set(all_response.data[0].keys())
+            all_keys = set(all_response.data['results'][0].keys())
             restricted_keys = set(restricted_response.data[0].keys())
             assert all_keys == restricted_keys
             assert all_keys == {'id', 'name'}
