@@ -2,8 +2,6 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    path('', views.index, name="index"),
-
     # Authentication endpoints
     path('register/', views.UserRegistrationView.as_view(), name='user-register'),
     path('login/', views.LoginView.as_view(), name='user-login'),
@@ -13,7 +11,7 @@ urlpatterns = [
     path('user/updatePassword/', views.UpdateUserPassword.as_view(), name='user-update-password'),
     path('user/delete/', views.DeleteUser.as_view(), name='user-delete'),
     path('user/isOnboarded/', views.OnboardedView.as_view(), name='user-is-onboarded'),
-    path('user/updatedOnboarded/', views.UpdateOnboardedView.as_view(), name='user-update-onboarded'),
+    path('user/updateOnboarded/', views.UpdateOnboardedView.as_view(), name='user-update-onboarded'),
     path('user/health/', views.HealthView.as_view(), name='user-health'),
     path('user/updateHealth/', views.HealthView.as_view(), name="user-update-health"),
     path('csrf/', views.CSRFTokenView.as_view(), name='csrf-token'),
