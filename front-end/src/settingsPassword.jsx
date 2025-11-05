@@ -42,28 +42,29 @@ const PasswordComponent = () => {
     }
 
     return (
-        <div className="pass">
-            <form action={publishEmail}>
-                <p>
-                    Current email: {currentEmail}
-                </p>
-                <p>
-                    <input name="email" placeholder="Enter Email" /> <br />
-                </p>
-                <p>
-                    <button type="submit" name="button">Change Email</button>
-                </p>
-            </form>
-            <form action={publishPassword}>
-                <p>
-                    <input  name="password" onChange={e=>matchPasswords(e.target.value, confirm)} placeholder="Enter Password" /> <br />
-                    <input name="confirmpassword" onChange={e=>matchPasswords(pass, e.target.value)} placeholder="Confirm Password" /> <br />
-                </p>
-                <p>
-                    <button type="submit" name="button" disabled={!matching}>Change Password</button>
-                </p>
-            </form>
-        </div>
+        <>
+            <div className="settings-container">
+              <form className="email-form" action={publishEmail}>
+                <h3>Edit Email</h3>
+                <div className="current-email">
+                  <p>(current email)</p>
+                  <p>{currentEmail}</p>
+                </div>
+                <input className="text-input-blue" name="email" placeholder="Enter Email" />
+                <button className="button-blue" type="submit" name="button">
+                  Change Email
+                </button>
+              </form>
+            </div>
+            <div className="settings-container">
+              <h3>Edit Password</h3>
+              <form className="password-form" action={publishPassword}>
+                <input  name="password" onChange={e=>matchPasswords(e.target.value, confirm)} placeholder="Enter Password" />
+                <input name="confirmpassword" onChange={e=>matchPasswords(pass, e.target.value)} placeholder="Confirm Password" />
+                <button className="button-blue" type="submit" name="button" disabled={!matching}>Change Password</button>
+              </form>
+            </div>
+        </>
     );
 };
 

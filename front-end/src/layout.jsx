@@ -57,6 +57,7 @@ function Nav(props) {
         <li><a href="/recipes/">Recipes</a></li>
         <li><a href="/inventory/">Inventory</a></li>
         <li><a href="/history/">History</a></li>
+        <li><a href="/nutrition">Nutrition</a></li>
         <li><a href="/settings/">Account Settings</a></li>
         <li><a href="/logout/">Logout</a></li>
       </ul>

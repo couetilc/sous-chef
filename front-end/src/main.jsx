@@ -5,7 +5,8 @@ import { useEffect, useState, useRef } from 'react'
 import Login from './login.jsx';
 import Home from './home.jsx';
 import SousChef from './souschefPage.jsx';
-import Nutritionist from './nutritionPage.jsx';
+import Nutritionist from './nutritionistPage.jsx';
+import Nutrition from './nutritionPage.jsx'
 import Recipes from './recipesPage.jsx';
 import Inventory from './inventory.jsx';
 import SettingsPage from './settingsPage.jsx';
@@ -31,6 +32,7 @@ export default function App(props) {
   const nutritionist = <PrivatePage><Nutritionist /></PrivatePage>
   const recipes = <PrivatePage><Recipes /></PrivatePage>
   const inventory = <PrivatePage><Inventory /></PrivatePage>
+  const nutrition = <PrivatePage><Nutrition /></PrivatePage>
   const settings = <PrivatePage><SettingsPage /></PrivatePage>
   const welcome = <PrivatePage><WelcomePage /></PrivatePage>
   const onboard = <PrivatePage><Onboarding /></PrivatePage>
@@ -47,6 +49,7 @@ export default function App(props) {
         <Route path="nutritionist" element={nutritionist} />
         <Route path="recipes" element={recipes} />
         <Route path="inventory" element={inventory} />
+        <Route path="nutrition" element={nutrition} />
         <Route path="settings" element={settings} />
         <Route path="history" element={history} />
         <Route path="welcome" element={welcome} />

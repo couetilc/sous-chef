@@ -12,7 +12,7 @@
   --color-rich-black: #101419;
   --color-auburn: #A52422;
   --color-blue: #3559c7;
-
+  --color-yellow: #fb8500;
 
   /* Semantic Tokens */
   --color-background: var(--color-blue);
@@ -39,7 +39,12 @@
   --color-accent-lighter: oklch(from var(--color-accent-dark) calc(l + .2) c h);
 }
 
+body {
+  background-color: var(--color-accent-dark);
+}
+
 .app-container {
+  background-color: white;
   display: flex;
   flex-flow: row nowrap;
   font-size: 16px;
@@ -244,6 +249,17 @@
 
 /* End Layout */
 
+.home-page {
+  padding: 1em;
+  display: flex;
+  flex-flow: column nowrap;
+}
+
+.home-page p:first-child {
+  font-size: 1.25em;
+  margin-bottom: .5em;
+}
+
 .centered-div {
   padding: 20px;
   border-radius: 8px;
@@ -257,14 +273,6 @@
   justify-content: center;
 }
 
-.home-grid {
-  display: grid;
-  margin: auto;
-
-  grid-template-columns: 1fr 1fr;
-  grid-template-rows: 1fr 1fr;
-  gap: 2em;
-}
 .welcome-grid {
   display: grid;
   margin: auto;
@@ -276,7 +284,7 @@
 .img-button-cont {
   width: 100%;
   height: 100%;
-  border-width:5px;
+  border-width: 5px;
   border-style: solid;
   position: relative;
 
@@ -305,40 +313,77 @@
   z-index: 2;
 }
 
-
-.settingsGrid {
+.settings-page {
   padding: 1em;
-  gap: 10px;
-  background-color:coral;
-  display: grid;
-  grid-template-areas:
-  'diet pass pass'
-  'diet pass pass'
-  'diet delete delete'
-  ;
-}
-
-.settingsGrid > div {
   display: flex;
+  flex-flow: column nowrap;
   align-items: center;
-  justify-content: center;
-  background-color:white;
-  border: 3px solid black;
+}
+
+.settings-page .settings-sections {
+  display: flex;
+  flex-flow: row wrap;
+  gap: 1em;
+}
+
+.settings-page .settings-container {
+  border: 1px solid var(--color-accent);
+  background-color: oklch(from var(--color-accent) calc(l + 1) c h);
   padding: 1em;
+  border-radius: .5em;
+  display: flex;
+  flex-flow: column wrap;
+  gap: 1em;
 }
 
-.settingsGrid > div.diet {
-  grid-area: diet;
-  justify-content: left;
+.settings-page .email-form,
+.settings-page .password-form,
+.settings-page .diet-form,
+.settings-page .ingredient-restriction-form
+{
+  display: flex;
+  flex-flow: column wrap;
+  gap: 1em;
 }
 
-.settingsGrid > div.pass{
-  grid-area: pass;
+.settings-page .ingredient-restriction-form select {
+  width: 100%;
+  overflow-x: scroll;
+}
+.settings-page .ingredient-restriction-form option {
+  overflow-x: scroll;
 }
 
+.settings-page h3 {
+  font-size: 1.25em;
+  text-align: center;
+  color: var(--color-accent-dark);
+}
 
-.settingsGrid > div.delete{
-  grid-area: delete;
+.settings-page .current-email {
+  display: flex;
+  flex-flow: column wrap;
+  align-items: center;
+  line-height: 1;
+}
+
+.settings-page .current-email p:nth-child(2) {
+  font-size: 1.125em;
+}
+
+#deleteAccountDialog:open {
+  display: flex;
+  flex-flow: column;
+  gap: 1em;
+  border: 2px solid var(--color-yellow);
+  border-radius: .5em;
+  box-shadow: 0px 0px 4px 4px color-mix(in srgb, var(--color-yellow) 40%, transparent);
+}
+
+#deleteAccountDialog form {
+  display: flex;
+  flex-flow: column;
+  gap: .5em;
 }
 
 .recipeFilterGrid {
@@ -371,22 +416,35 @@
 }
 
 .home-grid {
-  display: grid;
+  display: flex;
   margin: auto;
+  flex-flow: column wrap;
+  gap: 1.5em;
+}
 
-  /* new */
-  grid-template-columns: 1fr 1fr;
-  grid-template-rows: 1fr 1fr;
-  gap: 2em;
+.grid-row {
+  display: flex;
+  flex-flow: row wrap;
+  flex: 0 1 auto;
+  gap: 1em;
+}
+
+.grid-row > * {
+  flex: 1 1 200px;
+  width: 100%;
+}
+
+.grid-row img {
+  width: 100%;
+  min-width: 200px;
+  max-width: 400px;
 }
 
 .img-button-cont {
-  width: 100%;
-  height: 100%;
   display: flex;
   justify-content: center;
   align-items: center;
-  border-width:5px;
+  border-width: 5px;
   border-style: solid;
   position: relative;
   overflow: hidden;
@@ -407,19 +465,12 @@
   object-fit: cover;
 }
 
-.img-button-cont .btn {
+.img-button-cont .button {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background-color: darkgray;
-  color: white;
-  border-width: 2px;
-  border-style: solid;
   z-index: 2;
-}
-.img-button-cont .btn:hover {
-  cursor: pointer;
 }
 
 /* RECIPE HISTORY PAGE */
@@ -837,7 +888,7 @@
 
 /* END CREATE ACCOUNT PAGE */
 
-*[class*="button"] {
+.button, .button-blue, .button-yellow, .button-toggledOn {
   --button-color: var(--color-auburn);
   --button-shadow: oklch(from var(--button-color) calc(l + .1) c h);
   --button-background: oklch(from var(--button-color) calc(l + 1) c h);
@@ -855,14 +906,23 @@
   --button-color: var(--color-blue);
 }
 
-*[class*="text-input"] {
+.button-toggledOn {
+  --button-color: var(--color-blue);
+}
+
+.button-yellow {
+  --button-color: var(--color-yellow);
+
+}
+
+.text-input, .text-input-blue {
   --text-input-color: var(--color-auburn);
   padding: .25em .5em;
   border: 1px solid var(--text-input-color);
   border-radius: .25em;
 }
 
-*[class*="text-input"]:focus {
+.text-input:focus, .text-input-blue:focus {
   outline: 2px solid var(--text-input-color);
 }
 
@@ -893,3 +953,106 @@
   display: inline-block;
 }
 
+/* END RECIPE HISTORY PAGE */
+
+
+
+/* NUTRITION PAGE */
+
+.nutrition-page {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  text-align: center;
+  padding: 1em;
+  font-family: var(--font-ui);
+}
+
+h1 {
+  font-family: var(--font-serif);
+  font-size: 2rem;
+  font-weight: 600;
+  color: var(--color-auburn);
+  margin-bottom: 2rem;
+  letter-spacing: 0.5px;
+}
+
+.nutrition-date {
+  font-size: 1rem;
+  color: var(--color-accent-light);
+  margin-bottom: 2rem;
+  font-style: italic;
+}
+
+.nutrition-container {
+  max-width: 600px;
+  font-family: var(--font-ui);
+  background-color: rgba(0, 0, 0, 0.03);
+  padding: 1.5rem 1.5rem;
+  border-radius: 10px;
+  box-shadow: inset 0 1px 2px rgba(16, 20, 25, 0.05);
+}
+
+/* Aligns date and nutrition bars to the left with slight padding */
+.nutrition-section {
+  padding: 0 3em;
+  text-align: left;
+}
+
+.nutrition-bar {
+  margin-bottom: 1.5rem;
+}
+
+.nutrition-amount {
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+.nutrition-label {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-serif);
+  margin-bottom: 0.4rem;
+  color: var(--color-text-primary);
+  font-size: 1rem;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 14px;
+  background-color: var(--color-french-gray);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: inset 0 1px 2px rgba(16, 20, 25, 0.15);
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 12px 0 0 12px;
+  transition: width 0.6s ease-in-out;
+}
+
+.chart-section {
+  width: 80%;
+  max-width: 600px;
+  background-color: rgba(0, 0, 0, 0.03);
+  padding: 1.5rem 1.5rem;
+  border-radius: 10px;
+  box-shadow: inset 0 1px 2px rgba(16, 20, 25, 0.05);
+  margin-top: 4rem;
+  text-align: left;
+}
+
+.chart-title {
+  font-family: var(--font-serif);
+  font-size: 1.1rem;
+  color: var(--color-text-primary);
+  margin-bottom: 1rem;
+}
+
+.nutrition-chart {
+  width: 100%;
+  height: 400px;
+}
+
+/* END NUTRITION PAGE */

@@ -30,7 +30,7 @@ export default function Inventory() {
 
         if (!mounted) return;
 
-        setIngredients(ingList || []);
+        setIngredients(ingList.results || []);
         setInventory(invList || []);
 
         // default selected ingredient to first not-in-inventory

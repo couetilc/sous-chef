@@ -13,7 +13,7 @@ export default function Recipes() {
   const [recipes, setRecipes ] = useState();
   const [ count, setCount ] = useState(0);
 
-  useEffect(() => {
+  const updateList = () => {
     const param = { page }
     if (enteredName && enteredName != '') {
       param.title = enteredName
@@ -25,7 +25,9 @@ export default function Recipes() {
       setCount(result.count)
       return result
     }).then(setRecipes)
-  }, [api, enteredName, filterFavorites, page])
+  }
+
+  useEffect(updateList, [api, enteredName, filterFavorites, page])
 
   const onFilterFavorites = () => {
     setFilterFavorites(!filterFavorites)
@@ -93,6 +95,17 @@ export default function Recipes() {
               <li key={i}>{step}</li>
               ))}</ul>
             </div>
+            <button 
+              className={recipe.is_favorited ? "button-toggledOn" : "button"}
+              onClick = {() => {
+                api.updateFavoriteRecipe({id: recipe.id})
+                .then(updateList())
+                // Page gets refetched every time you un/favorite a recipe.
+                // Could avoid this by attaching state but I was having trouble implementing it - might return later on
+              }}
+            >
+                {recipe.is_favorited ? 'Unfavorite this recipe' : 'Favorite this recipe'}
+            </button>
             {recipe.source_url &&
               <a className="source-url" href={recipe.source_url}>source</a>}
           </div>

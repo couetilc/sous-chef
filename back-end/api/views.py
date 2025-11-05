@@ -22,9 +22,8 @@ from .serializers import (
     CookedRecipeSerializer, MealSerializer, RecipeSerializer
 )
 
-# Create your views here.
-def index(request):
-    return HttpResponse("<h1>Hello, World!</h1>")
+class Paginator(PageNumberPagination):
+    page_size = 100
 
 class UserRegistrationView(generics.CreateAPIView):
     """Public endpoint for user registration"""
@@ -110,9 +109,11 @@ class CurrentUserView(APIView):
 
 class OnboardedView(APIView):
     """Get user's onboarding completion status"""
-    permission_class = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated]
     def get(self, request):
         user = request.user
+        print("onboard: ", user.onboarded.first().has_onboarded)
+        print("skip: ", user.onboarded.first().skipped)
         return Response({
             'onboarded': user.onboarded.first().has_onboarded,
             'skipped': user.onboarded.first().skipped
@@ -120,16 +121,18 @@ class OnboardedView(APIView):
 
 class UpdateOnboardedView(APIView):
     """Update user's onboarding completion status"""
-    permission_class = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated]
     def post(self, request):
         user = request.user
         user.onboarded.first().has_onboarded=request.data['new_onboarded']
-        user.onboarded.first().skipped=request.data['skipped']
+        user.onboarded.first().skipped=request.data['new_skipped']
+        print("new onboard: ", user.onboarded.first().has_onboarded)
+        print("new skip: ", user.onboarded.first().skipped)
         return Response({ 'message': 'Successfully completed onboarding'}, status=status.HTTP_200_OK)
 
 class HealthView(APIView):
     """"Get user's health information"""
-    permission_class = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated]
     def get(self, requeest):
         user = request.user
         return Response({
@@ -138,12 +141,13 @@ class HealthView(APIView):
             'height_in': user.health.first().height_in,
             'weight': user.health.first().weight,
             'activity_level': user.health.first().activity_level,
-            'goal': user.health.first().goal
+            'goal': user.health.first().goal,
+            'sex': user.health.first().sex
         }, status=status.HTTP_200_OK)
 
 class UpdateHealthView(APIView):
     """Update user's health information"""
-    permission_class = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated]
     def post(self, request):
         user = request.user
         user.health.first().age = request.data['age']
@@ -152,6 +156,7 @@ class UpdateHealthView(APIView):
         user.health.first().weight = request.data['weight']
         user.health.first().activity_level = request.data['activity_level']
         user.health.first().goal = request.data['goal']
+        user.health.first().sex = request.data['sex']
 
 
 
@@ -234,6 +239,7 @@ class IngredientList(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
+    pagination_class = Paginator
 
 
 class DietaryIngredientList(generics.ListAPIView):
@@ -406,11 +412,10 @@ class GetRecipesFiltered(APIView):
         if searchFavorite and searchFavorite == 'True':
             queryset = queryset.filter(user_favorites__isnull=False)
 
-        paginator = PageNumberPagination()
-        paginator.page_size = 100
+        paginator = Paginator()
         page = paginator.paginate_queryset(queryset, request)
-        serializer = RecipeSerializer(page, many=True)
-
+        
+        serializer = RecipeSerializer(page, many=True, context = {'user': request.user})
         return paginator.get_paginated_response(serializer.data)
 
 class CreateFavoriteRecipe(APIView):
@@ -419,17 +424,23 @@ class CreateFavoriteRecipe(APIView):
     def post(self, request):
         recipeID = request.data.get('recipeID')
         recipe = Recipe.objects.get(id=recipeID)
-        user = request.user
 
-        newFavorite = FavoriteRecipe(user=user, recipe=recipe)
-        newFavorite.save()
+        oldFavorite = FavoriteRecipe.objects.filter(recipe=recipe).first() 
+        if (oldFavorite != None) :
+            oldFavorite.delete()
+            return Response({'message': 'Successfully unfavorited recipe'}, status=status.HTTP_200_OK)
+        else:
+            user = request.user
+            newFavorite = FavoriteRecipe(user=user, recipe=recipe)
+            newFavorite.save()
+            return Response({'message': 'Successfully favorited recipe'}, status=status.HTTP_200_OK)
 
-        return Response({'message': 'Successfully favorited recipe'}, status=status.HTTP_200_OK)
-
+        
+       
 class UserInventoryList(APIView):
     """List user inventory for the authenticated user"""
     permission_classes = [permissions.IsAuthenticated]
-    
+
     def get(self, request):
         inventories = UserInventory.objects.filter(user=request.user).order_by('ingredient__name')
 
@@ -460,17 +471,17 @@ class UserInventoryList(APIView):
         }
 
         return Response(serializer_data, status=status.HTTP_201_CREATED)
-    
+
 class UserInventoryDetail(APIView):
     """Retrieve, update or delete a user inventory item"""
     permission_classes = [permissions.IsAuthenticated]
-    
+
     def get(self, request, id):
         try:
             inventory = UserInventory.objects.get(id=id, user=request.user)
         except UserInventory.DoesNotExist:
             return Response({'error': 'Not found'}, status=status.HTTP_404_NOT_FOUND)
-        
+
         data = {
             'id': inventory.id,
             'ingredient': IngredientSerializer(inventory.ingredient).data,

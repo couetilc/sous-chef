@@ -34,23 +34,34 @@ const DeleteComponent = () => {
         dialog.showModal();
     }
 
-    return (
-        <div className="delete">
-            <dialog id="deleteAccountDialog">
-                <form action={login}>
-                    <input name="user" placeholder="Enter Username" /> <br />
-                    <input name="password" placeholder="Enter Password" /> <br />
+  return (
+    <>
+      <dialog id="deleteAccountDialog" >
+        <h3>Confirm Account Deletion</h3>
+        <form action={login}>
+          <input className="text-input" name="user" placeholder="Enter Username" />
+          <input className="text-input" name="password" placeholder="Enter Password" />
 
-                    <button formMethod='dialog'>Cancel</button>
-                    <button type='submit'>Submit</button>
-                </form>
-            </dialog>
+          <button className="button" type='submit'>Submit</button>
+          <button
+            className="button-blue"
+            formMethod='dialog'
+            onClick={e => {
+              e.preventDefault()
+              document.getElementById("deleteAccountDialog").close()
+            }}
+          >Cancel</button>
+        </form>
+      </dialog>
 
-            <form action={showDeleteDialog}>
-                <button type="submit">Delete Account</button>
-            </form>
-        </div>
-    );
+      <div className="settings-container">
+        <h3>Delete Account</h3>
+        <form action={showDeleteDialog}>
+          <button className="button-yellow" type="submit">Confirm Deletion</button>
+        </form>
+      </div>
+    </>
+  );
 };
 
 export default DeleteComponent;
