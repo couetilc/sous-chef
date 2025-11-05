@@ -2,6 +2,7 @@ import './style.css';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { useApi } from './useApi';
+import IngredientsSelectMultiple from './ingredientsSelectMultiple'
 
 import SousChefLogo from './souschef-logo.png';
 
@@ -11,6 +12,7 @@ export default function Recipes() {
   const [filterFavorites, setFilterFavorites] = useState(false)
   const [page, setPage] = useState(1)
   const [recipes, setRecipes ] = useState();
+  const [selectedOptions, setSelectedOptions] = useState([])
 
   const updateList = () => {
     const param = { page }
@@ -32,6 +34,7 @@ export default function Recipes() {
   const clearFilters = () => {
     setEnteredName('')
     setFilterFavorites(false)
+    setSelectedOptions([])
     document.querySelector('input[name="recipeName"]').value = '';
   }
 
@@ -63,6 +66,9 @@ export default function Recipes() {
         <div className="filter-clear">
           <button className="button" type="button" onClick={clearFilters}>Clear Filters</button>
         </div>
+      </div>
+      <div>
+        <IngredientsSelectMultiple selectedOptions={selectedOptions} setSelectedOptions={setSelectedOptions}/>
       </div>
       <div className="paging">
         {recipes?.previous &&
