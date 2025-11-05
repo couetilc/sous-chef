@@ -81,9 +81,16 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 class RecipeSerializer(serializers.ModelSerializer):
     is_favorited = serializers.SerializerMethodField('check_favorited')
 
+    @property
+    def user(self):
+        request = self.context.get('request', None)
+        if request and hasattr(request, 'user'):
+            user = request.user
+        else:
+            user = None
+
     def check_favorited(self, instance):
-        user = self.context['user']
-        if not user: return False
+        if not self.user: return False
 
         userQuery = instance.user_favorites.all()
         userQuery = userQuery.filter(user__id=user.id)
