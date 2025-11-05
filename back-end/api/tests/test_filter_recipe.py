@@ -76,6 +76,29 @@ class TestFilterRecipes:
 
         assert len(response.data['results']) == 2
 
+    def test_filter_recipeingredient_multiple(self, authenticated_client, test_user):
+        fries = Recipe.objects.create(title='Fries')
+        potatoes = Ingredient.objects.create(name='Russet Potatoes')
+        potatoesFriesRI = RecipeIngredient.objects.create(ingredient=potatoes, recipe=fries)
+
+        chips = Recipe.objects.create(title='Chips')
+        potatoesChipsRI = RecipeIngredient.objects.create(ingredient=potatoes, recipe=chips)
+
+        salt = Ingredient.objects.create(name='Salt')
+        saltFriesRI = RecipeIngredient.objects.create(ingredient=salt, recipe=fries)
+
+        sFries = Recipe.objects.create(title='Sweet Potato Fries')
+        sPotatoes = Ingredient.objects.create(name='Sweet Potatoes')
+        sPotatoesRI = RecipeIngredient.objects.create(ingredient=sPotatoes, recipe=sFries)
+
+        response = authenticated_client.post('/api/recipes/searchFiltered/', {
+            "searchFavorite": False,
+            "title" : "",
+            "ingredients" : [salt.id, sPotatoes.id],
+        })
+
+        assert len(response.data['results']) == 0
+
     def test_filter_favorite(self, authenticated_client, test_user):
         fries = Recipe.objects.create(title='Fries')
         ofries = Recipe.objects.create(title='Ofries')

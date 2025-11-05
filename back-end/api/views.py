@@ -408,7 +408,7 @@ class GetRecipesFiltered(APIView):
         if title:
             queryset = queryset.filter(title__icontains=title)
 
-        ingredients = request.data.get('ingredients')
+        ingredients = request.POST.getlist('ingredients')
         if ingredients:
             for id in ingredients:
                 recipes = Recipe.objects.filter(ingredients_list__ingredient__id=id)
