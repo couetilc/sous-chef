@@ -2,15 +2,18 @@ import './style.css';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { useApi } from './useApi';
+import IngredientsSelectMultiple from './ingredientsSelectMultiple'
 
 import SousChefLogo from './souschef-logo.png';
 
 export default function Recipes() {
   const { api } = useApi();
   const [enteredName, setEnteredName] = useState('')
+  const [filterInventory, setFilterInventory] = useState(false)
   const [filterFavorites, setFilterFavorites] = useState(false)
   const [page, setPage] = useState(1)
   const [recipes, setRecipes ] = useState();
+  const [selectedOptions, setSelectedOptions] = useState([])
   const [ count, setCount ] = useState(0);
 
   const updateList = () => {
@@ -18,9 +21,18 @@ export default function Recipes() {
     if (enteredName && enteredName != '') {
       param.title = enteredName
     }
+    if (filterInventory) {
+      param.searchInventory = 'True'
+    }
     if (filterFavorites) {
       param.searchFavorite = 'True'
     }
+    if (selectedOptions.length != 0) {
+      const ingredients = selectedOptions.map(option => option.value)
+      console.log(ingredients)
+      param.ingredients = ingredients
+    }
+
     api.getRecipesFiltered(param).then( (result) => {
       setCount(result.count)
       return result
@@ -29,6 +41,10 @@ export default function Recipes() {
 
   useEffect(updateList, [api, enteredName, filterFavorites, page])
 
+  const onFilterInventory= () => {
+    setFilterInventory(!filterInventory)
+  }
+
   const onFilterFavorites = () => {
     setFilterFavorites(!filterFavorites)
   }
@@ -36,6 +52,7 @@ export default function Recipes() {
   const clearFilters = () => {
     setEnteredName('')
     setFilterFavorites(false)
+    setSelectedOptions([])
     document.querySelector('input[name="recipeName"]').value = '';
   }
 
@@ -60,6 +77,13 @@ export default function Recipes() {
         <div className="filter-favorite">
           <button className="button"
             type="button"
+            onClick={onFilterInventory}
+          >
+            Filter by Inventory ({filterInventory.toString()})
+          </button>
+
+          <button className="button"
+            type="button"
             onClick={onFilterFavorites}
           >
             Filter by Favorites ({filterFavorites.toString()})
@@ -68,6 +92,9 @@ export default function Recipes() {
         <div className="filter-clear">
           <button className="button" type="button" onClick={clearFilters}>Clear Filters</button>
         </div>
+      </div>
+      <div>
+        <IngredientsSelectMultiple selectedOptions={selectedOptions} setSelectedOptions={setSelectedOptions}/>
       </div>
       <div className="paging">
         {recipes?.previous &&
