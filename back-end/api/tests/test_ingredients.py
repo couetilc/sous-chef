@@ -63,10 +63,11 @@ class TestIngredientListEndpoint:
         response = authenticated_client.get('/api/ingredients/')
 
         assert response.status_code == status.HTTP_200_OK
-        assert len(response.data) == 5
+        assert len(response.data['results']) == 5
+        assert response.data['count'] == 5
 
         # Verify all ingredients are returned (ordered by name)
-        ingredient_names = [item['name'] for item in response.data]
+        ingredient_names = [item['name'] for item in response.data['results']]
         assert ingredient_names == ['Eggs', 'Milk', 'Peanuts', 'Soy', 'Wheat']
 
     def test_ingredient_serialization(self, authenticated_client, test_ingredients):
@@ -76,7 +77,7 @@ class TestIngredientListEndpoint:
         assert response.status_code == status.HTTP_200_OK
 
         # Check that each ingredient has id and name fields
-        for ingredient_data in response.data:
+        for ingredient_data in response.data['results']:
             assert 'id' in ingredient_data
             assert 'name' in ingredient_data
             assert isinstance(ingredient_data['id'], int)
@@ -87,8 +88,9 @@ class TestIngredientListEndpoint:
         response = authenticated_client.get('/api/ingredients/')
 
         assert response.status_code == status.HTTP_200_OK
-        assert len(response.data) == 0
-        assert response.data == []
+        assert len(response.data['results']) == 0
+        assert response.data['count'] == 0
+        assert response.data['results'] == []
 
     def test_ingredient_list_ordering(self, authenticated_client):
         """Test that ingredients are ordered alphabetically by name"""
@@ -100,7 +102,7 @@ class TestIngredientListEndpoint:
         response = authenticated_client.get('/api/ingredients/')
 
         assert response.status_code == status.HTTP_200_OK
-        ingredient_names = [item['name'] for item in response.data]
+        ingredient_names = [item['name'] for item in response.data['results']]
         assert ingredient_names == ['Apple', 'Mango', 'Zucchini']
 
 
