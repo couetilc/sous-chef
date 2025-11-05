@@ -154,6 +154,12 @@ export class Api {
     })
   }
 
+  async syncDiets({ diet_ids }) {
+    return this.fetch('/api/diets/sync/', {
+      body: JSON.stringify({ diet_ids })
+    })
+  }
+
   async logout() {
     return this.fetch('/api/logout/', { method: "POST" })
   }
