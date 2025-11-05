@@ -14,13 +14,14 @@ from .serializers import UserSerializer, GroupSerializer, UserRegistrationSerial
 from decimal import Decimal, InvalidOperation
 from .models import (
     Ingredient, DietaryIngredient, Diet, UserDiet,
-    Recipe, CookedRecipe, Meal, FavoriteRecipe, UserInventory, OnboardingSubmission, RecipeIngredient
+    Recipe, CookedRecipe, Meal, FavoriteRecipe, UserInventory, OnboardingSubmission, RecipeIngredient, HealthDetails
 )
 from .serializers import (
     UserSerializer, GroupSerializer, UserRegistrationSerializer,
     IngredientSerializer, DietSerializer,
     CookedRecipeSerializer, MealSerializer, RecipeSerializer
 )
+from .utils.recommended import compute_recommendations
 
 class Paginator(PageNumberPagination):
     page_size = 100
@@ -133,16 +134,18 @@ class UpdateOnboardedView(APIView):
 class HealthView(APIView):
     """"Get user's health information"""
     permission_classes = [permissions.IsAuthenticated]
-    def get(self, requeest):
-        user = request.user
+    def get(self, request):
+        health = HealthDetails.objects.filter(user=request.user).order_by('-id').first()
+        if not health:
+            return Response({'error': 'No health profile found'}, status=status.HTTP_404_NOT_FOUND)
         return Response({
-            'age': user.health.first().age,
-            'height_ft': user.health.first().height_ft,
-            'height_in': user.health.first().height_in,
-            'weight': user.health.first().weight,
-            'activity_level': user.health.first().activity_level,
-            'goal': user.health.first().goal,
-            'sex': user.health.first().sex
+            'age': health.age,
+            'height_ft': health.height_ft,
+            'height_in': health.height_in,
+            'weight': health.weight,
+            'activity_level': health.activity_level,
+            'goal': health.goal,
+            'sex': health.sex
         }, status=status.HTTP_200_OK)
 
 class UpdateHealthView(APIView):
@@ -158,7 +161,16 @@ class UpdateHealthView(APIView):
         user.health.first().goal = request.data['goal']
         user.health.first().sex = request.data['sex']
 
+class HealthRecommendationsView(APIView):
+    """Compute calorie/protein recommendations from the user's HealthDetails"""
+    permission_classes = [permissions.IsAuthenticated]
 
+    def get(self, request):
+        health = HealthDetails.objects.filter(user=request.user).order_by('-id').first()
+        if not health:
+            return Response({'error': 'No health profile found'}, status=status.HTTP_404_NOT_FOUND)
+        data = compute_recommendations(health)
+        return Response(data, status=status.HTTP_200_OK)
 
 @method_decorator(ensure_csrf_cookie, name='dispatch')
 class CSRFTokenView(APIView):
