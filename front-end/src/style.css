@@ -882,7 +882,7 @@ body {
 
 /* END CREATE ACCOUNT PAGE */
 
-.button, .button-blue, .button-yellow {
+.button, .button-blue, .button-yellow, button-toggledOn {
   --button-color: var(--color-auburn);
   --button-shadow: oklch(from var(--button-color) calc(l + .1) c h);
   --button-background: oklch(from var(--button-color) calc(l + 1) c h);
@@ -900,8 +900,13 @@ body {
   --button-color: var(--color-blue);
 }
 
+.button-toggledOn {
+  --button-color: var(--color-blue);
+}
+
 .button-yellow {
   --button-color: var(--color-yellow);
+
 }
 
 .text-input, .text-input-blue {

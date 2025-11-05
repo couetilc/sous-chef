@@ -211,6 +211,14 @@ export class Api {
     })
   }
 
+  async updateFavoriteRecipe({id}) {
+    return this.fetch('/api/recipes/createFavorite/', {
+      body: JSON.stringify({
+        recipeID: id
+      })
+    })
+  }
+
   async recipeHistory() {
     return this.fetch('/api/recipe_history/')
   }

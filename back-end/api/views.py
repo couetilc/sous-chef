@@ -414,8 +414,8 @@ class GetRecipesFiltered(APIView):
 
         paginator = Paginator()
         page = paginator.paginate_queryset(queryset, request)
-        serializer = RecipeSerializer(page, many=True)
-
+        
+        serializer = RecipeSerializer(page, many=True, context = {'user': request.user})
         return paginator.get_paginated_response(serializer.data)
 
 class CreateFavoriteRecipe(APIView):
@@ -424,13 +424,19 @@ class CreateFavoriteRecipe(APIView):
     def post(self, request):
         recipeID = request.data.get('recipeID')
         recipe = Recipe.objects.get(id=recipeID)
-        user = request.user
 
-        newFavorite = FavoriteRecipe(user=user, recipe=recipe)
-        newFavorite.save()
+        oldFavorite = FavoriteRecipe.objects.filter(recipe=recipe).first() 
+        if (oldFavorite != None) :
+            oldFavorite.delete()
+            return Response({'message': 'Successfully unfavorited recipe'}, status=status.HTTP_200_OK)
+        else:
+            user = request.user
+            newFavorite = FavoriteRecipe(user=user, recipe=recipe)
+            newFavorite.save()
+            return Response({'message': 'Successfully favorited recipe'}, status=status.HTTP_200_OK)
 
-        return Response({'message': 'Successfully favorited recipe'}, status=status.HTTP_200_OK)
-
+        
+       
 class UserInventoryList(APIView):
     """List user inventory for the authenticated user"""
     permission_classes = [permissions.IsAuthenticated]

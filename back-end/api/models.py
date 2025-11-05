@@ -226,7 +226,7 @@ class FavoriteRecipe(models.Model):
         unique_together = ['user', 'recipe']
 
     def __str__(self):
-        return f"{self.user.username}:{self.recipe.title}"
+        return f"(user:{self.user.id},recipe:{self.recipe.id})"
 
 
 class OnboardingSubmission(models.Model):
