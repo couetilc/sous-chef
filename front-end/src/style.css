@@ -882,7 +882,7 @@ body {
 
 /* END CREATE ACCOUNT PAGE */
 
-.button, .button-blue, .button-yellow, button-toggledOn {
+.button, .button-blue, .button-yellow, .button-toggledOn {
   --button-color: var(--color-auburn);
   --button-shadow: oklch(from var(--button-color) calc(l + .1) c h);
   --button-background: oklch(from var(--button-color) calc(l + 1) c h);
