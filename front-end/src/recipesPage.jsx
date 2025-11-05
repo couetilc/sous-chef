@@ -15,6 +15,8 @@ export default function Recipes() {
   const [recipes, setRecipes ] = useState();
   const [selectedOptions, setSelectedOptions] = useState([])
   const [ count, setCount ] = useState(0);
+  const [servingsMultipliers, setServingsMultipliers] = useState({});
+  const [servingsInputs, setServingsInputs] = useState({});
 
   const updateList = () => {
     const param = { page }
@@ -55,6 +57,15 @@ export default function Recipes() {
     setSelectedOptions([])
     document.querySelector('input[name="recipeName"]').value = '';
   }
+
+  // Handler to update multiplier for a recipe id
+  const handleServingsChange = (recipeId, value) => {
+    setServingsInputs(prev => ({ ...prev, [recipeId]: value }));
+    const parsed = parseFloat(value);
+    if (!isNaN(parsed) && parsed > 0) {
+      setServingsMultipliers(prev => ({ ...prev, [recipeId]: parsed }));
+    }
+  };
 
   return (
     <div className="recipes-page">
@@ -123,7 +134,6 @@ export default function Recipes() {
               ))}</ul>
             </div>
             <br></br>
-            <br></br>
             <div className="servings">
               <h4>Servings:</h4>
               <ul>
@@ -132,13 +142,27 @@ export default function Recipes() {
             </div>
             <br></br>
             <div className="nutrition">
-              <h4>Nutrition (per serving):</h4>
+              <h4>Nutrition:</h4>
               <ul>
-                <li>{"Calories: " + recipe.calories_per_serving}</li>
-                <li>{"Fat: " + recipe.fat_g + "g"}</li>
-                <li>{"Protein: " + recipe.protein_g + "g"}</li>
-                <li>{"Carbs: " + recipe.carbs_g + "g"}</li>
+                <li>{"Calories: " + ((recipe.calories_per_serving || 0) * (servingsMultipliers[recipe.id] || 1)).toFixed(1)}</li>
+                <li>{"Fat: " + ((recipe.fat_g || 0) * (servingsMultipliers[recipe.id] || 1)).toFixed(1) + "g"}</li>
+                <li>{"Protein: " + ((recipe.protein_g || 0) * (servingsMultipliers[recipe.id] || 1)).toFixed(1) + "g"}</li>
+                <li>{"Carbs: " + ((recipe.carbs_g || 0) * (servingsMultipliers[recipe.id] || 1)).toFixed(1) + "g"}</li>
               </ul>
+            </div>
+            <div className="nutrition-multiplier" style={{ marginTop: '8px' }}>
+              <label htmlFor={`servings-${recipe.id}`} style={{ marginRight: '6px' }}>
+                # of servings:
+              </label>
+              <input
+                id={`servings-${recipe.id}`}
+                type="number"
+                min="1"
+                step="0.5"
+                value={servingsInputs[recipe.id] ?? servingsMultipliers[recipe.id] ?? 1}
+                onChange={(e) => handleServingsChange(recipe.id, e.target.value)}
+                style={{ width: '60px' }}
+              />
             </div>
             <button 
               className={recipe.is_favorited ? "button-toggledOn" : "button"}
