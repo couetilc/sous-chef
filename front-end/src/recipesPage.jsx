@@ -9,6 +9,7 @@ import SousChefLogo from './souschef-logo.png';
 export default function Recipes() {
   const { api } = useApi();
   const [enteredName, setEnteredName] = useState('')
+  const [filterInventory, setFilterInventory] = useState(false)
   const [filterFavorites, setFilterFavorites] = useState(false)
   const [page, setPage] = useState(1)
   const [recipes, setRecipes ] = useState();
@@ -18,6 +19,9 @@ export default function Recipes() {
     const param = { page }
     if (enteredName && enteredName != '') {
       param.title = enteredName
+    }
+    if (filterInventory) {
+      param.searchInventory = 'True'
     }
     if (filterFavorites) {
       param.searchFavorite = 'True'
@@ -31,6 +35,10 @@ export default function Recipes() {
   }
 
   useEffect(updateList, [api, enteredName, filterFavorites, page])
+
+  const onFilterInventory= () => {
+    setFilterInventory(!filterInventory)
+  }
 
   const onFilterFavorites = () => {
     setFilterFavorites(!filterFavorites)
@@ -61,6 +69,13 @@ export default function Recipes() {
           </form>
         </div>
         <div className="filter-favorite">
+          <button className="button"
+            type="button"
+            onClick={onFilterInventory}
+          >
+            Filter by Inventory ({filterInventory.toString()})
+          </button>
+
           <button className="button"
             type="button"
             onClick={onFilterFavorites}
