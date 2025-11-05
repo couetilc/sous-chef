@@ -25,10 +25,9 @@ export default function IngredientsSelect(props) {
 
   return (
     <Select
+      {...props}
       options={options}
       isLoading={isLoading}
-      onInputChange={props.onInputChange}
-      noOptionsMessage={() => "No options found"}
       onMenuScrollToBottom={onMenuScrollToBottom}
     />
   )

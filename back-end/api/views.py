@@ -276,8 +276,11 @@ class UpdateDietaryIngredientList(APIView):
 class DietList(generics.ListAPIView):
     """List all available diets in the database"""
     permission_classes = [permissions.IsAuthenticated]
-    queryset = Diet.objects.all()
     serializer_class = DietSerializer
+
+    def get_queryset(self):
+        return Diet.objects.all()
+
 
 class SelectedDietList(generics.ListAPIView):
     """List selected diets for the authenticated user"""
