@@ -11,6 +11,11 @@ const SelectRestrictedIngredients = forwardRef((props, ref) => {
   const [search, setSearch] = useState('')
 
   useEffect(() => {
+    setOptions([])
+    setPage(0)
+  }, [search])
+
+  useEffect(() => {
     if (page === 0) {
       setPage(1)
       return;
@@ -22,7 +27,7 @@ const SelectRestrictedIngredients = forwardRef((props, ref) => {
       setIsLoading(true)
       try {
         const response = await api.getSettingsRestrictedIngredients(
-          { page, search },
+          { page, search, include: value.map(val => val.value) },
           { signal: abortController.signal },
         )
         const restricted = response.results
@@ -33,7 +38,11 @@ const SelectRestrictedIngredients = forwardRef((props, ref) => {
           }))
 
         if (restricted.length > 0) {
-          setValue(values => values.concat(restricted))
+          setValue(values => {
+            return Array.from(
+              new Map([...values, ...restricted].map(item => [item.value, item])).values()
+            )
+          })
         }
 
         const nextOptions = response.results.map(ingredient => ({
@@ -42,6 +51,9 @@ const SelectRestrictedIngredients = forwardRef((props, ref) => {
         }))
 
         setOptions(options => options.concat(nextOptions))
+      }
+      catch (error) {
+        // ignore
       }
       finally {
         setIsLoading(false)
@@ -52,7 +64,7 @@ const SelectRestrictedIngredients = forwardRef((props, ref) => {
       clearTimeout(timeoutId)
       abortController.abort()
     }
-  }, [page, search])
+  }, [page])
 
   function onMenuScrollToBottom() {
     setPage(page => page + 1)
@@ -73,33 +85,6 @@ const SelectRestrictedIngredients = forwardRef((props, ref) => {
       }
     },
   }))
-
-  // I want an api that returns:
-  // {
-  //   "ingredients": [{
-  //     ...
-  //     "is_restricted": true|false,
-  //   }],
-  // }
-  //
-  // backend logic:
-  // - always return ingredients that have been restricted.
-  // - otherwise, return ingredients according to the page requested
-  //   - and according to a "?search=<name>" parameter
-  //
-  // frontend logic:
-  // - call GET "/api/settings/restricted_ingredients/"
-  // - map over response
-  //   - sort "is_restricted" true into pre-selected values
-  //   - put the rest as options
-  // - on user typing
-  //   - call GET "/api/settings/restricted_ingredients/?search=<name>&page=1"
-  //   - delay the call until user stops typing for 500ms
-  //   - if the user types again, abort any in-flight calls.
-  //   - "page" state gets reset to 1 if they type.
-  // - on user submission (button press)
-  //   - POST "/api/settings/restricted_ingredients/" with {"ingredient_ids":[...]}
-  //   - backend will perform a sync operation, similar to diet
 
   return (
     <Select

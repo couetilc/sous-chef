@@ -7,7 +7,7 @@ from django.middleware.csrf import get_token
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.utils.decorators import method_decorator
 from django.utils.dateparse import parse_datetime
-from django.db.models import Exists, OuterRef, Case, When, Value, IntegerField, Q
+from django.db.models import Exists, OuterRef, Case, When, Value, IntegerField, Q, BooleanField
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -592,16 +592,28 @@ class SettingsRestrictedIngredients(APIView):
             )
         )
 
+        include_ids = request.query_params.getlist('include')
+        include_ids = [int(id) for id in include_ids if id.isdigit()]
+
+        queryset = queryset.annotate(
+            is_included=Case(
+                When(id__in=include_ids, then=Value(True)),
+                default=Value(False),
+                output_field=BooleanField()
+            )
+        )
+
         search = request.query_params.get('search', None)
         if search:
             queryset = queryset.filter(
-                Q(is_restricted=True) | Q(name__icontains=search)
+                Q(is_restricted=True) | Q(is_included=True) | Q(name__icontains=search)
             )
 
         queryset = queryset.annotate(
             priority=Case(
                 When(is_restricted=True, then=Value(0)),
-                default=Value(1),
+                When(is_included=True, then=Value(1)),
+                default=Value(2),
                 output_field=IntegerField()
             )
         ).order_by('priority', 'name')

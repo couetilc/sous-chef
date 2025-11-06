@@ -78,6 +78,22 @@ class TestSettingsAPI:
         assert response.data['results'][0]['is_restricted'] == True
         assert response.data['results'][1]['is_restricted'] == False
 
+    def test_get_settings_restricted_ingredients_with_included_ingredients(self, authenticated_client, test_user):
+        for i in range(100):
+            Ingredient.objects.create(name=f"foo{i}")
+        zoo = Ingredient.objects.create(name="zoo")
+
+        response = authenticated_client.get(f'/api/settings/restricted_ingredients/?page=1&include={zoo.id}')
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['count'] == 101
+        assert len(response.data['results']) == 100
+        assert response.data['results'][0]['name'] == 'zoo'
+        assert response.data['results'][1]['name'] == 'foo0'
+        assert response.data['results'][0]['is_restricted'] == False
+        assert response.data['results'][1]['is_restricted'] == False
+
+
     def test_post_settings_create_restricted_ingredients(self, authenticated_client):
         foo = Ingredient.objects.create(name=f"foo")
 
