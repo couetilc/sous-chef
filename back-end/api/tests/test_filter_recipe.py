@@ -52,21 +52,21 @@ class TestFilterRecipes:
         })
 
         assert len(response.data['results']) == 4
-    
+
     def test_filter_recipeingredient(self, authenticated_client, test_user):
         fries = Recipe.objects.create(title='Fries')
         potatoes = Ingredient.objects.create(name='Russet Potatoes')
-        potatoesFriesRI = RecipeIngredient.objects.create(ingredient=potatoes, recipe=fries)
+        RecipeIngredient.objects.create(ingredient=potatoes, recipe=fries)
 
         chips = Recipe.objects.create(title='Chips')
-        potatoesChipsRI = RecipeIngredient.objects.create(ingredient=potatoes, recipe=chips)
+        RecipeIngredient.objects.create(ingredient=potatoes, recipe=chips)
 
         salt = Ingredient.objects.create(name='Salt')
-        saltFriesRI = RecipeIngredient.objects.create(ingredient=salt, recipe=fries)
+        RecipeIngredient.objects.create(ingredient=salt, recipe=fries)
 
         sFries = Recipe.objects.create(title='Sweet Potato Fries')
         sPotatoes = Ingredient.objects.create(name='Sweet Potatoes')
-        sPotatoesRI = RecipeIngredient.objects.create(ingredient=sPotatoes, recipe=sFries)
+        RecipeIngredient.objects.create(ingredient=sPotatoes, recipe=sFries)
 
         response = authenticated_client.post('/api/recipes/searchFiltered/', {
             "searchFavorite": False,
@@ -79,17 +79,17 @@ class TestFilterRecipes:
     def test_filter_recipeingredient_multiple(self, authenticated_client, test_user):
         fries = Recipe.objects.create(title='Fries')
         potatoes = Ingredient.objects.create(name='Russet Potatoes')
-        potatoesFriesRI = RecipeIngredient.objects.create(ingredient=potatoes, recipe=fries)
+        RecipeIngredient.objects.create(ingredient=potatoes, recipe=fries)
 
         chips = Recipe.objects.create(title='Chips')
-        potatoesChipsRI = RecipeIngredient.objects.create(ingredient=potatoes, recipe=chips)
+        RecipeIngredient.objects.create(ingredient=potatoes, recipe=chips)
 
         salt = Ingredient.objects.create(name='Salt')
-        saltFriesRI = RecipeIngredient.objects.create(ingredient=salt, recipe=fries)
+        RecipeIngredient.objects.create(ingredient=salt, recipe=fries)
 
         sFries = Recipe.objects.create(title='Sweet Potato Fries')
         sPotatoes = Ingredient.objects.create(name='Sweet Potatoes')
-        sPotatoesRI = RecipeIngredient.objects.create(ingredient=sPotatoes, recipe=sFries)
+        RecipeIngredient.objects.create(ingredient=sPotatoes, recipe=sFries)
 
         response = authenticated_client.post('/api/recipes/searchFiltered/', {
             "searchFavorite": False,
@@ -126,19 +126,19 @@ class TestFilterRecipes:
     def test_filter_userinventory(self, authenticated_client, test_user):
         fries = Recipe.objects.create(title='Fries')
         potatoes = Ingredient.objects.create(name='Russet Potatoes')
-        potatoesFriesRI = RecipeIngredient.objects.create(ingredient=potatoes, recipe=fries)
+        RecipeIngredient.objects.create(ingredient=potatoes, recipe=fries)
 
         chips = Recipe.objects.create(title='Chips')
-        potatoesChipsRI = RecipeIngredient.objects.create(ingredient=potatoes, recipe=chips)
+        RecipeIngredient.objects.create(ingredient=potatoes, recipe=chips)
 
         salt = Ingredient.objects.create(name='Salt')
-        saltFriesRI = RecipeIngredient.objects.create(ingredient=salt, recipe=fries)
+        RecipeIngredient.objects.create(ingredient=salt, recipe=fries)
 
         sFries = Recipe.objects.create(title='Sweet Potato Fries')
         sPotatoes = Ingredient.objects.create(name='Sweet Potatoes')
-        sPotatoesRI = RecipeIngredient.objects.create(ingredient=sPotatoes, recipe=sFries)
+        RecipeIngredient.objects.create(ingredient=sPotatoes, recipe=sFries)
 
-        potatoesInventoryIngredient = UserInventory.objects.create(ingredient=potatoes, user=test_user)
+        UserInventory.objects.create(ingredient=potatoes, user=test_user)
 
         response = authenticated_client.post('/api/recipes/searchFiltered/', {
             "searchFavorite": False,
@@ -231,7 +231,7 @@ class TestFilterRecipes:
         bfries = Recipe.objects.create(title='Bfries')
         chips = Recipe.objects.create(title='Chips')
 
-        favoriteFries = FavoriteRecipe.objects.create(user=test_user, recipe=fries)
+        FavoriteRecipe.objects.create(user=test_user, recipe=fries)
 
         response = authenticated_client.post('/api/recipes/searchFiltered/', {
             "searchFavorite": True,
