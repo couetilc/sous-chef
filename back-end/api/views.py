@@ -498,7 +498,7 @@ class GetRecipesFiltered(APIView):
         paginator = Paginator()
         page = paginator.paginate_queryset(queryset, request)
 
-        serializer = RecipeSerializer(page, many=True, context = {'user': request.user})
+        serializer = RecipeSerializer(page, many=True, context = {'request': request})
         return paginator.get_paginated_response(serializer.data)
 
 class CreateFavoriteRecipe(APIView):
