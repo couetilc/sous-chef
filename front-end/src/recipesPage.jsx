@@ -40,7 +40,7 @@ export default function Recipes() {
     }).then(setRecipes)
   }
 
-  useEffect(updateList, [api, enteredName, filterFavorites, page])
+  useEffect(updateList, [api, enteredName, filterFavorites, filterInventory, selectedOptions, page])
 
   const onFilterInventory = () => {
     setFilterInventory(!filterInventory)
@@ -52,6 +52,7 @@ export default function Recipes() {
 
   const clearFilters = () => {
     setEnteredName('')
+    setFilterInventory(false)
     setFilterFavorites(false)
     setSelectedOptions([])
     document.querySelector('input[name="recipeName"]').value = '';
@@ -219,7 +220,7 @@ export default function Recipes() {
                   // Could avoid this by attaching state but leaving the current behavior.
                 }}
               >
-                {recipe.is_favorited ? 'Unfavorite this recipe' : 'Favorite this recipe'}
+                {recipe.is_favorited ? '★ Unfavorite this recipe' : '☆ Favorite this recipe'}
               </button>
 
               {recipe.source_url &&

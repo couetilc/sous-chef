@@ -88,12 +88,13 @@ class RecipeSerializer(serializers.ModelSerializer):
             user = request.user
         else:
             user = None
+        return user
 
     def check_favorited(self, instance):
         if not self.user: return False
 
         userQuery = instance.user_favorites.all()
-        userQuery = userQuery.filter(user__id=user.id)
+        userQuery = userQuery.filter(user=self.user)
         return userQuery.first() != None
 
     class Meta:
