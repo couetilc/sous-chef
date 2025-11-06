@@ -312,7 +312,6 @@ class DietListSync(APIView):
         diet_ids = request.data.get('diet_ids', [])
 
         if not isinstance(diet_ids, list):
-            print('diet_ids: ', diet_ids)
             return Response(
                 {'error': 'diet_ids must be a list'},
                 status=status.HTTP_400_BAD_REQUEST
@@ -599,7 +598,6 @@ class SettingsRestrictedIngredients(APIView):
                 Q(is_restricted=True) | Q(name__icontains=search)
             )
 
-
         queryset = queryset.annotate(
             priority=Case(
                 When(is_restricted=True, then=Value(0)),
@@ -614,4 +612,36 @@ class SettingsRestrictedIngredients(APIView):
         return paginator.get_paginated_response(serialized.data)
 
     def post(self, request):
-        return Response(None, status.HTTP_501_NOT_IMPLEMENTED)
+        ingredient_ids = request.data.get('ingredient_ids')
+
+        if not isinstance(ingredient_ids, list):
+            return Response(
+                {'error': 'ingredient_ids must be a list'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if len(ingredient_ids) > 0 and not Ingredient.objects.filter(id__in=ingredient_ids).exists():
+            return Response(
+                {'error': 'One or more ingredient IDs are invalid'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        with transaction.atomic():
+            current_ingredient_ids = set(
+                DietaryIngredient.objects.filter(user=request.user).values_list('ingredient_id', flat=True)
+            )
+            request_ingredient_ids = set(ingredient_ids)
+
+            to_create = request_ingredient_ids - current_ingredient_ids
+            to_delete = current_ingredient_ids - request_ingredient_ids
+
+            DietaryIngredient.objects.filter(user=request.user, ingredient_id__in=to_delete).delete()
+            DietaryIngredient.objects.bulk_create(
+                DietaryIngredient(user=request.user, ingredient_id=ingredient_id)
+                for ingredient_id in to_create
+            )
+
+        return Response(
+            {'message':'Successfully updated restricted ingredients'},
+            status.HTTP_200_OK,
+        )

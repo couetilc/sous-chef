@@ -28,7 +28,7 @@ class TestSettingsAPI:
         assert response.data['results'][0]['name'] == 'zoo'
         assert response.data['results'][99]['name'] == 'foo98'
         assert response.data['results'][0]['is_restricted'] == True
-        assert response.data['results'][99]['name'] == False
+        assert response.data['results'][99]['is_restricted'] == False
 
     def test_get_settings_restricted_ingredients_must_only_return_users_restricted_ingredients(self, authenticated_client, test_user):
         Ingredient.objects.create(name=f"foo")
@@ -78,7 +78,51 @@ class TestSettingsAPI:
         assert response.data['results'][0]['is_restricted'] == True
         assert response.data['results'][1]['is_restricted'] == False
 
-    def test_post_settings_restricted_ingredients(self, authenticated_client):
-        response = authenticated_client.post('/api/settings/restricted_ingredients/')
+    def test_post_settings_create_restricted_ingredients(self, authenticated_client):
+        foo = Ingredient.objects.create(name=f"foo")
+
+        response = authenticated_client.post('/api/settings/restricted_ingredients/', {
+            'ingredient_ids': [foo.id],
+        })
 
         assert response.status_code == status.HTTP_200_OK
+        assert DietaryIngredient.objects.all().count() == 1
+        assert DietaryIngredient.objects.last().ingredient_id == foo.id
+
+    def test_post_settings_sync_must_provide_list(self, authenticated_client):
+        response = authenticated_client.post('/api/settings/restricted_ingredients/', {
+            'ingredient_ids': 1,
+        })
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'error' in response.data
+
+    def test_post_settings_sync_must_provide_valid_ids(self, authenticated_client):
+        response = authenticated_client.post('/api/settings/restricted_ingredients/', {
+            'ingredient_ids': [1],
+        })
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'error' in response.data
+
+    def test_post_settings_delete_restricted_ingredients(self, authenticated_client, test_user):
+        foo = Ingredient.objects.create(name=f"foo")
+        DietaryIngredient.objects.create(user=test_user, ingredient=foo)
+
+        response = authenticated_client.post('/api/settings/restricted_ingredients/', {
+            'ingredient_ids': [],
+        })
+
+        assert response.status_code == status.HTTP_200_OK
+        assert DietaryIngredient.objects.all().count() == 0
+
+    def test_post_settings_sync_restricted_ingredients(self, authenticated_client, test_user):
+        foo = Ingredient.objects.create(name=f"foo")
+        bar = Ingredient.objects.create(name=f"bar")
+        DietaryIngredient.objects.create(user=test_user, ingredient=foo)
+
+        response = authenticated_client.post('/api/settings/restricted_ingredients/', {
+            'ingredient_ids': [bar.id],
+        })
+
+        assert response.status_code == status.HTTP_200_OK
+        assert DietaryIngredient.objects.all().count() == 1
+        assert DietaryIngredient.objects.last().ingredient_id == bar.id
