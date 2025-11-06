@@ -523,3 +523,53 @@ class UserInventoryDetail(APIView):
 
         inventory.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+class NutritionLastDayView(APIView):
+    """Get total calories consumed in the last day"""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        from django.utils import timezone
+        from datetime import timedelta
+
+        end_time = timezone.now()
+        start_time = end_time - timedelta(days=1)
+
+        meals = Meal.objects.filter(
+            cooked_recipe__user=request.user,
+            eaten_at__range=(start_time, end_time)
+        )
+
+        total_calories = 0.0
+        for meal in meals:
+            recipe = meal.cooked_recipe.recipe
+            if recipe.calories_per_serving is not None:
+                total_calories += float(recipe.calories_per_serving) * float(meal.servings)
+
+        return Response({'calories': total_calories}, status=status.HTTP_200_OK)
+
+class NutritionLastWeekView(APIView):
+    """Get total calories consumed in the last week"""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        from django.utils import timezone
+        from datetime import timedelta
+
+        end_time = timezone.now()
+        start_time = end_time - timedelta(days=7)
+
+        meals = Meal.objects.filter(
+            cooked_recipe__user=request.user,
+            eaten_at__range=(start_time, end_time)
+        )
+
+        print("meals: ", meals)
+
+        total_calories = 0.0
+        for meal in meals:
+            recipe = meal.cooked_recipe.recipe
+            if recipe.calories_per_serving is not None:
+                total_calories += float(recipe.calories_per_serving) * float(meal.servings)
+
+        return Response({'calories': total_calories}, status=status.HTTP_200_OK)
