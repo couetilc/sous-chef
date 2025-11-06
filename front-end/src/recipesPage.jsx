@@ -173,7 +173,7 @@ export default function Recipes() {
                 // Could avoid this by attaching state but I was having trouble implementing it - might return later on
               }}
             >
-                {recipe.is_favorited ? 'Unfavorite this recipe' : 'Favorite this recipe'}
+                {recipe.is_favorited ? '★ Unfavorite this recipe' : '☆ Favorite this recipe'}
             </button>
             {recipe.source_url &&
               <a className="source-url" href={recipe.source_url}>source</a>}
