@@ -15,6 +15,7 @@ const hasCookTime = (t) => {
 export default function Recipe(props) {
   const recipe = props.recipe
   const isDetailPage = props.isDetailPage
+  const [editMode, setEditMode] = useState(false)
 
   const [servings, setServings] = useState()
 
@@ -24,7 +25,24 @@ export default function Recipe(props) {
   return (
     <div key={recipe.id} className="recipe">
       {isDetailPage &&
-        <h3>{recipe.title}</h3>
+        <h3>
+          {recipe.title} {editMode
+            ? <>
+                <button className="button" type="button">
+                  Save
+                </button> <button className="button-blue" type="button" onClick={
+                  () => setEditMode(mode => !mode)
+                }>
+                  Cancel
+                </button>
+              </>
+            : <button className="button" type="button" onClick={
+              () => setEditMode(mode => !mode)
+            }>
+              Edit
+            </button>
+          }
+        </h3>
       }
       {!isDetailPage &&
         <h3>
