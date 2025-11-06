@@ -14,7 +14,7 @@ urlpatterns = [
     path('user/updateOnboarded/', views.UpdateOnboardedView.as_view(), name='user-update-onboarded'),
     path('user/health/', views.HealthView.as_view(), name='user-health'),
     path('user/updateHealth/', views.UpdateHealthView.as_view(), name="user-update-health"),
-    path('user/health/recommendations/', views.HealthRecommendationsView.as_view(), name='user-health-recommendations'), 
+    path('user/health/recommendations/', views.HealthRecommendationsView.as_view(), name='user-health-recommendations'),
     path('csrf/', views.CSRFTokenView.as_view(), name='csrf-token'),
 
     # User and group management
@@ -47,4 +47,9 @@ urlpatterns = [
     # User inventory endpoints
     path('user_inventory/', views.UserInventoryList.as_view(), name='user-inventory-list'),
     path('user_inventory/<int:id>/', views.UserInventoryDetail.as_view(), name='user-inventory-detail'),
+
+    # Settings endpoints
+    path('settings/restricted_ingredients/',
+         views.SettingsRestrictedIngredients.as_view(),
+         name='settings-restricted-ingredients'),
 ]
