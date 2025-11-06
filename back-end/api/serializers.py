@@ -108,6 +108,11 @@ class RecipeSerializer(serializers.ModelSerializer):
             'fat_g',
             'carbs_g',
             'protein_g',
+            'prep_time_min',
+            'cook_time_min',
+            'total_time_min',
+            'price_per_serving_usd',
+            'total_price_usd',
         )
         read_only_fields = ('id',)
 
