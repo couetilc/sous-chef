@@ -8,13 +8,13 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from django.utils.decorators import method_decorator
 from django.utils.dateparse import parse_datetime
 from django.utils import timezone
-from django.db.models import Exists, OuterRef
+from django.db.models import Exists, OuterRef, Case, When, Value, IntegerField, Q, BooleanField
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.pagination import PageNumberPagination
 from django.contrib.auth.models import User, Group
-from .serializers import UserSerializer, GroupSerializer, UserRegistrationSerializer, IngredientSerializer, DietSerializer, CookedRecipeSerializer, MealSerializer, OnboardSerializer
+from .serializers import UserSerializer, GroupSerializer, UserRegistrationSerializer, IngredientSerializer, DietSerializer, CookedRecipeSerializer, MealSerializer, OnboardSerializer, SettingsIngredientSerializer
 from decimal import Decimal, InvalidOperation
 from .models import (
     Ingredient, DietaryIngredient, Diet, UserDiet,
@@ -313,7 +313,6 @@ class DietListSync(APIView):
         diet_ids = request.data.get('diet_ids', [])
 
         if not isinstance(diet_ids, list):
-            print('diet_ids: ', diet_ids)
             return Response(
                 {'error': 'diet_ids must be a list'},
                 status=status.HTTP_400_BAD_REQUEST
@@ -499,7 +498,7 @@ class GetRecipesFiltered(APIView):
         paginator = Paginator()
         page = paginator.paginate_queryset(queryset, request)
 
-        serializer = RecipeSerializer(page, many=True, context = {'user': request.user})
+        serializer = RecipeSerializer(page, many=True, context = {'request': request})
         return paginator.get_paginated_response(serializer.data)
 
 class CreateFavoriteRecipe(APIView):
@@ -662,3 +661,82 @@ class CaloriesLastWeekView(APIView):
         ]
 
         return Response({'daily_calories': sorted_daily}, status=status.HTTP_200_OK)
+
+class SettingsRestrictedIngredients(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        queryset = Ingredient.objects.annotate(
+            is_restricted=Exists(
+                DietaryIngredient.objects.filter(
+                    ingredient=OuterRef('pk'),
+                    user=request.user
+                )
+            )
+        )
+
+        include_ids = request.query_params.getlist('include')
+        include_ids = [int(id) for id in include_ids if id.isdigit()]
+
+        queryset = queryset.annotate(
+            is_included=Case(
+                When(id__in=include_ids, then=Value(True)),
+                default=Value(False),
+                output_field=BooleanField()
+            )
+        )
+
+        search = request.query_params.get('search', None)
+        if search:
+            queryset = queryset.filter(
+                Q(is_restricted=True) | Q(is_included=True) | Q(name__icontains=search)
+            )
+
+        queryset = queryset.annotate(
+            priority=Case(
+                When(is_restricted=True, then=Value(0)),
+                When(is_included=True, then=Value(1)),
+                default=Value(2),
+                output_field=IntegerField()
+            )
+        ).order_by('priority', 'name')
+
+        paginator = Paginator()
+        paginated = paginator.paginate_queryset(queryset, request)
+        serialized = SettingsIngredientSerializer(paginated, many = True)
+        return paginator.get_paginated_response(serialized.data)
+
+    def post(self, request):
+        ingredient_ids = request.data.get('ingredient_ids')
+
+        if not isinstance(ingredient_ids, list):
+            return Response(
+                {'error': 'ingredient_ids must be a list'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if len(ingredient_ids) > 0 and not Ingredient.objects.filter(id__in=ingredient_ids).exists():
+            return Response(
+                {'error': 'One or more ingredient IDs are invalid'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        with transaction.atomic():
+            current_ingredient_ids = set(
+                DietaryIngredient.objects.filter(user=request.user).values_list('ingredient_id', flat=True)
+            )
+            request_ingredient_ids = set(ingredient_ids)
+
+            to_create = request_ingredient_ids - current_ingredient_ids
+            to_delete = current_ingredient_ids - request_ingredient_ids
+
+            DietaryIngredient.objects.filter(user=request.user, ingredient_id__in=to_delete).delete()
+            DietaryIngredient.objects.bulk_create(
+                DietaryIngredient(user=request.user, ingredient_id=ingredient_id)
+                for ingredient_id in to_create
+            )
+
+        return Response(
+            {'message':'Successfully updated restricted ingredients'},
+            status.HTTP_200_OK,
+        )

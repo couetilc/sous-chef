@@ -88,12 +88,13 @@ class RecipeSerializer(serializers.ModelSerializer):
             user = request.user
         else:
             user = None
+        return user
 
     def check_favorited(self, instance):
         if not self.user: return False
 
         userQuery = instance.user_favorites.all()
-        userQuery = userQuery.filter(user__id=user.id)
+        userQuery = userQuery.filter(user=self.user)
         return userQuery.first() != None
 
     class Meta:
@@ -139,3 +140,10 @@ class CookedRecipeSerializer(serializers.ModelSerializer):
             'total_servings_cooked',
         )
         read_only_fields = ('id', 'cooked_at')
+
+class SettingsIngredientSerializer(serializers.ModelSerializer):
+    is_restricted = serializers.BooleanField(read_only=True)
+
+    class Meta:
+        model = Ingredient
+        fields = ('id', 'name', 'is_restricted')
