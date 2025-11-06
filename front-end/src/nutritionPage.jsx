@@ -23,7 +23,11 @@ export default function Nutrition() {
     api.UserNutritionLastDay().then(response => {
       console.log('Nutrition last day data:', response);
     })
-  }, []); 
+
+    api.UserCaloriesLastWeek().then(response => {
+      console.log('Calories last week data:', response);
+    });
+  }, []);
 
   useEffect(() => {
     const today = new Date();
@@ -80,15 +84,13 @@ export default function Nutrition() {
     })();
   }, []);
 
-  // Use API-driven goals in the bars
   const nutritionData = [
-    { label: 'Calories',      consumed: 2000, goal: goals.calories_goal,  color: '#f87171' },
-    { label: 'Protein (g)',   consumed: 120,  goal: goals.protein_goal_g, color: '#60a5fa' },
-    { label: 'Fat',           consumed: 60,   goal: 80,                   color: '#facc15' },
-    { label: 'Carbohydrates', consumed: 220,  goal: 300,                  color: '#4ade80' },
+    { label: 'Calories (kCal)', consumed: 2000, goal: goals.calories_goal, color: '#f87171'},
+    { label: 'Protein (g)', consumed: 120, goal: goals.protein_goal_g, color: '#60a5fa'},
+    { label: 'Fat (g)', consumed: 60, goal: 80, color: '#facc15'},
+    { label: 'Carbohydrates (g)', consumed: 220, goal: 300, color: '#4ade80'},
   ];
 
-  // Chart
   useEffect(() => {
     const chartDom = document.getElementById('main');
     if (!chartDom) return;

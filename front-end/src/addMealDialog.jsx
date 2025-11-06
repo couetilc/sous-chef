@@ -3,7 +3,9 @@ import { useApi } from './useApi'
 
 export default function AddMealDialog({ recipe, cookedRecipeId, onClose, onSuccess }) {
   const [servingsEaten, setServingsEaten] = useState('1')
-  const [ateAt, setAteAt] = useState(() => new Date().toISOString().slice(0, 16)) // YYYY-MM-DDTHH:mm
+  const [ateAt, setAteAt] = useState(() => new Date(
+        new Date().getTime() - new Date().getTimezoneOffset() * 60000
+      ).toISOString().slice(0, 16)) // YYYY-MM-DDTHH:mm
   const {api} = useApi()
 
   // Preview (GET) state
@@ -105,11 +107,16 @@ export default function AddMealDialog({ recipe, cookedRecipeId, onClose, onSucce
     try {
       // Endpoint: POST /api/cooked-recipes/<cooked_recipe_id>/meals/
       // Body: { servings, eaten_at }
+
+      const eaten_at = new Date(
+        new Date(ateAt).getTime() - new Date(ateAt).getTimezoneOffset() * 60000
+      ).toISOString()
+
       const res = await api.fetch(`/api/recipe_history/${cookedRecipeId}/meal/`, {
 
         body: JSON.stringify({
           servings: servingsNumber,
-          eaten_at: new Date(ateAt).toISOString(),
+          eaten_at,
         }),
       })
       // Placeholder behavior: just log the response; you can replace this with toasts/state
