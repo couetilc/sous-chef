@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Navigate } from 'react-router';
 import './style.css';
 import ChefHat from './chefhat.png';
@@ -7,10 +7,46 @@ import Nutrition from './nutrition.png'
 import Recipe from './recipe.png';
 import Inventory from './inventory.png';
 import { useUser } from './useUser.jsx'
+import { useApi } from './useApi.jsx';
 
 // home page, only accesssed after a user has logged in
 
+
 export default function Home(props) {
+  const [onboarded, setOnboarded] = useState(false);
+  const [skipped, setSkipped] = useState(false);
+  
+
+  useEffect(() => {
+    //runs once on page mount
+    async function getResponse() {
+      response = await api.getOnboardingStatus();
+      if ( response.ok ) {
+        setOnboarded(response.onboarded);
+        setSkipped(response.skipped);
+      }
+      else {
+        alert("ERROR: Non-ok response from onboarding status fetch!");
+      }
+    }
+  }, []);
+
+  function OnboardWarning() {
+    //optional onboarding warning for users that have skipped the onboarding process
+    function navToOnboard() {
+      const navigate = useNavigate();
+    }
+
+    if ( !onboarded && skipped ) {
+      return (
+        <button onClick={navToOnboard}>
+          Onboard Now!
+        </button>
+      )
+    }
+    return null;
+  }
+
   const navigate = useNavigate();
   const { user } = useUser();
 

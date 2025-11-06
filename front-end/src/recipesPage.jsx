@@ -2,26 +2,50 @@ import './style.css';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { useApi } from './useApi';
+import IngredientsSelectMultiple from './ingredientsSelectMultiple'
 
 import SousChefLogo from './souschef-logo.png';
 
 export default function Recipes() {
   const { api } = useApi();
   const [enteredName, setEnteredName] = useState('')
+  const [filterInventory, setFilterInventory] = useState(false)
   const [filterFavorites, setFilterFavorites] = useState(false)
   const [page, setPage] = useState(1)
   const [recipes, setRecipes ] = useState();
+  const [selectedOptions, setSelectedOptions] = useState([])
+  const [ count, setCount ] = useState(0);
+  const [servingsMultipliers, setServingsMultipliers] = useState({});
+  const [servingsInputs, setServingsInputs] = useState({});
 
-  useEffect(() => {
+  const updateList = () => {
     const param = { page }
     if (enteredName && enteredName != '') {
       param.title = enteredName
     }
+    if (filterInventory) {
+      param.searchInventory = 'True'
+    }
     if (filterFavorites) {
       param.searchFavorite = 'True'
     }
-    api.getRecipesFiltered(param).then(setRecipes)
-  }, [api, enteredName, filterFavorites, page])
+    if (selectedOptions.length != 0) {
+      const ingredients = selectedOptions.map(option => option.value)
+      console.log(ingredients)
+      param.ingredients = ingredients
+    }
+
+    api.getRecipesFiltered(param).then( (result) => {
+      setCount(result.count)
+      return result
+    }).then(setRecipes)
+  }
+
+  useEffect(updateList, [api, enteredName, filterFavorites, page])
+
+  const onFilterInventory= () => {
+    setFilterInventory(!filterInventory)
+  }
 
   const onFilterFavorites = () => {
     setFilterFavorites(!filterFavorites)
@@ -30,12 +54,23 @@ export default function Recipes() {
   const clearFilters = () => {
     setEnteredName('')
     setFilterFavorites(false)
+    setSelectedOptions([])
     document.querySelector('input[name="recipeName"]').value = '';
   }
+
+  // Handler to update multiplier for a recipe id
+  const handleServingsChange = (recipeId, value) => {
+    setServingsInputs(prev => ({ ...prev, [recipeId]: value }));
+    const parsed = parseFloat(value);
+    if (!isNaN(parsed) && parsed > 0) {
+      setServingsMultipliers(prev => ({ ...prev, [recipeId]: parsed }));
+    }
+  };
 
   return (
     <div className="recipes-page">
       <h1>Recipe Page</h1>
+      <h2>Displaying {count} recipes</h2>
       <div className="filter-bar">
         <div className="filter-name">
           <form onSubmit={e => {
@@ -53,6 +88,13 @@ export default function Recipes() {
         <div className="filter-favorite">
           <button className="button"
             type="button"
+            onClick={onFilterInventory}
+          >
+            Filter by Inventory ({filterInventory.toString()})
+          </button>
+
+          <button className="button"
+            type="button"
             onClick={onFilterFavorites}
           >
             Filter by Favorites ({filterFavorites.toString()})
@@ -61,6 +103,9 @@ export default function Recipes() {
         <div className="filter-clear">
           <button className="button" type="button" onClick={clearFilters}>Clear Filters</button>
         </div>
+      </div>
+      <div>
+        <IngredientsSelectMultiple selectedOptions={selectedOptions} setSelectedOptions={setSelectedOptions}/>
       </div>
       <div className="paging">
         {recipes?.previous &&
@@ -88,6 +133,48 @@ export default function Recipes() {
               <li key={i}>{step}</li>
               ))}</ul>
             </div>
+            <br></br>
+            <div className="servings">
+              <h4>Servings:</h4>
+              <ul>
+                <li>{recipe.servings}</li>
+              </ul>
+            </div>
+            <br></br>
+            <div className="nutrition">
+              <h4>Nutrition:</h4>
+              <ul>
+                <li>{"Calories: " + ((recipe.calories_per_serving || 0) * (servingsMultipliers[recipe.id] || 1)).toFixed(1)}</li>
+                <li>{"Fat: " + ((recipe.fat_g || 0) * (servingsMultipliers[recipe.id] || 1)).toFixed(1) + "g"}</li>
+                <li>{"Protein: " + ((recipe.protein_g || 0) * (servingsMultipliers[recipe.id] || 1)).toFixed(1) + "g"}</li>
+                <li>{"Carbs: " + ((recipe.carbs_g || 0) * (servingsMultipliers[recipe.id] || 1)).toFixed(1) + "g"}</li>
+              </ul>
+            </div>
+            <div className="nutrition-multiplier" style={{ marginTop: '8px' }}>
+              <label htmlFor={`servings-${recipe.id}`} style={{ marginRight: '6px' }}>
+                # of servings:
+              </label>
+              <input
+                id={`servings-${recipe.id}`}
+                type="number"
+                min="1"
+                step="0.5"
+                value={servingsInputs[recipe.id] ?? servingsMultipliers[recipe.id] ?? 1}
+                onChange={(e) => handleServingsChange(recipe.id, e.target.value)}
+                style={{ width: '60px' }}
+              />
+            </div>
+            <button 
+              className={recipe.is_favorited ? "button-toggledOn" : "button"}
+              onClick = {() => {
+                api.updateFavoriteRecipe({id: recipe.id})
+                .then(updateList())
+                // Page gets refetched every time you un/favorite a recipe.
+                // Could avoid this by attaching state but I was having trouble implementing it - might return later on
+              }}
+            >
+                {recipe.is_favorited ? 'Unfavorite this recipe' : 'Favorite this recipe'}
+            </button>
             {recipe.source_url &&
               <a className="source-url" href={recipe.source_url}>source</a>}
           </div>

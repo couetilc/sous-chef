@@ -9,6 +9,7 @@ from django.contrib.auth.models import User
 from rest_framework import status
 from api.models import Recipe, CookedRecipe, Meal
 from django.utils import timezone
+from ..utils.recommended import compute_recommendations
 
 @pytest.mark.django_db
 class TestRecipeHistoryEndpoint:

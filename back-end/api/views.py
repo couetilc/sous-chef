@@ -1,10 +1,13 @@
 from django.shortcuts import render, redirect
+from rest_framework.filters import SearchFilter, OrderingFilter
+from django.db import transaction
 from django.http import HttpResponse
 from django.contrib.auth import authenticate, login, logout
 from django.middleware.csrf import get_token
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.utils.decorators import method_decorator
 from django.utils.dateparse import parse_datetime
+from django.db.models import Exists, OuterRef
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -14,17 +17,17 @@ from .serializers import UserSerializer, GroupSerializer, UserRegistrationSerial
 from decimal import Decimal, InvalidOperation
 from .models import (
     Ingredient, DietaryIngredient, Diet, UserDiet,
-    Recipe, CookedRecipe, Meal, FavoriteRecipe, UserInventory, OnboardingSubmission
+    Recipe, CookedRecipe, Meal, FavoriteRecipe, UserInventory, OnboardingSubmission, RecipeIngredient, HealthDetails
 )
 from .serializers import (
     UserSerializer, GroupSerializer, UserRegistrationSerializer,
     IngredientSerializer, DietSerializer,
     CookedRecipeSerializer, MealSerializer, RecipeSerializer
 )
+from .utils.recommended import compute_recommendations
 
-# Create your views here.
-def index(request):
-    return HttpResponse("<h1>Hello, World!</h1>")
+class Paginator(PageNumberPagination):
+    page_size = 100
 
 class UserRegistrationView(generics.CreateAPIView):
     """Public endpoint for user registration"""
@@ -35,7 +38,7 @@ class UserRegistrationView(generics.CreateAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
-        OnboardingSubmission.create(user=user, has_onboarded=False, skipped=False)
+        OnboardingSubmission.objects.create(user=user, has_onboarded=False, skipped=False)
         return Response({
             'username': user.username,
             'email': user.email,
@@ -113,6 +116,8 @@ class OnboardedView(APIView):
     permission_classes = [permissions.IsAuthenticated]
     def get(self, request):
         user = request.user
+        print("onboard: ", user.onboarded.first().has_onboarded)
+        print("skip: ", user.onboarded.first().skipped)
         return Response({
             'onboarded': user.onboarded.first().has_onboarded,
             'skipped': user.onboarded.first().skipped
@@ -124,21 +129,26 @@ class UpdateOnboardedView(APIView):
     def post(self, request):
         user = request.user
         user.onboarded.first().has_onboarded=request.data['new_onboarded']
-        user.onboarded.first().skipped=request.data['skipped']
+        user.onboarded.first().skipped=request.data['new_skipped']
+        print("new onboard: ", user.onboarded.first().has_onboarded)
+        print("new skip: ", user.onboarded.first().skipped)
         return Response({ 'message': 'Successfully completed onboarding'}, status=status.HTTP_200_OK)
 
 class HealthView(APIView):
     """"Get user's health information"""
     permission_classes = [permissions.IsAuthenticated]
-    def get(self, requeest):
-        user = request.user
+    def get(self, request):
+        health = HealthDetails.objects.filter(user=request.user).order_by('-id').first()
+        if not health:
+            return Response({'error': 'No health profile found'}, status=status.HTTP_404_NOT_FOUND)
         return Response({
-            'age': user.health.first().age,
-            'height_ft': user.health.first().height_ft,
-            'height_in': user.health.first().height_in,
-            'weight': user.health.first().weight,
-            'activity_level': user.health.first().activity_level,
-            'goal': user.health.first().goal
+            'age': health.age,
+            'height_ft': health.height_ft,
+            'height_in': health.height_in,
+            'weight': health.weight,
+            'activity_level': health.activity_level,
+            'goal': health.goal,
+            'sex': health.sex
         }, status=status.HTTP_200_OK)
 
 class UpdateHealthView(APIView):
@@ -152,8 +162,18 @@ class UpdateHealthView(APIView):
         user.health.first().weight = request.data['weight']
         user.health.first().activity_level = request.data['activity_level']
         user.health.first().goal = request.data['goal']
+        user.health.first().sex = request.data['sex']
 
+class HealthRecommendationsView(APIView):
+    """Compute calorie/protein recommendations from the user's HealthDetails"""
+    permission_classes = [permissions.IsAuthenticated]
 
+    def get(self, request):
+        health = HealthDetails.objects.filter(user=request.user).order_by('-id').first()
+        if not health:
+            return Response({'error': 'No health profile found'}, status=status.HTTP_404_NOT_FOUND)
+        data = compute_recommendations(health)
+        return Response(data, status=status.HTTP_200_OK)
 
 @method_decorator(ensure_csrf_cookie, name='dispatch')
 class CSRFTokenView(APIView):
@@ -234,7 +254,10 @@ class IngredientList(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
-
+    pagination_class = Paginator
+    filter_backends = [SearchFilter, OrderingFilter]
+    search_fields = ['name', '^name']
+    ordering = ['name']
 
 class DietaryIngredientList(generics.ListAPIView):
     """List restricted ingredients for the authenticated user"""
@@ -270,8 +293,60 @@ class UpdateDietaryIngredientList(APIView):
 class DietList(generics.ListAPIView):
     """List all available diets in the database"""
     permission_classes = [permissions.IsAuthenticated]
-    queryset = Diet.objects.all()
     serializer_class = DietSerializer
+
+    def get_queryset(self):
+        return Diet.objects.annotate(
+            is_restricted=Exists(
+                UserDiet.objects.filter(
+                    diet=OuterRef('pk'),
+                    user=self.request.user
+                )
+            )
+        )
+
+class DietListSync(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        diet_ids = request.data.get('diet_ids', [])
+
+        if not isinstance(diet_ids, list):
+            print('diet_ids: ', diet_ids)
+            return Response(
+                {'error': 'diet_ids must be a list'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if len(diet_ids) > 0 and not Diet.objects.filter(id__in=diet_ids).exists():
+            return Response(
+                {'error': 'One or more diet IDs are invalid'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        with transaction.atomic():
+            current_diet_ids = set(
+                UserDiet.objects
+                    .filter(user=request.user)
+                    .values_list('diet_id', flat=True)
+            )
+            request_diet_ids = set(diet_ids)
+
+            to_create = request_diet_ids - current_diet_ids
+            to_delete = current_diet_ids - request_diet_ids
+
+            UserDiet.objects.filter(user=request.user, diet_id__in=to_delete).delete()
+            UserDiet.objects.bulk_create(
+                UserDiet(user=request.user, diet_id=diet_id)
+                for diet_id in to_create
+            )
+
+        return Response(
+            {'message': 'Successfully updated diets'},
+            status=status.HTTP_200_OK
+        )
+
+
 
 class SelectedDietList(generics.ListAPIView):
     """List selected diets for the authenticated user"""
@@ -402,15 +477,28 @@ class GetRecipesFiltered(APIView):
         if title:
             queryset = queryset.filter(title__icontains=title)
 
+        ingredients = request.data.get('ingredients')
+        if ingredients:
+            for ingredient_id in ingredients:
+                queryset = queryset.filter(
+                    ingredients_list__ingredient_id=ingredient_id
+                )
+
+        searchInventory = request.data.get('searchInventory')
+        if searchInventory:
+            ingredient_ids = request.user.inventory_items.values_list('ingredient_id')
+            queryset = queryset.filter(
+                ingredients_list__ingredient_id__in=ingredient_ids
+            )
+
         searchFavorite = request.data.get('searchFavorite')
-        if searchFavorite and searchFavorite == 'True':
+        if searchFavorite:
             queryset = queryset.filter(user_favorites__isnull=False)
 
-        paginator = PageNumberPagination()
-        paginator.page_size = 100
+        paginator = Paginator()
         page = paginator.paginate_queryset(queryset, request)
-        serializer = RecipeSerializer(page, many=True)
 
+        serializer = RecipeSerializer(page, many=True, context = {'user': request.user})
         return paginator.get_paginated_response(serializer.data)
 
 class CreateFavoriteRecipe(APIView):
@@ -419,17 +507,23 @@ class CreateFavoriteRecipe(APIView):
     def post(self, request):
         recipeID = request.data.get('recipeID')
         recipe = Recipe.objects.get(id=recipeID)
-        user = request.user
 
-        newFavorite = FavoriteRecipe(user=user, recipe=recipe)
-        newFavorite.save()
+        oldFavorite = FavoriteRecipe.objects.filter(recipe=recipe).first()
+        if (oldFavorite != None) :
+            oldFavorite.delete()
+            return Response({'message': 'Successfully unfavorited recipe'}, status=status.HTTP_200_OK)
+        else:
+            user = request.user
+            newFavorite = FavoriteRecipe(user=user, recipe=recipe)
+            newFavorite.save()
+            return Response({'message': 'Successfully favorited recipe'}, status=status.HTTP_200_OK)
 
-        return Response({'message': 'Successfully favorited recipe'}, status=status.HTTP_200_OK)
+
 
 class UserInventoryList(APIView):
     """List user inventory for the authenticated user"""
     permission_classes = [permissions.IsAuthenticated]
-    
+
     def get(self, request):
         inventories = UserInventory.objects.filter(user=request.user).order_by('ingredient__name')
 
@@ -460,17 +554,17 @@ class UserInventoryList(APIView):
         }
 
         return Response(serializer_data, status=status.HTTP_201_CREATED)
-    
+
 class UserInventoryDetail(APIView):
     """Retrieve, update or delete a user inventory item"""
     permission_classes = [permissions.IsAuthenticated]
-    
+
     def get(self, request, id):
         try:
             inventory = UserInventory.objects.get(id=id, user=request.user)
         except UserInventory.DoesNotExist:
             return Response({'error': 'Not found'}, status=status.HTTP_404_NOT_FOUND)
-        
+
         data = {
             'id': inventory.id,
             'ingredient': IngredientSerializer(inventory.ingredient).data,

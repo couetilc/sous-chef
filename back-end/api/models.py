@@ -226,7 +226,7 @@ class FavoriteRecipe(models.Model):
         unique_together = ['user', 'recipe']
 
     def __str__(self):
-        return f"{self.user.username}:{self.recipe.title}"
+        return f"(user:{self.user.id},recipe:{self.recipe.id})"
 
 
 class OnboardingSubmission(models.Model):
@@ -252,6 +252,10 @@ class HealthDetails(models.Model):
       ('maintain', 'Maintain Weight'),
       ('gain', 'Gain Weight'),
     ]
+    SEX_CHOICES = [
+      ('male', 'Male'),
+      ('female',  'Female'),
+    ]
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='health')
     age = models.IntegerField(default=0)
     height_ft = models.IntegerField(default=0)
@@ -259,6 +263,7 @@ class HealthDetails(models.Model):
     weight = models.IntegerField(default=0)
     activity_level = models.CharField(max_length=10, choices=ACTIVITY_CHOICES, default='low')
     goal = models.CharField(max_length=20, choices=GOAL_CHOICES, default='maintain')
+    sex = models.CharField(max_length=6, choices=SEX_CHOICES, default='male')
 
     def __str__(self):
         return f"age: {age}, height: {height_ft} feet {height_in} inches, weight: {weight}, {activity_level} activity, goal: {goal}"

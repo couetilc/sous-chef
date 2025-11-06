@@ -120,8 +120,8 @@ export class Api {
     })
   }
 
-  async listIngredients() {
-    return this.fetch('/api/ingredients/', {});
+  async listIngredients({ page = 1 } = {}) {
+    return this.fetch(`/api/ingredients/?page=${page}`, {});
   }
 
   async listRestricted() {
@@ -151,6 +151,12 @@ export class Api {
         added,
         removed
       })
+    })
+  }
+
+  async syncDiets({ diet_ids }) {
+    return this.fetch('/api/diets/sync/', {
+      body: JSON.stringify({ diet_ids })
     })
   }
 
@@ -188,7 +194,7 @@ export class Api {
     return this.fetch('/api/user/health');
   }
 
-  async setHealthInfo({age, height_ft, height_in, weight, activity_level, goal}) {
+  async setHealthInfo({age, height_ft, height_in, weight, activity_level, goal, sex}) {
     return this.fetch('/api/user/updateHealth/', {method: "POST",
       body: JSON.stringify({
         age,
@@ -196,16 +202,27 @@ export class Api {
         height_in,
         weight,
         activity_level,
-        goal
+        goal,
+        sex
       })
     })
   }
-    
-  async getRecipesFiltered({title, searchFavorite, page = 1}) {
+
+  async getRecipesFiltered({title, ingredients, searchInventory, searchFavorite, page = 1}) {
     return this.fetch(`/api/recipes/searchFiltered/?page=${page}`, {
       body: JSON.stringify({
         title,
+        ingredients,
+        searchInventory,
         searchFavorite
+      })
+    })
+  }
+
+  async updateFavoriteRecipe({id}) {
+    return this.fetch('/api/recipes/createFavorite/', {
+      body: JSON.stringify({
+        recipeID: id
       })
     })
   }
