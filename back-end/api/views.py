@@ -7,13 +7,13 @@ from django.middleware.csrf import get_token
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.utils.decorators import method_decorator
 from django.utils.dateparse import parse_datetime
-from django.db.models import Exists, OuterRef
+from django.db.models import Exists, OuterRef, Case, When, Value, IntegerField, Q
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.pagination import PageNumberPagination
 from django.contrib.auth.models import User, Group
-from .serializers import UserSerializer, GroupSerializer, UserRegistrationSerializer, IngredientSerializer, DietSerializer, CookedRecipeSerializer, MealSerializer, OnboardSerializer
+from .serializers import UserSerializer, GroupSerializer, UserRegistrationSerializer, IngredientSerializer, DietSerializer, CookedRecipeSerializer, MealSerializer, OnboardSerializer, SettingsIngredientSerializer
 from decimal import Decimal, InvalidOperation
 from .models import (
     Ingredient, DietaryIngredient, Diet, UserDiet,
@@ -579,3 +579,39 @@ class UserInventoryDetail(APIView):
 
         inventory.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+class SettingsRestrictedIngredients(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        queryset = Ingredient.objects.annotate(
+            is_restricted=Exists(
+                DietaryIngredient.objects.filter(
+                    ingredient=OuterRef('pk'),
+                    user=request.user
+                )
+            )
+        )
+
+        search = request.query_params.get('search', None)
+        if search:
+            queryset = queryset.filter(
+                Q(is_restricted=True) | Q(name__icontains=search)
+            )
+
+
+        queryset = queryset.annotate(
+            priority=Case(
+                When(is_restricted=True, then=Value(0)),
+                default=Value(1),
+                output_field=IntegerField()
+            )
+        ).order_by('priority', 'name')
+
+        paginator = Paginator()
+        paginated = paginator.paginate_queryset(queryset, request)
+        serialized = SettingsIngredientSerializer(paginated, many = True)
+        return paginator.get_paginated_response(serialized.data)
+
+    def post(self, request):
+        return Response(None, status.HTTP_501_NOT_IMPLEMENTED)

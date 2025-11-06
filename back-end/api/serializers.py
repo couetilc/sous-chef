@@ -134,3 +134,10 @@ class CookedRecipeSerializer(serializers.ModelSerializer):
             'total_servings_cooked',
         )
         read_only_fields = ('id', 'cooked_at')
+
+class SettingsIngredientSerializer(serializers.ModelSerializer):
+    is_restricted = serializers.BooleanField(read_only=True)
+
+    class Meta:
+        model = Ingredient
+        fields = ('id', 'name', 'is_restricted')
