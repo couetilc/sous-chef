@@ -526,30 +526,48 @@ class UserInventoryDetail(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 class NutritionLastDayView(APIView):
-    """Get total calories consumed in the last day"""
+    """Get calories, fats, carbs, and proteins consumed in the last day"""
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        from django.utils import timezone
-        from datetime import timedelta
+        now = timezone.now()
+        today = now.date()
 
-        end_time = timezone.now()
-        start_time = end_time - timedelta(days=1)
+        # Start is today at midnight
+        start_time = timezone.make_aware(
+            timezone.datetime.combine(today, timezone.datetime.min.time())
+        )
+        end_time = now
 
         meals = Meal.objects.filter(
             cooked_recipe__user=request.user,
             eaten_at__range=(start_time, end_time)
-        )
+        ).select_related("cooked_recipe__recipe")
 
         total_calories = 0.0
+        total_fats = 0.0
+        total_carbs = 0.0
+        total_proteins = 0.0
+
         for meal in meals:
             recipe = meal.cooked_recipe.recipe
             if recipe.calories_per_serving is not None:
                 total_calories += float(recipe.calories_per_serving) * float(meal.servings)
+            if recipe.fat_g is not None:
+                total_fats += float(recipe.fat_g) * float(meal.servings)
+            if recipe.carbs_g is not None:
+                total_carbs += float(recipe.carbs_g) * float(meal.servings)
+            if recipe.protein_g is not None:
+                total_proteins += float(recipe.protein_g) * float(meal.servings)
 
-        return Response({'calories': total_calories}, status=status.HTTP_200_OK)
+        return Response({
+            'calories': total_calories,
+            'fats': total_fats,
+            'carbs': total_carbs,
+            'proteins': total_proteins
+        }, status=status.HTTP_200_OK)
 
-class NutritionLastWeekView(APIView):
+class CaloriesLastWeekView(APIView):
     """Get total calories consumed for each of the past 7 days"""
     permission_classes = [permissions.IsAuthenticated]
 
