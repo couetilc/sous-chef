@@ -47,4 +47,6 @@ urlpatterns = [
     # User inventory endpoints
     path('user_inventory/', views.UserInventoryList.as_view(), name='user-inventory-list'),
     path('user_inventory/<int:id>/', views.UserInventoryDetail.as_view(), name='user-inventory-detail'),
+    path('user_recipe/', views.GetUserRecipe.as_view(), name='user-recipe-info'),
+    path('user_recipe_update/<int:id>/', views.UpdateUserRecipe.as_view(), name='user-recipe-info'),
 ]

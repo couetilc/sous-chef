@@ -30,6 +30,44 @@ class Recipe(models.Model):
     def __str__(self):
         return self.title
 
+class UserRecipe(models.Model):
+  user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_recipes')
+  original_recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE, related_name='user_recipes')
+  ingredients = models.TextField()
+  instructions = models.TextField()
+
+  def title(self):
+      return self.original_recipe.title
+  def image_url(self):
+      return self.original_recipe.image_url
+  def source_url(self):
+      return self.original_recipe.source_url
+  def prep_time_min(self):
+      return self.original_recipe.prep_time_min
+  def cook_time_min(self):
+      return self.original_recipe.cook_time_min
+  def total_time_min(self):
+      return self.original_recipe.total_time_min
+  def servings(self):
+      return self.original_recipe.servings
+  def calories_per_serving(self):
+      return self.original_recipe.calories_per_serving
+  def fat_g(self):
+      return self.original_recipe.fat_g
+  def carbs_g(self):
+      return self.original_recipe.carbs_g
+  def protein_g(self):
+      return self.original_recipe.protein_g
+  def price_per_serving_usd(self):
+      return self.original_recipe.price_per_serving
+  def total_price_usd(self):
+      return self.original_recipe.total_price_usd
+  def is_private(self):
+      return self.original_recipe.is_private
+  def created_at(self):
+      return self.original_recipe.created_at
+  def updated_at(self):
+      return self.original_recipe.created_at
 
 class ScrapedRecipe(models.Model):
     title = models.TextField()
@@ -269,6 +307,11 @@ class HealthDetails(models.Model):
         return f"age: {age}, height: {height_ft} feet {height_in} inches, weight: {weight}, {activity_level} activity, goal: {goal}"
 
 class RecipeTag(models.Model):
-    """Connects a User to multiple recipes with the same tag"""
+    """Connects a User to their created tags"""
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='recipe_tag')
     tag_name = models.CharField(max_length=200)
+
+class TaggedRecipe(models.Model):
+    """Connects a tag to the recipes it refers to for a user"""
+    tag = models.ForeignKey(RecipeTag, on_delete=models.CASCADE, related_name='tagged_recipe')
+    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE, related_name='tagged_recipe');

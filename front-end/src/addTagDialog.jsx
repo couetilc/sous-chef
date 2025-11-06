@@ -5,12 +5,14 @@ export default function AddTagDialog({ recipe }) {
 
 
   const [tag, setTag] = useState('');
-  const [new, setNewTag] = useState('');
+  const [newTag, setNewTag] = useState('');
+  const [tagSelect, setTagSelect] = useState('');
 
   useEffect(() => {
     //get user's existing tags on page load
     
   }, [])
+
 
   //user is given from api.getCurrentUser()
 
@@ -23,8 +25,15 @@ export default function AddTagDialog({ recipe }) {
         display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
       }}
     }
+      <h1> Select Tag </h1>
       <p> {recipe.recipe_name} </p>
       <input type="text" value={newTag} onChange={e => setNewTag(e.target.value)}/>
+      <select
+        id="tag-select"
+        multiple={true}
+        value={tagOptions}
+        onChange={e =>setTagSelect(e.target.selectedOption)}/>
+      </select>
     </div>
   )
 }

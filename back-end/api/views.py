@@ -13,11 +13,11 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.pagination import PageNumberPagination
 from django.contrib.auth.models import User, Group
-from .serializers import UserSerializer, GroupSerializer, UserRegistrationSerializer, IngredientSerializer, DietSerializer, CookedRecipeSerializer, MealSerializer, OnboardSerializer
+from .serializers import UserSerializer, GroupSerializer, UserRegistrationSerializer, IngredientSerializer, DietSerializer, CookedRecipeSerializer, MealSerializer, OnboardSerializer, UserRecipeSerializer
 from decimal import Decimal, InvalidOperation
 from .models import (
     Ingredient, DietaryIngredient, Diet, UserDiet,
-    Recipe, CookedRecipe, Meal, FavoriteRecipe, UserInventory, OnboardingSubmission, RecipeIngredient, HealthDetails
+    Recipe, CookedRecipe, Meal, FavoriteRecipe, UserInventory, OnboardingSubmission, RecipeIngredient, HealthDetails, UserRecipe
 )
 from .serializers import (
     UserSerializer, GroupSerializer, UserRegistrationSerializer,
@@ -580,7 +580,42 @@ class UserInventoryDetail(APIView):
         inventory.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-class GetUserTags(APIView):
+class GetTags(APIView):
     """Retrieve list of the current user's recipe tags"""
     permission_classes = [permissions.IsAuthenticated]
 
+class GetUserRecipe(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        userRecipe = UserRecipe.objects.filter(user=request.user).all()
+        serialized = UserRecipeSerializer(userRecipe, many=True)
+
+
+        if not userRecipe:
+            return Response({'error': 'No user recipe found'}, status=status.HTTP_404_NOT_FOUND)
+        return Response(serialized.data, status=status.HTTP_200_OK)
+
+class UpdateUserRecipe(APIView):
+    permission_classse = [permissions.IsAuthenticated]
+    def post(self, request, id):
+        print(id)
+        user = request.user
+        ingredients = request.data['ingredients']
+        instructions = request.data['instructions']
+        original_recipe = request.data['original_recipe']
+        # check if user already has a custom recipe saved
+        print(f'REQUEST: {request}')
+        user_recipe = UserRecipe.objects.filter(user=request.user).filter(original_recipe=request.original_recipe)
+        if not user_recipe:
+            # create new entry
+            user_recipe = UserRecipe.objects.create(
+              ingredients=ingredients,
+              instructions=instructions,
+              original_recipe=original_recipe
+            )
+        user_recipe.ingredients=ingredients
+        user_recipe.instructions=instructions
+        user_recipe.original_recipe=request.original_recipe
+
+        return Response(status=status.HTTP_200_OK)
