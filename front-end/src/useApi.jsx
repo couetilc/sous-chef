@@ -250,6 +250,14 @@ export class Api {
       body: JSON.stringify({ ingredient_id })
     })
   }
+
+  async UserNutritionLastDay() {
+    return this.fetch('/api/nutrition/nutrition_last_day/')
+  }
+
+  async UserCaloriesLastWeek() {
+    return this.fetch('/api/nutrition/calories_last_week/')
+  }
 }
 
 export function ApiProvider(props) {

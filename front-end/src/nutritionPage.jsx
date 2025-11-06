@@ -2,6 +2,7 @@ import './style.css';
 import { useNavigate } from 'react-router';
 import { useState, useEffect, useRef } from 'react';
 import * as echarts from 'echarts';
+import { useApi } from './useApi.jsx';
 
 export default function Nutrition() {
   const navigate = useNavigate();
@@ -16,6 +17,13 @@ export default function Nutrition() {
   // ref for chart dom/instance
   const chartRef = useRef(null);
   const chartInstanceRef = useRef(null);
+  const {api} = useApi();
+
+  useEffect(() => {
+    api.UserNutritionLastDay().then(response => {
+      console.log('Nutrition last day data:', response);
+    })
+  }, []); 
 
   useEffect(() => {
     const today = new Date();

@@ -7,11 +7,8 @@ from django.middleware.csrf import get_token
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.utils.decorators import method_decorator
 from django.utils.dateparse import parse_datetime
-<<<<<<< HEAD
 from django.utils import timezone
-=======
 from django.db.models import Exists, OuterRef
->>>>>>> 230103ad9f387ac5541febb4c268b5f99f6fec05
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
