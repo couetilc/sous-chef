@@ -14,7 +14,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.pagination import PageNumberPagination
 from django.contrib.auth.models import User, Group
-from .serializers import UserSerializer, GroupSerializer, UserRegistrationSerializer, IngredientSerializer, DietSerializer, CookedRecipeSerializer, MealSerializer, OnboardSerializer, SettingsIngredientSerializer
+from .serializers import UserSerializer, GroupSerializer, UserRegistrationSerializer, IngredientSerializer, DietSerializer, CookedRecipeSerializer, MealSerializer, OnboardSerializer, SettingsIngredientSerializer, UserInventorySerializer
 from decimal import Decimal, InvalidOperation
 from .models import (
     Ingredient, DietaryIngredient, Diet, UserDiet,
@@ -526,34 +526,35 @@ class UserInventoryList(APIView):
 
     def get(self, request):
         inventories = UserInventory.objects.filter(user=request.user).order_by('ingredient__name')
-
-        data = []
-        for item in inventories:
-            data.append({
-                'id': item.id,
-                'ingredient': IngredientSerializer(item.ingredient).data,
-            })
-
-        return Response(data, status=status.HTTP_200_OK)
+        serialized = UserInventorySerializer(inventories, many = True)
+        return Response(serialized.data, status=status.HTTP_200_OK)
 
     def post(self, request):
-        ingredient_id = request.data.get('ingredient_id')
-        if ingredient_id is None:
-            return Response({'error': 'ingredient_id is required'}, status=status.HTTP_400_BAD_REQUEST)
+        ingredient_ids = request.data.get('ingredient_ids')
 
-        try:
-            ingredient = Ingredient.objects.get(id=ingredient_id)
-        except Ingredient.DoesNotExist:
-            return Response({'error': 'Ingredient not found'}, status=status.HTTP_404_NOT_FOUND)
+        if not isinstance(ingredient_ids, list):
+            return Response(
+                {'error': 'ingredient_ids must be a list'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-        inventory, created = UserInventory.objects.get_or_create(user=request.user, ingredient=ingredient)
+        if len(ingredient_ids) > 0 and not Ingredient.objects.filter(id__in=ingredient_ids).exists():
+            return Response(
+                {'error': 'One or more ingredient IDs are invalid'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-        serializer_data = {
-            'id': inventory.id,
-            'ingredient': IngredientSerializer(inventory.ingredient).data,
-        }
+        with transaction.atomic():
+            for ingredient_id in ingredient_ids:
+                UserInventory.objects.get_or_create(
+                    user=request.user,
+                    ingredient_id=ingredient_id
+                )
 
-        return Response(serializer_data, status=status.HTTP_201_CREATED)
+        return Response(
+            {'message': 'successfully created inventory items'},
+            status=status.HTTP_201_CREATED,
+        )
 
 class UserInventoryDetail(APIView):
     """Retrieve, update or delete a user inventory item"""
@@ -578,7 +579,10 @@ class UserInventoryDetail(APIView):
             return Response({'error': 'Not found'}, status=status.HTTP_404_NOT_FOUND)
 
         inventory.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response(
+            {'message': 'Successfully deleted inventory item'},
+            status=status.HTTP_200_OK,
+        )
 
 class NutritionLastDayView(APIView):
     """Get calories, fats, carbs, and proteins consumed in the last day"""

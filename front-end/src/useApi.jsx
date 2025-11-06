@@ -120,8 +120,11 @@ export class Api {
     })
   }
 
-  async listIngredients({ page = 1 } = {}) {
-    return this.fetch(`/api/ingredients/?page=${page}`, {});
+  async listIngredients({ page = 1, search } = {}, options) {
+    const url = new URL('/api/ingredients/', window.location.href)
+    if (page) url.searchParams.set('page', page)
+    if (search) url.searchParams.set('search', search)
+    return this.fetch(url.toString(), options);
   }
 
   async listRestricted() {
@@ -245,9 +248,9 @@ export class Api {
     )
   }
 
-  async UserInventoryAddEntry({ ingredient_id }) {
+  async UserInventoryAddEntry({ ingredient_ids }) {
     return this.fetch(`/api/user_inventory/`, {
-      body: JSON.stringify({ ingredient_id })
+      body: JSON.stringify({ ingredient_ids })
     })
   }
 
@@ -258,7 +261,7 @@ export class Api {
   async UserCaloriesLastWeek() {
     return this.fetch('/api/nutrition/calories_last_week/')
   }
-  
+
   async getSettingsRestrictedIngredients({ page = 1, search } = {}, options) {
     const url = new URL('/api/settings/restricted_ingredients/', window.location.href)
     if (page) url.searchParams.set('page', page)
