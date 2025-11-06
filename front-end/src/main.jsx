@@ -69,7 +69,6 @@ export default function App(props) {
 
 const root = createRoot(document.getElementById('root'))
 root.render(
-  <StrictMode>
   <BrowserRouter>
   <ApiProvider>
   <UserProvider>
@@ -77,5 +76,4 @@ root.render(
   </UserProvider>
   </ApiProvider>
   </BrowserRouter>
-  </StrictMode>
 )

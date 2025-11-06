@@ -250,6 +250,19 @@ export class Api {
       body: JSON.stringify({ ingredient_id })
     })
   }
+
+  async getSettingsRestrictedIngredients({ page = 1, search } = {}) {
+    const url = new URL('/api/settings/restricted_ingredients/', window.location.href)
+    if (page) url.searchParams.set('page', page)
+    if (search) url.searchParams.set('search', search)
+    return this.fetch(url.toString())
+  }
+
+  async postSettingsRestrictedIngredients({ ingredient_ids } = {}) {
+    return this.fetch('/api/settings/restricted_ingredients/', {
+      body: JSON.stringify({ ingredient_ids }),
+    })
+  }
 }
 
 export function ApiProvider(props) {
@@ -261,7 +274,6 @@ export function ApiProvider(props) {
       api.becomeReady().then(() => { setIsReady(true) });
     }
   })
-
 
   const context = useMemo(() => {
     return { api, isReady };
