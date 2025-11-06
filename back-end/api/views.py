@@ -606,7 +606,7 @@ class UpdateUserRecipe(APIView):
         original_recipe = request.data['original_recipe']
         # check if user already has a custom recipe saved
         print(f'REQUEST: {request}')
-        user_recipe = UserRecipe.objects.filter(user=request.user).filter(original_recipe=request.original_recipe)
+        user_recipe = UserRecipe.objects.filter(user=request.user).filter(original_recipe=Recipe.objects.get(request.data[original_recipe]))
         if not user_recipe:
             # create new entry
             user_recipe = UserRecipe.objects.create(
