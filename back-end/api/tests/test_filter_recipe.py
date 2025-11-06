@@ -272,3 +272,13 @@ class TestFilterRecipes:
 
         assert res.data['count'] == 200
         assert len(res.data['results']) == 100
+
+@pytest.mark.django_db
+class TestRecipeDetailAPI:
+    def test_get_recipe(self, authenticated_client):
+        foo = Recipe.objects.create(title="foo")
+
+        response = authenticated_client.get(f'/api/recipes/{foo.id}/')
+
+        assert 'id' in response.data
+        assert response.data['id'] == foo.id

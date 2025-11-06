@@ -302,7 +302,7 @@ body {
   object-fit: cover;
 }
 .img-button-cont .btn {
-  position: absolute;;
+  position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
@@ -619,6 +619,17 @@ body {
 /* RECIPES PAGE */
 
 .recipes-page {
+  padding: 1em;
+}
+
+.recipe-detail-page {
+  padding: 1em;
+}
+
+.recipe .image-side-panel {
+  display: flex;
+  flex-flow: column wrap;
+  gap: 1em;
 }
 
 .recipes-page h1 {
@@ -663,7 +674,7 @@ body {
   gap: 1em;
 }
 
-.recipes-page .recipe {
+.recipe {
   border: 1px solid var(--color-border);
   border-radius: .5em;
   padding: 1em;
@@ -673,55 +684,65 @@ body {
   gap: .5em;
 }
 
-.recipes-page .recipe h3 {
+.recipe h3 {
   font-size: 1.25em;
   text-align: center;
 }
 
-.recipes-page .recipe img {
+.recipe img {
   align-self: center;
 }
 
-.recipes-page .recipe .image-ingredients {
+.recipe .image-ingredients {
   display: flex;
   flex-flow: row wrap;
   gap: 1em;
   align-items: flex-start;
 }
 
-.recipes-page .recipe .image-ingredients > * {
+.recipe .image-ingredients > * {
   flex: 1 1 auto;
 }
 
-.recipes-page .recipe .ingredients {
+.recipe .ingredients {
   display: flex;
   flex-flow: column nowrap;
 }
 
-.recipes-page .recipe h4 {
-  font-size: 1.125em;
-  margin-bottom: .25em;
+.recipe details {
+  padding: .5em;
+  border-radius: .25em;
+  background-color: oklch(from var(--color-french-gray) calc(l + .1) c h);
+  border: 2px solid var(--color-french-gray);
 }
 
-.recipes-page .recipe .ingredients-list {
+.recipe h4 {
+  font-size: 1.125em;
+  margin-bottom: .25em;
+  display: inline-block;
+}
+
+.recipe .ingredients-list {
   list-style-type: disc;
   list-style-position: outside;
   padding-left: 1em;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.recipes-page .recipe .instructions {
+.recipe .instructions {
   display: flex;
   flex-flow: column nowrap;
   gap: .5em;
 }
 
-.recipes-page .recipe .instructions ul {
+.recipe .instructions ul {
   list-style-type: disc;
   list-style-position: outside;
   padding-left: 1em;
 }
 
-.recipes-page .recipe .source-url {
+.recipe .source-url {
   align-self: center;
 }
 

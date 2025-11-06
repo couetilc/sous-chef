@@ -740,3 +740,8 @@ class SettingsRestrictedIngredients(APIView):
             {'message':'Successfully updated restricted ingredients'},
             status.HTTP_200_OK,
         )
+
+class RecipeDetailView(generics.RetrieveAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    queryset = Recipe.objects.all()
+    serializer_class = RecipeSerializer
