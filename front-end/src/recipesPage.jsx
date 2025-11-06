@@ -41,7 +41,7 @@ export default function Recipes() {
     }).then(setRecipes)
   }
 
-  useEffect(updateList, [api, enteredName, filterFavorites, page])
+  useEffect(updateList, [api, enteredName, filterFavorites, filterInventory, selectedOptions, page])
 
   const onFilterInventory= () => {
     setFilterInventory(!filterInventory)
@@ -53,6 +53,7 @@ export default function Recipes() {
 
   const clearFilters = () => {
     setEnteredName('')
+    setFilterInventory(false)
     setFilterFavorites(false)
     setSelectedOptions([])
     document.querySelector('input[name="recipeName"]').value = '';
