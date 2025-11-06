@@ -27,10 +27,11 @@ class IngredientSerializer(serializers.ModelSerializer):
         read_only_fields = ('id',)
 
 class DietSerializer(serializers.ModelSerializer):
+    is_restricted = serializers.BooleanField(read_only=True)
+
     class Meta:
-        model = Ingredient
-        fields = ('id', 'name')
-        read_only_fields = ('id',)
+        model = Diet
+        fields = ('id', 'name', 'is_restricted')
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
@@ -80,9 +81,16 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 class RecipeSerializer(serializers.ModelSerializer):
     is_favorited = serializers.SerializerMethodField('check_favorited')
 
+    @property
+    def user(self):
+        request = self.context.get('request', None)
+        if request and hasattr(request, 'user'):
+            user = request.user
+        else:
+            user = None
+
     def check_favorited(self, instance):
-        user = self.context['user']
-        if not user: return False
+        if not self.user: return False
 
         userQuery = instance.user_favorites.all()
         userQuery = userQuery.filter(user__id=user.id)
@@ -99,6 +107,11 @@ class RecipeSerializer(serializers.ModelSerializer):
             'fat_g',
             'carbs_g',
             'protein_g',
+            'prep_time_min',
+            'cook_time_min',
+            'total_time_min',
+            'price_per_serving_usd',
+            'total_price_usd',
         )
         read_only_fields = ('id',)
 

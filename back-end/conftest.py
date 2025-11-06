@@ -12,7 +12,9 @@ def api_client():
     Provides a Django REST framework API client for testing.
     """
     from rest_framework.test import APIClient
-    return APIClient()
+    client = APIClient()
+    client.default_format = 'json'
+    return client
 
 
 @pytest.fixture
