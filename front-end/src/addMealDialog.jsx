@@ -109,7 +109,7 @@ export default function AddMealDialog({ recipe, cookedRecipeId, onClose, onSucce
       // Body: { servings, eaten_at }
 
       const eaten_at = new Date(
-        new Date(ateAt).getTime() - new Date(ateAt).getTimezoneOffset() * 60000
+        new Date(ateAt).getTime()
       ).toISOString()
 
       const res = await api.fetch(`/api/recipe_history/${cookedRecipeId}/meal/`, {
