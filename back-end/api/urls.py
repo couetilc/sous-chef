@@ -36,6 +36,7 @@ urlpatterns = [
     # Recipe endpoints
     path('recipes/searchFiltered/', views.GetRecipesFiltered.as_view(), name='recipes-search-filtered'),
     path('recipes/createFavorite/', views.CreateFavoriteRecipe.as_view(), name='recipes-create-favorite'),
+    path('recipes/<int:pk>/', views.RecipeDetailView.as_view(), name='recipe-detail'),
 
     # Nutrition preview endpoint
     path('recipes/<int:id>/nutrition/', views.RecipeNutritionPreviewView.as_view(), name='recipe-nutrition'),

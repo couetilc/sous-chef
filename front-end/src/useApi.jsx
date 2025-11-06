@@ -263,6 +263,10 @@ export class Api {
       body: JSON.stringify({ ingredient_ids }),
     })
   }
+
+  async getRecipeDetail({ id }) {
+    return this.fetch(`/api/recipes/${id}/`)
+  }
 }
 
 export function ApiProvider(props) {
