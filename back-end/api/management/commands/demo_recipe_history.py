@@ -138,11 +138,11 @@ class Command(BaseCommand):
             },
             {
                 'name': 'Over half consumed (60%)',
-                'days_ago': 5,
+                'days_ago': 0,
                 'total_servings_cooked': 10,
                 'meals': [
                     {'days_after_cooked': 0, 'portion': Decimal('0.35')},
-                    {'days_after_cooked': 2, 'portion': Decimal('0.25')},
+                    {'days_after_cooked': 0, 'portion': Decimal('0.25')},
                 ]
             },
         ]

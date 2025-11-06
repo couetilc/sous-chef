@@ -251,6 +251,13 @@ export class Api {
     })
   }
 
+  async UserNutritionLastDay() {
+    return this.fetch('/api/nutrition/nutrition_last_day/')
+  }
+
+  async UserCaloriesLastWeek() {
+    return this.fetch('/api/nutrition/calories_last_week/')
+  
   async getSettingsRestrictedIngredients({ page = 1, search } = {}, options) {
     const url = new URL('/api/settings/restricted_ingredients/', window.location.href)
     if (page) url.searchParams.set('page', page)

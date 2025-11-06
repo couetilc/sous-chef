@@ -48,6 +48,9 @@ urlpatterns = [
     path('user_inventory/', views.UserInventoryList.as_view(), name='user-inventory-list'),
     path('user_inventory/<int:id>/', views.UserInventoryDetail.as_view(), name='user-inventory-detail'),
 
+    # Nutrition Summary endpoints
+    path('nutrition/nutrition_last_day/', views.NutritionLastDayView.as_view(), name='nutrition-last-day'),
+    path('nutrition/calories_last_week/', views.CaloriesLastWeekView.as_view(), name='calories-last-week'),
     # Settings endpoints
     path('settings/restricted_ingredients/',
          views.SettingsRestrictedIngredients.as_view(),
