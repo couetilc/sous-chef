@@ -251,11 +251,11 @@ export class Api {
     })
   }
 
-  async getSettingsRestrictedIngredients({ page = 1, search } = {}) {
+  async getSettingsRestrictedIngredients({ page = 1, search } = {}, options) {
     const url = new URL('/api/settings/restricted_ingredients/', window.location.href)
     if (page) url.searchParams.set('page', page)
     if (search) url.searchParams.set('search', search)
-    return this.fetch(url.toString())
+    return this.fetch(url.toString(), options)
   }
 
   async postSettingsRestrictedIngredients({ ingredient_ids } = {}) {

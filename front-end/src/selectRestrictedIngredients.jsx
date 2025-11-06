@@ -8,33 +8,51 @@ const SelectRestrictedIngredients = forwardRef((props, ref) => {
   const [isLoading, setIsLoading] = useState(true)
   const [page, setPage] = useState(1)
   const [value, setValue] = useState([])
+  const [search, setSearch] = useState('')
 
   useEffect(() => {
     if (page === 0) {
       setPage(1)
       return;
     }
-    setIsLoading(true)
-    api.getSettingsRestrictedIngredients({ page }).then(response => {
-      const restricted = response.results
-        .filter(ingredient => ingredient.is_restricted)
-        .map(ingredient => ({
+
+    const abortController = new AbortController()
+
+    const timeoutId = setTimeout(async () => {
+      setIsLoading(true)
+      try {
+        const response = await api.getSettingsRestrictedIngredients(
+          { page, search },
+          { signal: abortController.signal },
+        )
+        const restricted = response.results
+          .filter(ingredient => ingredient.is_restricted)
+          .map(ingredient => ({
+            value: ingredient.id,
+            label: ingredient.name,
+          }))
+
+        if (restricted.length > 0) {
+          setValue(values => values.concat(restricted))
+        }
+
+        const nextOptions = response.results.map(ingredient => ({
           value: ingredient.id,
           label: ingredient.name,
         }))
 
-      if (restricted.length > 0) {
-        setValue(values => values.concat(restricted))
+        setOptions(options => options.concat(nextOptions))
       }
+      finally {
+        setIsLoading(false)
+      }
+    }, 500)
 
-      const nextOptions = response.results.map(ingredient => ({
-        value: ingredient.id,
-        label: ingredient.name,
-      }))
-      setOptions(options => options.concat(nextOptions))
-      setIsLoading(false)
-    })
-  }, [page])
+    return () => {
+      clearTimeout(timeoutId)
+      abortController.abort()
+    }
+  }, [page, search])
 
   function onMenuScrollToBottom() {
     setPage(page => page + 1)
@@ -88,11 +106,12 @@ const SelectRestrictedIngredients = forwardRef((props, ref) => {
       {...props}
       isMulti
       value={value}
+      inputValue={search}
       options={options}
       isLoading={isLoading}
       onMenuScrollToBottom={onMenuScrollToBottom}
       onChange={value => setValue(value)}
-      onInputChange={(...args) => console.log(args)}
+      onInputChange={input => setSearch(input)}
     />
   )
 })
