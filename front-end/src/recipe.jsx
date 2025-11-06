@@ -17,6 +17,9 @@ export default function Recipe(props) {
   const isDetailPage = props.isDetailPage
   const [editMode, setEditMode] = useState(false)
 
+  const [ingredients, setIngredients] = useState(props.recipe.ingredients)
+  const [instructions, setInstructions] = useState(props.recipe.instructions)
+
   const [servings, setServings] = useState()
 
   const pricePer = formatCurrency(recipe.price_per_serving_usd)
@@ -31,7 +34,11 @@ export default function Recipe(props) {
                 <button className="button" type="button">
                   Save
                 </button> <button className="button-blue" type="button" onClick={
-                  () => setEditMode(mode => !mode)
+                  () => {
+                    setEditMode(mode => !mode)
+                    setIngredients(recipe.ingredients)
+                    setInstructions(recipe.instructions)
+                  }
                 }>
                   Cancel
                 </button>
@@ -112,9 +119,15 @@ export default function Recipe(props) {
         {isDetailPage &&
           <>
             <h4>Ingredients:</h4>
-            <ul className="ingredients-list">{recipe.ingredients.split('|').map((ingredient, i) => (
-              <li key={i}>{ingredient.trim()}</li>
-            ))}</ul>
+            {editMode
+              ? <textarea
+                  value={ingredients}
+                  onChange={e => setIngredients(e.target.value)}
+                />
+              : <ul className="ingredients-list">{recipe.ingredients.split('|').map((ingredient, i) => (
+                  <li key={i}>{ingredient.trim()}</li>
+                ))}</ul>
+            }
           </>
         }
         {!isDetailPage &&
@@ -131,9 +144,15 @@ export default function Recipe(props) {
         {isDetailPage &&
           <>
             <h4>Instructions:</h4>
-            <ul>{recipe.instructions.split('|').map((step, i) => (
-              <li key={i}>{step}</li>
-            ))}</ul>
+            {editMode
+              ? <textarea
+                  value={instructions}
+                  onChange={e => setInstructions(e.target.value)}
+                />
+              : <ul>{recipe.instructions.split('|').map((step, i) => (
+                  <li key={i}>{step}</li>
+                ))}</ul>
+            }
           </>
         }
         {!isDetailPage &&

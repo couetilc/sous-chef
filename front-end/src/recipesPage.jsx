@@ -60,26 +60,6 @@ export default function Recipes() {
   }
 
   // Helpers
-  const formatCurrency = (val) => {
-    const num = Number(val)
-    if (!isFinite(num) || num <= 0) return null
-    return `$${num.toFixed(2)}`
-  }
-
-  const hasCookTime = (t) => {
-    if (t === null || t === undefined) return false
-    const n = Number(t)
-    return isFinite(n) && n > 0
-  }
-
-  // Handler to update multiplier for a recipe id
-  const handleServingsChange = (recipeId, value) => {
-    setServingsInputs(prev => ({ ...prev, [recipeId]: value }));
-    const parsed = parseFloat(value);
-    if (!isNaN(parsed) && parsed > 0) {
-      setServingsMultipliers(prev => ({ ...prev, [recipeId]: parsed }));
-    }
-  };
 
   return (
     <div className="recipes-page">
