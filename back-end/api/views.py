@@ -5,6 +5,7 @@ from django.middleware.csrf import get_token
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.utils.decorators import method_decorator
 from django.utils.dateparse import parse_datetime
+from django.utils import timezone
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -549,27 +550,41 @@ class NutritionLastDayView(APIView):
         return Response({'calories': total_calories}, status=status.HTTP_200_OK)
 
 class NutritionLastWeekView(APIView):
-    """Get total calories consumed in the last week"""
+    """Get total calories consumed for each of the past 7 days"""
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        from django.utils import timezone
-        from datetime import timedelta
+        now = timezone.now()
+        today = now.date()
 
-        end_time = timezone.now()
-        start_time = end_time - timedelta(days=7)
+        # Start is 6 days before today at midnight
+        start_time = timezone.make_aware(
+            timezone.datetime.combine(today - timezone.timedelta(days=6), timezone.datetime.min.time())
+        )
+        end_time = now
 
+        # Fetch meals from the last 7 days including today
         meals = Meal.objects.filter(
             cooked_recipe__user=request.user,
             eaten_at__range=(start_time, end_time)
-        )
+        ).select_related("cooked_recipe__recipe")
 
-        print("meals: ", meals)
+        daily_calories = {}
+        for i in range(7):
+            day = (today - timezone.timedelta(days=6 - i)).isoformat()
+            daily_calories[day] = 0.0
 
-        total_calories = 0.0
+        # Calculate calories per day
         for meal in meals:
+            meal_day = meal.eaten_at.date().isoformat()
             recipe = meal.cooked_recipe.recipe
-            if recipe.calories_per_serving is not None:
-                total_calories += float(recipe.calories_per_serving) * float(meal.servings)
+            if recipe.calories_per_serving is not None and meal_day in daily_calories:
+                daily_calories[meal_day] += float(recipe.calories_per_serving) * float(meal.servings)
 
-        return Response({'calories': total_calories}, status=status.HTTP_200_OK)
+        # Sort by day order
+        sorted_daily = [
+            {'date': date, 'calories': daily_calories[date]}
+            for date in sorted(daily_calories.keys())
+        ]
+
+        return Response({'daily_calories': sorted_daily}, status=status.HTTP_200_OK)
