@@ -3,7 +3,7 @@ import { useState, useEffect, useMemo } from 'react'
 
 export function useGET(api_endpoint, api_arguments) {
   const { api, isReady } = useApi();
-  const [data, setData] = useState({})
+  const [data, setData] = useState()
 
   useEffect(() => {
     if (api.ready_state == api.READY_STATES.YES) {
@@ -22,6 +22,6 @@ export function useGET(api_endpoint, api_arguments) {
 
     return { data, refresh }
   }, [data])
-  
+
   return values
 }

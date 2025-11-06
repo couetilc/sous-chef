@@ -1077,3 +1077,63 @@ h1 {
 }
 
 /* END NUTRITION PAGE */
+
+/* INVENTORY PAGE */
+
+.inventory-page {
+  padding: 1em;
+  display: flex;
+  flex-flow: column nowrap;
+  gap: 2em;
+}
+.inventory-page h1 {
+  text-align: center;
+  margin-bottom: .5em;
+}
+
+.inventory-page h2 {
+  font-size: 1.5em;
+}
+
+.inventory-page .inventory-ingredient-add {
+  display: flex;
+  flex-flow: column wrap;
+  gap: 1em;
+}
+
+.inventory-page .inventory-ingredient-list {
+  display: flex;
+  flex-flow: row wrap;
+  gap: 1em;
+  width: 100%;
+}
+
+.inventory-page .inventory-ingredients {
+  display: flex;
+  flex-flow: column nowrap;
+  gap: .5em;
+}
+
+.inventory-page .inventory-item {
+  display: flex;
+  flex-flow: column wrap;
+  padding: .5em;
+  border-radius: .5em;
+  border: 1px solid var(--color-french-gray);
+  gap: .5em;
+  flex: 0 0 auto;
+}
+
+.inventory-page .inventory-item .inventory-item-name {
+  font-size: 1.25em;
+}
+.inventory-page .inventory-item .inventory-item-nutrition {
+  list-style-type: disc;
+  list-style-position: inside;
+}
+
+.inventory-page .inventory-item button {
+  flex: 0 0 auto;
+}
+
+/* END INVENTORY PAGE */
