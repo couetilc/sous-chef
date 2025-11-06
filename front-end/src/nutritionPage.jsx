@@ -10,8 +10,8 @@ export default function Nutrition() {
   const [nutritionData, setNutritionData] = useState([]);
 
   const [goals, setGoals] = useState({
-    calories_goal: 3000,
-    protein_goal_g: 200,
+    calories_goal: 2500,
+    protein_goal_g: 150,
   });
 
   // ref for chart dom/instance
