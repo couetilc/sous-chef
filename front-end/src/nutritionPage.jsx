@@ -36,6 +36,7 @@ export default function Nutrition() {
 
   useEffect(() => {
     const today = new Date();
+    // today.setDate(today.getDate() + 1);
     const formattedDate = today.toLocaleDateString(undefined, {
       weekday: 'long',
       year: 'numeric',

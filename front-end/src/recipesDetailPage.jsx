@@ -9,15 +9,19 @@ export default function RecipesDetailPage(props) {
 
   const [recipe, setRecipe] = useState()
 
-  useEffect(() => {
+  async function getRecipe() {
     api.getRecipeDetail({ id }).then(response => {
       setRecipe(response)
     })
+  }
+
+  useEffect(() => {
+    getRecipe()
   }, [])
 
   return (
     <div className="recipe-detail-page">
-      {recipe && <Recipe recipe={recipe} isDetailPage /> }
+      {recipe && <Recipe recipe={recipe} isDetailPage triggerRefresh={getRecipe} /> }
     </div>
   )
 }
