@@ -86,9 +86,16 @@ export class Api {
   }
 
   async login({ username, password }) {
-    return this.fetch('/api/login/', {
+    const result = await this.fetch('/api/login/', {
       body: JSON.stringify({ username, password }),
-    })
+    });
+
+    // Django rotates CSRF token on login, so we need to fetch the new one
+    this.ready_state = this.READY_STATES.NO;
+    this.csrfToken = undefined;
+    await this.becomeReady();
+
+    return result;
   }
 
   async register({ username, email, password, password_confirm, first_name, last_name }) {

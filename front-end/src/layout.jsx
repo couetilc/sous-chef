@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState } from 'react';
 import SousChefLogo from './souschef-logo.png';
-import { useLocation } from 'react-router';
+import { useLocation, Link } from 'react-router';
 import CurvedEdge from './curvedEdge';
 
 let checkMobile = () => window.innerWidth < 600
@@ -51,15 +51,15 @@ function Nav(props) {
   return (
     <nav>
       <ul ref={props.navRef}>
-        <li><a href="/home/">Home</a></li>
-        <li><a href="/sous-chef/">Sous Chef</a></li>
-        <li><a href="/nutritionist/">Nutritionist</a></li>
-        <li><a href="/recipes/">Recipes</a></li>
-        <li><a href="/inventory/">Inventory</a></li>
-        <li><a href="/history/">History</a></li>
-        <li><a href="/nutrition">Nutrition</a></li>
-        <li><a href="/settings/">Account Settings</a></li>
-        <li><a href="/logout/">Logout</a></li>
+        <li><Link to="/home/">Home</Link></li>
+        <li><Link to="/sous-chef/">Sous Chef</Link></li>
+        <li><Link to="/nutritionist/">Nutritionist</Link></li>
+        <li><Link to="/recipes/">Recipes</Link></li>
+        <li><Link to="/inventory/">Inventory</Link></li>
+        <li><Link to="/history/">History</Link></li>
+        <li><Link to="/nutrition">Nutrition</Link></li>
+        <li><Link to="/settings/">Account Settings</Link></li>
+        <li><Link to="/logout/">Logout</Link></li>
       </ul>
     </nav>
   )
