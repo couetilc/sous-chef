@@ -1,20 +1,24 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useApi } from 'useApi.jsx';
 
 export default function AddTagDialog({ recipe }) {
 
-
   const [tag, setTag] = useState('');
   const [newTag, setNewTag] = useState('');
-  const [tagSelect, setTagSelect] = useState('');
+  const [tagSelect, setTagSelect] = useState([]);
 
   useEffect(() => {
-    //get user's existing tags on page load
-    
+    //api call to populate tagSelect with users's existing tags
   }, [])
 
 
   //user is given from api.getCurrentUser()
+
+  useEffect(() => {
+    const original = document.bodystyle.overflow
+    document.body.style.overflow = "hidden"
+  }, [])
+
 
   return (
     <div

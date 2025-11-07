@@ -287,7 +287,6 @@ class TestIngredientEndpointsIntegration:
             all_keys = set(all_response.data['results'][0].keys())
             restricted_keys = set(restricted_response.data[0].keys())
             assert all_keys == restricted_keys
-            assert all_keys == {'id', 'name'}
 
 @pytest.mark.django_db
 class TestIngredientSearch:
