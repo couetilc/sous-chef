@@ -1,13 +1,16 @@
 import './style.css';
-import { useNavigate } from 'react-router';
+import { useNavigate, useParams } from 'react-router';
 import { useState } from 'react';
 
 import SousChefLogo from './souschef-logo2.png';
 
 export default function SousChef() {
   const navigate = useNavigate();
+  const { id } = useParams();
   const [sessionActive, setSessionActive] = useState(false);
 
+
+  console.log("SousChefPage recipe id:", id);
   const LetUsBeginClicked = () => {
     // Start a cooking session
     setSessionActive(true);

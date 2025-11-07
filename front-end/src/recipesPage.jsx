@@ -36,7 +36,6 @@ export default function Recipes() {
       const ingredients = selectedOptions.map(option => option.value)
       param.ingredients = ingredients
     }
-
     api.getRecipesFiltered(param).then((result) => {
       setCount(result.count)
       return result
@@ -117,20 +116,7 @@ export default function Recipes() {
       </div>
       <div className="recipes-list">
         {recipes?.results.map(recipe => {
-          const isSelected = selectedRecipeId === recipe.id;
-          return (
-            <div key={recipe.id} style={{ position: 'relative', border: isSelected ? '2px solid #2b7cff' : '1px solid #ddd', padding: 8, marginBottom: 8 }}>
-              <Recipe recipe={recipe} />
-              <div style={{ marginTop: 8 }}>
-                <button
-                  className={isSelected ? 'button-toggledOn' : 'button'}
-                  onClick={() => setSelectedRecipeId(isSelected ? null : recipe.id)}
-                >
-                  {isSelected ? 'Selected' : 'Select'}
-                </button>
-              </div>
-            </div>
-          )
+          return <Recipe recipe={recipe} triggerRefresh={updateList} />
         })}
       </div>
 

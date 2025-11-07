@@ -26,6 +26,7 @@ from .serializers import (
     CookedRecipeSerializer, MealSerializer, RecipeSerializer
 )
 from .utils.recommended import compute_recommendations
+from zoneinfo import ZoneInfo
 
 class Paginator(PageNumberPagination):
     page_size = 100
@@ -589,7 +590,7 @@ class NutritionLastDayView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        now = timezone.now()
+        now = timezone.localtime(timezone.now())
         today = now.date()
 
         # Start is today at midnight
@@ -631,7 +632,7 @@ class CaloriesLastWeekView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        now = timezone.now()
+        now = timezone.localtime(timezone.now())
         today = now.date()
 
         # Start is 6 days before today at midnight
@@ -653,7 +654,7 @@ class CaloriesLastWeekView(APIView):
 
         # Calculate calories per day
         for meal in meals:
-            meal_day = meal.eaten_at.date().isoformat()
+            meal_day = timezone.localtime(meal.eaten_at).date().isoformat()
             recipe = meal.cooked_recipe.recipe
             if recipe.calories_per_serving is not None and meal_day in daily_calories:
                 daily_calories[meal_day] += float(recipe.calories_per_serving) * float(meal.servings)
