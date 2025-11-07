@@ -48,18 +48,23 @@ export default function Layout(props) {
 }
 
 function Nav(props) {
+  const onClick = () => {
+    if (props.closeMenu) {
+      props.closeMenu()
+    }
+  }
   return (
     <nav>
       <ul ref={props.navRef}>
-        <li><Link to="/home/">Home</Link></li>
-        <li><Link to="/sous-chef/">Sous Chef</Link></li>
-        <li><Link to="/nutritionist/">Nutritionist</Link></li>
-        <li><Link to="/recipes/">Recipes</Link></li>
-        <li><Link to="/inventory/">Inventory</Link></li>
-        <li><Link to="/history/">History</Link></li>
-        <li><Link to="/nutrition">Nutrition</Link></li>
-        <li><Link to="/settings/">Account Settings</Link></li>
-        <li><Link to="/logout/">Logout</Link></li>
+        <li><Link onClick={onClick} to="/home/">Home</Link></li>
+        <li><Link onClick={onClick} to="/sous-chef/">Sous Chef</Link></li>
+        <li><Link onClick={onClick} to="/nutritionist/">Nutritionist</Link></li>
+        <li><Link onClick={onClick} to="/recipes/">Recipes</Link></li>
+        <li><Link onClick={onClick} to="/inventory/">Inventory</Link></li>
+        <li><Link onClick={onClick} to="/history/">History</Link></li>
+        <li><Link onClick={onClick} to="/nutrition">Nutrition</Link></li>
+        <li><Link onClick={onClick} to="/settings/">Account Settings</Link></li>
+        <li><Link onClick={onClick} to="/logout/">Logout</Link></li>
       </ul>
     </nav>
   )
@@ -108,7 +113,7 @@ function MobileLayout(props) {
             }>
               <span>☰</span>
             </div>
-            {open && <Nav />}
+            {open && <Nav closeMenu={() => setOpen(false)} />}
           </header>
         }
       </div>

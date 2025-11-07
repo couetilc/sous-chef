@@ -235,16 +235,20 @@ body {
     text-align: center;
   }
 
-.center-page .curved-edge.top-bar-edge-left {
-  left: 0;
-  top: 0em;
-}
+  .center-page .curved-edge.top-bar-edge-left {
+    left: 0;
+    top: 0em;
+  }
 
-.center-page .curved-edge.top-bar-edge-right {
-  right: 0;
-  top: 0em;
-  transform: scaleX(-1);
-}
+  .center-page .curved-edge.top-bar-edge-right {
+    right: 0;
+    top: 0em;
+    transform: scaleX(-1);
+  }
+
+  .nutrition-page .nutrition-section {
+    padding: 0;
+  }
 }
 
 /* End Layout */
@@ -609,6 +613,9 @@ body {
 }
 .recipe-history-page .recipe-history-recipe-title h2 {
   margin: 0;
+}
+.recipe-history-page .recipe-history-recipe-title h2 a {
+  color: var(--color-accent);
 }
 .recipe-history-page .recipe-history-recipe-title button {
   flex: 0 0 auto;
