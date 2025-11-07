@@ -218,7 +218,41 @@ export default function Nutrition() {
           Show Nutrition Formulas
         </button>
 
-        <dialog ref={dialogRef}>
+        <dialog className="nutrition-formula-dialog" ref={dialogRef}>
+
+          <p>Formulas used:</p>
+          <ul>
+            <li>BMR: Mifflin–St Jeor</li>
+            <li>BMR = 10*kg + 6.25*cm − 5*age + (5 if male else −161)</li>
+
+
+            <li>TDEE: BMR * activity_multiplier(level)</li>
+
+
+            <li>low=1.2, light=1.375, moderate=1.55, high=1.725</li>
+
+
+            <li>Goal calories: round(TDEE + adjustment) with adjustments: lose −500, maintain 0, gain +300; then max(1200, calories)</li>
+
+
+            <li>Protein: round(weight_kg * factor) with factors: lose=2.0, maintain=1.6, gain=1.8</li>
+          </ul>
+
+          <p>Calculation based on test data</p>
+          <p>Baseline (male, 20, 5′9″/170 lb, moderate, maintain):</p>
+          <ul>
+
+            <li>5′9″ = 175.3 cm, 170 lb ≈ 77.1 kg</li>
+
+
+            <li>BMR ≈ 10*77.1 + 6.25*175.3 − 5*20 + 5 ≈ 1772</li>
+
+
+            <li>TDEE ≈ 1772 * 1.55 ≈ 2747 → goal adj 0 → ~2747 kcal</li>
+
+
+            <li>Protein ≈ 77.1 * 1.6 ≈ 123 g</li>
+          </ul>
 
           <button type="button" class="button-blue" onClick={() => {
             if (dialogRef.current) { dialogRef.current.close() }

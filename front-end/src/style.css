@@ -1144,3 +1144,13 @@ h1 {
 }
 
 /* END INVENTORY PAGE */
+
+.nutrition-formula-dialog:open {
+  display: flex;
+  flex-flow: column nowrap;
+  gap: 1em;
+}
+.nutrition-formula-dialog li {
+  list-style-type: disc;
+  list-style-position: inside;
+}
