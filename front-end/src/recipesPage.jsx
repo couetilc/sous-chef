@@ -18,6 +18,8 @@ export default function Recipes() {
   const [ count, setCount ] = useState(0);
   const [servingsMultipliers, setServingsMultipliers] = useState({});
   const [servingsInputs, setServingsInputs] = useState({});
+  const [selectedRecipeId, setSelectedRecipeId] = useState(null);
+  const navigate = useNavigate();
 
   const updateList = () => {
     const param = { page }
@@ -65,6 +67,12 @@ export default function Recipes() {
     <div className="recipes-page">
       <h1>Recipe Page</h1>
       <h2>Displaying {count} recipes</h2>
+      {/* Ready to Cook CTA appears at top of page when a recipe is selected */}
+      {selectedRecipeId && (
+        <div style={{ marginTop: 8, textAlign: 'center' }}>
+          <button className="button-blue" onClick={() => navigate('/sous-chef')}>Ready to Cook?</button>
+        </div>
+      )}
       <div className="filter-bar">
         <div className="filter-name">
           <form onSubmit={e => {
@@ -109,9 +117,29 @@ export default function Recipes() {
       </div>
       <div className="recipes-list">
         {recipes?.results.map(recipe => {
-          return <Recipe recipe={recipe} />
+          const isSelected = selectedRecipeId === recipe.id;
+          return (
+            <div key={recipe.id} style={{ position: 'relative', border: isSelected ? '2px solid #2b7cff' : '1px solid #ddd', padding: 8, marginBottom: 8 }}>
+              <Recipe recipe={recipe} />
+              <div style={{ marginTop: 8 }}>
+                <button
+                  className={isSelected ? 'button-toggledOn' : 'button'}
+                  onClick={() => setSelectedRecipeId(isSelected ? null : recipe.id)}
+                >
+                  {isSelected ? 'Selected' : 'Select'}
+                </button>
+              </div>
+            </div>
+          )
         })}
       </div>
+
+      {/* Ready to Cook CTA appears after a recipe is selected */}
+      {selectedRecipeId && (
+        <div style={{ marginTop: 16 }}>
+          <button className="button-blue" onClick={() => navigate('/sous-chef')}>Ready to Cook?</button>
+        </div>
+      )}
     </div>
   )
 }
