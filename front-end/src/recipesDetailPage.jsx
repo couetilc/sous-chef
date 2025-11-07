@@ -1,11 +1,13 @@
 import { useParams } from 'react-router'
 import { useEffect, useState } from 'react'
 import { useApi } from './useApi'
+import { useGET } from './useGET'
 import Recipe from './recipe'
 
 export default function RecipesDetailPage(props) {
   const { id } = useParams()
   const { api } = useApi()
+  const tags = useGET('getTags')
 
   const [recipe, setRecipe] = useState()
 
@@ -21,7 +23,7 @@ export default function RecipesDetailPage(props) {
 
   return (
     <div className="recipe-detail-page">
-      {recipe && <Recipe recipe={recipe} isDetailPage triggerRefresh={getRecipe} /> }
+      {recipe && <Recipe tags={tags} recipe={recipe} isDetailPage triggerRefresh={getRecipe} /> }
     </div>
   )
 }

@@ -285,6 +285,20 @@ export class Api {
   async getRecipeDetail({ id }) {
     return this.fetch(`/api/recipes/${id}/`)
   }
+
+  async getTags() {
+    return this.fetch(`/api/tags/`)
+  }
+
+  async deleteTag({ id }) {
+    return this.fetch(`/api/tags/${id}/`, { method: 'DELETE' })
+  }
+
+  async createTag({ name }) {
+    return this.fetch(`/api/tags/`, {
+      body: JSON.stringify({ name })
+    })
+  }
 }
 
 export function ApiProvider(props) {

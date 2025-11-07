@@ -14,7 +14,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.pagination import PageNumberPagination
 from django.contrib.auth.models import User, Group
-from .serializers import UserSerializer, GroupSerializer, UserRegistrationSerializer, IngredientSerializer, DietSerializer, CookedRecipeSerializer, MealSerializer, OnboardSerializer, SettingsIngredientSerializer, UserInventorySerializer
+from .serializers import UserSerializer, GroupSerializer, UserRegistrationSerializer, IngredientSerializer, DietSerializer, CookedRecipeSerializer, MealSerializer, OnboardSerializer, SettingsIngredientSerializer, UserInventorySerializer, TagSerializer
 from decimal import Decimal, InvalidOperation
 from .models import (
     Ingredient, DietaryIngredient, Diet, UserDiet,
@@ -752,6 +752,14 @@ class RecipeDetailView(generics.RetrieveAPIView):
     serializer_class = RecipeSerializer
 
 class TagList(APIView):
+    def get(self, request):
+        queryset = Tag.objects.order_by('name')
+        serialized = TagSerializer(queryset, many = True)
+        return Response(
+            serialized.data,
+            status.HTTP_200_OK
+        )
+
     def post(self, request):
         name = request.data.get('name')
         if not name:
