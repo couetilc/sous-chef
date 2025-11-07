@@ -9,6 +9,8 @@ export default function Nutrition() {
   const [currentDate, setCurrentDate] = useState('');
   const [nutritionData, setNutritionData] = useState([]);
 
+  const dialogRef = useRef()
+
   const [goals, setGoals] = useState({
     calories_goal: 2747,
     protein_goal_g: 123,
@@ -130,7 +132,7 @@ export default function Nutrition() {
       tooltip: { trigger: 'axis' },
       legend: { data: ['Calories Consumed', 'Trend (Average)'] },
       xAxis: { type: 'category', data: days },
-      yAxis: { type: 'value', name: 'Calories', nameLocation: 'middle' },
+      yAxis: { type: 'value', name: 'Calories', nameLocation: 'middle', min: 0, max: Math.max(...calories, goals.calories_goal) + 100 },
       series: [
         {
           name: 'Calories Consumed',
@@ -209,6 +211,21 @@ export default function Nutrition() {
             );
           })}
         </div>
+
+        <button type="button" class="button" onClick={() => {
+          if (dialogRef.current) { dialogRef.current.showModal() }
+        }}>
+          Show Nutrition Formulas
+        </button>
+
+        <dialog ref={dialogRef}>
+
+          <button type="button" class="button-blue" onClick={() => {
+            if (dialogRef.current) { dialogRef.current.close() }
+          }}>
+            Close
+          </button>
+        </dialog>
 
         <div className="chart-section">
           <h2 className="chart-title">Calorie Intake (Past 7 Days)</h2>
