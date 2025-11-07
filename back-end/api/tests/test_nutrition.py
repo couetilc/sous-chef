@@ -3,6 +3,7 @@ from api.models import Recipe, CookedRecipe, Meal
 from rest_framework import status
 # import django timezone utilities
 from django.utils import timezone
+from freezegun import freeze_time
 
 # We need endpoint for:
 # - calories, proteins, fats, carbs consumption for the last day
@@ -10,6 +11,7 @@ from django.utils import timezone
 
 @pytest.mark.django_db
 class TestNutritionAPI:
+    @freeze_time("2024-11-06 16:00:00", tz_offset=-5)
     def test_calories_calculation_last_week(self, authenticated_client, test_user):
         """Check calories are calculated correctly for the past 7 days."""
         now = timezone.now()
@@ -25,6 +27,7 @@ class TestNutritionAPI:
         ]
 
         for recipe, date in zip([recipe1, recipe2, recipe3], dates):
+            print(date)
             cooked_recipe = CookedRecipe.objects.create(
                 user=test_user,
                 recipe=recipe,
@@ -51,7 +54,9 @@ class TestNutritionAPI:
             now.date().isoformat(): 300.0,
         }
 
+        print(expected)
         for date, calories in calories_by_date.items():
+            print(date)
             if date in expected:
                 assert calories == expected[date]
             else:
@@ -62,17 +67,17 @@ class TestNutritionAPI:
         past_date = timezone.now() - timezone.timedelta(days=8)
 
         recipe = Recipe.objects.create(title="Test Recipe 1", calories_per_serving=500)
-        
+
         cooked_recipe = CookedRecipe.objects.create(
             user=test_user,
             recipe=recipe,
             cooked_at=past_date
         )
-        
+
         meal = Meal.objects.create(
             cooked_recipe=cooked_recipe,
         )
-        
+
         meal.eaten_at = past_date
         meal.save()
 

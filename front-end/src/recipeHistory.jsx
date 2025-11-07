@@ -28,10 +28,14 @@ export default function RecipeHistory(props) {
           You have no activity history
         </p>
       }
-      {data?.length > 0 && data.map(({ id, recipe, meals }) => ( // NOTE: use top-level id as cookedRecipeId
+      {data?.length > 0 && data.map(({ id, cooked_at, recipe, meals }) => ( // NOTE: use top-level id as cookedRecipeId
         <div key={id} className="recipe-history-recipe">
           <div className="recipe-history-recipe-title">
-            <h2>{recipe.title}</h2>
+            <h2><a href={`/recipes/${recipe.id}`}>{recipe.title}</a></h2>
+            <p>Cooked at: {(() => {
+              const { monthDay, year, time } = formatDate(cooked_at)
+              return `${time} ${monthDay}, ${year}`
+            })()}</p>
             <button
               className="button"
               onClick={() => setActive({ cookedRecipeId: id, recipe })}

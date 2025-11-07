@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useApi } from './useApi'
+import { useNavigate } from 'react-router'
 
 const formatCurrency = (val) => {
   const num = Number(val)
@@ -18,9 +19,11 @@ export default function Recipe(props) {
   const { api } = useApi()
   const isDetailPage = props.isDetailPage
   const [editMode, setEditMode] = useState(false)
+  const navigate = useNavigate()
 
   const [ingredients, setIngredients] = useState(props.recipe.ingredients)
   const [instructions, setInstructions] = useState(props.recipe.instructions)
+  const [tagValue, setTagValue] = useState('')
 
   const [servings, setServings] = useState()
 
@@ -29,6 +32,9 @@ export default function Recipe(props) {
   async function submitChanges() {
     await api.updateCustomRecipe({id: recipe.id, ingredients: ingredients, instructions: instructions})
   }
+
+  const dialogRef = useRef()
+
   return (
     <div key={recipe.id} className="recipe">
       {isDetailPage &&
@@ -62,6 +68,12 @@ export default function Recipe(props) {
           </a>
         </h3>
       }
+      <button
+                  className="button-blue"
+                  onClick={() => navigate(`/sous-chef/${recipe.id}`)}
+                >
+                  Ready to cook?
+                </button>
       <div className="image-ingredients">
         {recipe.image_url &&
           <img width="200px" src={recipe.image_url} loading="lazy" alt={recipe.title} />}
@@ -182,6 +194,56 @@ export default function Recipe(props) {
       >
         {recipe.is_favorited ? '★ Unfavorite this recipe' : '☆ Favorite this recipe'}
       </button>
+
+      <button
+        className="button-blue"
+        type="button"
+        onClick={() => {
+          if (dialogRef.current) {
+            dialogRef.current.showModal()
+          }
+        }}
+      >
+        Manage Tags
+      </button>
+
+      <dialog ref={dialogRef}>
+        {/* UI for creating tags, viewing tags, and deleting tags */}
+        <input type="text" className="text-input" value={tagValue} onChange={e => setTagValue(e.target.value)}>
+        </input>
+        <button className="button" type="button" onClick={async () => {
+          await api.createTag({ name: tagValue })
+          setTagValue('')
+          props.tags.refresh()
+        }}>
+          Create Tag
+        </button>
+        <ul>
+          {props.tags?.data && props.tags.data.map(tag => (
+            <li key={tag.id}>
+              {tag.name}
+
+              <button type="button" className="button" onClick={async () => {
+                await api.deleteTag({ id: tag.id })
+                props.tags.refresh()
+              }}>
+                Delete
+              </button>
+            </li>
+          ))
+          }
+        </ul>
+        <button className="button-blue" type="button" onClick={
+          () => {
+            if (dialogRef.current) {
+              setTagValue('')
+              dialogRef.current.close()
+            }
+          }
+        }>
+          Cancel
+        </button>
+      </dialog>
 
       {recipe.source_url &&
         <a className="source-url" href={recipe.source_url} target="_blank" rel="noreferrer">source</a>}

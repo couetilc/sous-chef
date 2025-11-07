@@ -4,11 +4,13 @@ import { useNavigate } from 'react-router';
 import { useApi } from './useApi';
 import IngredientsSelectMultiple from './ingredientsSelectMultiple'
 import Recipe from './recipe'
+import { useGET } from './useGET'
 
 import SousChefLogo from './souschef-logo.png';
 
 export default function Recipes() {
   const { api } = useApi();
+  const tags = useGET('getTags')
   const [enteredName, setEnteredName] = useState('')
   const [filterInventory, setFilterInventory] = useState(false)
   const [filterFavorites, setFilterFavorites] = useState(false)
@@ -18,6 +20,8 @@ export default function Recipes() {
   const [ count, setCount ] = useState(0);
   const [servingsMultipliers, setServingsMultipliers] = useState({});
   const [servingsInputs, setServingsInputs] = useState({});
+  const [selectedRecipeId, setSelectedRecipeId] = useState(null);
+  const navigate = useNavigate();
 
   const updateList = () => {
     const param = { page }
@@ -64,6 +68,12 @@ export default function Recipes() {
     <div className="recipes-page">
       <h1>Recipe Page</h1>
       <h2>Displaying {count} recipes</h2>
+      {/* Ready to Cook CTA appears at top of page when a recipe is selected */}
+      {selectedRecipeId && (
+        <div style={{ marginTop: 8, textAlign: 'center' }}>
+          <button className="button-blue" onClick={() => navigate('/sous-chef')}>Ready to Cook?</button>
+        </div>
+      )}
       <div className="filter-bar">
         <div className="filter-name">
           <form onSubmit={e => {
@@ -108,9 +118,16 @@ export default function Recipes() {
       </div>
       <div className="recipes-list">
         {recipes?.results.map(recipe => {
-          return <Recipe recipe={recipe} triggerRefresh={updateList} />
+          return <Recipe tags={tags} recipe={recipe} triggerRefresh={updateList} />
         })}
       </div>
+
+      {/* Ready to Cook CTA appears after a recipe is selected */}
+      {selectedRecipeId && (
+        <div style={{ marginTop: 16 }}>
+          <button className="button-blue" onClick={() => navigate('/sous-chef')}>Ready to Cook?</button>
+        </div>
+      )}
     </div>
   )
 }

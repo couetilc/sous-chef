@@ -315,3 +315,4 @@ class TaggedRecipe(models.Model):
     """Connects a tag to the recipes it refers to for a user"""
     tag = models.ForeignKey(RecipeTag, on_delete=models.CASCADE, related_name='tagged_recipe')
     recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE, related_name='tagged_recipe');
+
