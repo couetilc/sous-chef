@@ -3,7 +3,7 @@ from django.contrib import admin
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
-from .models import Ingredient, Diet, CookedRecipe, Meal, Recipe, FavoriteRecipe, OnboardingSubmission, UserRecipe
+from .models import Ingredient, Diet, CookedRecipe, Meal, Recipe, FavoriteRecipe, OnboardingSubmission, UserInventory, UserRecipe
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -23,7 +23,7 @@ class GroupSerializer(serializers.ModelSerializer):
 class IngredientSerializer(serializers.ModelSerializer):
     class Meta:
         model = Ingredient
-        fields = ('id', 'name')
+        fields = ('id', 'name', 'food_category', 'quantity_other', 'calories', 'protein_g', 'fat_g', 'carbs_g', 'price', 'price_g')
         read_only_fields = ('id',)
 
 class DietSerializer(serializers.ModelSerializer):
@@ -88,12 +88,13 @@ class RecipeSerializer(serializers.ModelSerializer):
             user = request.user
         else:
             user = None
+        return user
 
     def check_favorited(self, instance):
         if not self.user: return False
 
         userQuery = instance.user_favorites.all()
-        userQuery = userQuery.filter(user__id=user.id)
+        userQuery = userQuery.filter(user=self.user)
         return userQuery.first() != None
 
     class Meta:
@@ -107,6 +108,11 @@ class RecipeSerializer(serializers.ModelSerializer):
             'fat_g',
             'carbs_g',
             'protein_g',
+            'prep_time_min',
+            'cook_time_min',
+            'total_time_min',
+            'price_per_serving_usd',
+            'total_price_usd',
         )
         read_only_fields = ('id',)
 
@@ -143,3 +149,17 @@ class CookedRecipeSerializer(serializers.ModelSerializer):
             'total_servings_cooked',
         )
         read_only_fields = ('id', 'cooked_at')
+
+class SettingsIngredientSerializer(serializers.ModelSerializer):
+    is_restricted = serializers.BooleanField(read_only=True)
+
+    class Meta:
+        model = Ingredient
+        fields = ('id', 'name', 'is_restricted')
+
+class UserInventorySerializer(serializers.ModelSerializer):
+    ingredient = IngredientSerializer()
+
+    class Meta:
+        model = UserInventory
+        fields = ('id', 'ingredient')

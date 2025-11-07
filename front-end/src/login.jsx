@@ -21,7 +21,7 @@ export default function Login(props) {
       navigate("/home/");
     }
     else {
-      navigate("/welcome");
+      navigate("/welcome/");
     }
   }
 
@@ -41,8 +41,9 @@ export default function Login(props) {
 
     try {
       await login({ username: userText, password: pwElement.value });
-        navAfterLogin();
-      } catch (error) {
+      await navAfterLogin();
+    }
+    catch (error) {
       alert("Invalid Credentials!");
     }
   }

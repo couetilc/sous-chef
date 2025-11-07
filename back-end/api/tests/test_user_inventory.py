@@ -6,15 +6,37 @@ from api.models import Ingredient, UserInventory
 
 @pytest.mark.django_db
 class TestUserInventoryAPI:
+    def test_create_user_inventory_no_list(self, authenticated_client):
+        ingredient = Ingredient.objects.create(name='Tomato')
+
+        response = authenticated_client.post('/api/user_inventory/', {
+            'ingredient_ids': ingredient.id
+        })
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'error' in response.data
+
+    def test_create_user_inventory_invalid_id(self, authenticated_client):
+        ingredient = Ingredient.objects.create(name='Tomato')
+
+        response = authenticated_client.post('/api/user_inventory/', {
+            'ingredient_ids': [ingredient.id + 1]
+        })
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'error' in response.data
+
     def test_create_user_inventory(self, authenticated_client):
         # set the pre-conditions: put the database into a state we want to test
         ingredient = Ingredient.objects.create(name='Tomato')
 
-        response = authenticated_client.post('/api/user_inventory/', { 'ingredient_id': ingredient.id})
+        response = authenticated_client.post('/api/user_inventory/', {
+            'ingredient_ids': [ingredient.id]
+        })
 
         assert response.status_code == status.HTTP_201_CREATED
         assert UserInventory.objects.count() == 1
-    
+
     def test_get_user_inventory(self, authenticated_client, test_user):
         ingredient1 = Ingredient.objects.create(name='Tomato')
         ingredient2 = Ingredient.objects.create(name='Lettuce')
@@ -34,6 +56,7 @@ class TestUserInventoryAPI:
 
         response = authenticated_client.delete(f'/api/user_inventory/{user_inventory.id}/')
 
-        assert response.status_code == status.HTTP_204_NO_CONTENT
+        assert response.status_code == status.HTTP_200_OK
+        assert 'message' in response.data
         assert UserInventory.objects.filter(id=user_inventory.id).count() == 0
-    
+

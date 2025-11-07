@@ -38,12 +38,15 @@ export class Api {
           .then(res => res.json());
 
         if (response.csrfToken) {
+          console.log('received token ', response.csrfToken)
           this.csrfToken = response.csrfToken;
           this.ready_state = this.READY_STATES.YES;
         } else {
+        console.log('token not ready')
           this.ready_state = this.READY_STATES.NO;
         }
       } catch (error) {
+        console.log('token error')
         this.ready_state = this.READY_STATES.NO;
         throw error;
       } finally {
@@ -120,8 +123,11 @@ export class Api {
     })
   }
 
-  async listIngredients({ page = 1 } = {}) {
-    return this.fetch(`/api/ingredients/?page=${page}`, {});
+  async listIngredients({ page = 1, search } = {}, options) {
+    const url = new URL('/api/ingredients/', window.location.href)
+    if (page) url.searchParams.set('page', page)
+    if (search) url.searchParams.set('search', search)
+    return this.fetch(url.toString(), options);
   }
 
   async listRestricted() {
@@ -182,7 +188,7 @@ export class Api {
   }
 
   async setOnboardingStatus({new_onboarded, new_skipped}) {
-   return this.fetch('/api/user/updateOnboarded/', {method: "POST",
+   return this.fetch('/api/user/updateOnboarded/', {
      body: JSON.stringify({
        new_onboarded,
        new_skipped
@@ -227,6 +233,19 @@ export class Api {
     })
   }
 
+  async getCustomRecipe() {
+    return this.fetch('/api/user_recipes/');
+  }
+
+  async updateCustomRecipe({id, ingredients, instructions}) {
+    return this.fetch('api/user_recipe_update/{id}/', {
+      body: JSON.stringify({
+        ingredients,
+        instructions
+      })
+    })
+  }
+
   async recipeHistory() {
     return this.fetch('/api/recipe_history/')
   }
@@ -245,10 +264,35 @@ export class Api {
     )
   }
 
-  async UserInventoryAddEntry({ ingredient_id }) {
+  async UserInventoryAddEntry({ ingredient_ids }) {
     return this.fetch(`/api/user_inventory/`, {
-      body: JSON.stringify({ ingredient_id })
+      body: JSON.stringify({ ingredient_ids })
     })
+  }
+
+  async UserNutritionLastDay() {
+    return this.fetch('/api/nutrition/nutrition_last_day/')
+  }
+
+  async UserCaloriesLastWeek() {
+    return this.fetch('/api/nutrition/calories_last_week/')
+  }
+
+  async getSettingsRestrictedIngredients({ page = 1, search } = {}, options) {
+    const url = new URL('/api/settings/restricted_ingredients/', window.location.href)
+    if (page) url.searchParams.set('page', page)
+    if (search) url.searchParams.set('search', search)
+    return this.fetch(url.toString(), options)
+  }
+
+  async postSettingsRestrictedIngredients({ ingredient_ids } = {}) {
+    return this.fetch('/api/settings/restricted_ingredients/', {
+      body: JSON.stringify({ ingredient_ids }),
+    })
+  }
+
+  async getRecipeDetail({ id }) {
+    return this.fetch(`/api/recipes/${id}/`)
   }
 }
 
@@ -257,11 +301,12 @@ export function ApiProvider(props) {
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
+  console.log('ready effect triggered')
     if (!api.isReady()) {
+    console.log('becoming ready')
       api.becomeReady().then(() => { setIsReady(true) });
     }
   })
-
 
   const context = useMemo(() => {
     return { api, isReady };

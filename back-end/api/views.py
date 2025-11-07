@@ -7,13 +7,14 @@ from django.middleware.csrf import get_token
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.utils.decorators import method_decorator
 from django.utils.dateparse import parse_datetime
-from django.db.models import Exists, OuterRef
+from django.utils import timezone
+from django.db.models import Exists, OuterRef, Case, When, Value, IntegerField, Q, BooleanField
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.pagination import PageNumberPagination
 from django.contrib.auth.models import User, Group
-from .serializers import UserSerializer, GroupSerializer, UserRegistrationSerializer, IngredientSerializer, DietSerializer, CookedRecipeSerializer, MealSerializer, OnboardSerializer, UserRecipeSerializer
+from .serializers import UserSerializer, GroupSerializer, UserRegistrationSerializer, IngredientSerializer, DietSerializer, CookedRecipeSerializer, MealSerializer, OnboardSerializer, SettingsIngredientSerializer, UserInventorySerializer, UserRecipeSerializer
 from decimal import Decimal, InvalidOperation
 from .models import (
     Ingredient, DietaryIngredient, Diet, UserDiet,
@@ -312,7 +313,6 @@ class DietListSync(APIView):
         diet_ids = request.data.get('diet_ids', [])
 
         if not isinstance(diet_ids, list):
-            print('diet_ids: ', diet_ids)
             return Response(
                 {'error': 'diet_ids must be a list'},
                 status=status.HTTP_400_BAD_REQUEST
@@ -498,7 +498,7 @@ class GetRecipesFiltered(APIView):
         paginator = Paginator()
         page = paginator.paginate_queryset(queryset, request)
 
-        serializer = RecipeSerializer(page, many=True, context = {'user': request.user})
+        serializer = RecipeSerializer(page, many=True, context = {'request': request})
         return paginator.get_paginated_response(serializer.data)
 
 class CreateFavoriteRecipe(APIView):
@@ -526,34 +526,35 @@ class UserInventoryList(APIView):
 
     def get(self, request):
         inventories = UserInventory.objects.filter(user=request.user).order_by('ingredient__name')
-
-        data = []
-        for item in inventories:
-            data.append({
-                'id': item.id,
-                'ingredient': IngredientSerializer(item.ingredient).data,
-            })
-
-        return Response(data, status=status.HTTP_200_OK)
+        serialized = UserInventorySerializer(inventories, many = True)
+        return Response(serialized.data, status=status.HTTP_200_OK)
 
     def post(self, request):
-        ingredient_id = request.data.get('ingredient_id')
-        if ingredient_id is None:
-            return Response({'error': 'ingredient_id is required'}, status=status.HTTP_400_BAD_REQUEST)
+        ingredient_ids = request.data.get('ingredient_ids')
 
-        try:
-            ingredient = Ingredient.objects.get(id=ingredient_id)
-        except Ingredient.DoesNotExist:
-            return Response({'error': 'Ingredient not found'}, status=status.HTTP_404_NOT_FOUND)
+        if not isinstance(ingredient_ids, list):
+            return Response(
+                {'error': 'ingredient_ids must be a list'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-        inventory, created = UserInventory.objects.get_or_create(user=request.user, ingredient=ingredient)
+        if len(ingredient_ids) > 0 and not Ingredient.objects.filter(id__in=ingredient_ids).exists():
+            return Response(
+                {'error': 'One or more ingredient IDs are invalid'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-        serializer_data = {
-            'id': inventory.id,
-            'ingredient': IngredientSerializer(inventory.ingredient).data,
-        }
+        with transaction.atomic():
+            for ingredient_id in ingredient_ids:
+                UserInventory.objects.get_or_create(
+                    user=request.user,
+                    ingredient_id=ingredient_id
+                )
 
-        return Response(serializer_data, status=status.HTTP_201_CREATED)
+        return Response(
+            {'message': 'successfully created inventory items'},
+            status=status.HTTP_201_CREATED,
+        )
 
 class UserInventoryDetail(APIView):
     """Retrieve, update or delete a user inventory item"""
@@ -578,13 +579,182 @@ class UserInventoryDetail(APIView):
             return Response({'error': 'Not found'}, status=status.HTTP_404_NOT_FOUND)
 
         inventory.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response(
+            {'message': 'Successfully deleted inventory item'},
+            status=status.HTTP_200_OK,
+        )
+
+class NutritionLastDayView(APIView):
+    """Get calories, fats, carbs, and proteins consumed in the last day"""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        now = timezone.now()
+        today = now.date()
+
+        # Start is today at midnight
+        start_time = timezone.make_aware(
+            timezone.datetime.combine(today, timezone.datetime.min.time())
+        )
+        end_time = now
+
+        meals = Meal.objects.filter(
+            cooked_recipe__user=request.user,
+            eaten_at__range=(start_time, end_time)
+        ).select_related("cooked_recipe__recipe")
+
+        total_calories = 0.0
+        total_fats = 0.0
+        total_carbs = 0.0
+        total_proteins = 0.0
+
+        for meal in meals:
+            recipe = meal.cooked_recipe.recipe
+            if recipe.calories_per_serving is not None:
+                total_calories += float(recipe.calories_per_serving) * float(meal.servings)
+            if recipe.fat_g is not None:
+                total_fats += float(recipe.fat_g) * float(meal.servings)
+            if recipe.carbs_g is not None:
+                total_carbs += float(recipe.carbs_g) * float(meal.servings)
+            if recipe.protein_g is not None:
+                total_proteins += float(recipe.protein_g) * float(meal.servings)
+
+        return Response({
+            'calories': total_calories,
+            'fats': total_fats,
+            'carbs': total_carbs,
+            'proteins': total_proteins
+        }, status=status.HTTP_200_OK)
+
+class CaloriesLastWeekView(APIView):
+    """Get total calories consumed for each of the past 7 days"""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        now = timezone.now()
+        today = now.date()
+
+        # Start is 6 days before today at midnight
+        start_time = timezone.make_aware(
+            timezone.datetime.combine(today - timezone.timedelta(days=6), timezone.datetime.min.time())
+        )
+        end_time = now
+
+        # Fetch meals from the last 7 days including today
+        meals = Meal.objects.filter(
+            cooked_recipe__user=request.user,
+            eaten_at__range=(start_time, end_time)
+        ).select_related("cooked_recipe__recipe")
+
+        daily_calories = {}
+        for i in range(7):
+            day = (today - timezone.timedelta(days=6 - i)).isoformat()
+            daily_calories[day] = 0.0
+
+        # Calculate calories per day
+        for meal in meals:
+            meal_day = meal.eaten_at.date().isoformat()
+            recipe = meal.cooked_recipe.recipe
+            if recipe.calories_per_serving is not None and meal_day in daily_calories:
+                daily_calories[meal_day] += float(recipe.calories_per_serving) * float(meal.servings)
+
+        # Sort by day order
+        sorted_daily = [
+            {'date': date, 'calories': daily_calories[date]}
+            for date in sorted(daily_calories.keys())
+        ]
+
+        return Response({'daily_calories': sorted_daily}, status=status.HTTP_200_OK)
+
+class SettingsRestrictedIngredients(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        queryset = Ingredient.objects.annotate(
+            is_restricted=Exists(
+                DietaryIngredient.objects.filter(
+                    ingredient=OuterRef('pk'),
+                    user=request.user
+                )
+            )
+        )
+
+        include_ids = request.query_params.getlist('include')
+        include_ids = [int(id) for id in include_ids if id.isdigit()]
+
+        queryset = queryset.annotate(
+            is_included=Case(
+                When(id__in=include_ids, then=Value(True)),
+                default=Value(False),
+                output_field=BooleanField()
+            )
+        )
+
+        search = request.query_params.get('search', None)
+        if search:
+            queryset = queryset.filter(
+                Q(is_restricted=True) | Q(is_included=True) | Q(name__icontains=search)
+            )
+
+        queryset = queryset.annotate(
+            priority=Case(
+                When(is_restricted=True, then=Value(0)),
+                When(is_included=True, then=Value(1)),
+                default=Value(2),
+                output_field=IntegerField()
+            )
+        ).order_by('priority', 'name')
+
+        paginator = Paginator()
+        paginated = paginator.paginate_queryset(queryset, request)
+        serialized = SettingsIngredientSerializer(paginated, many = True)
+        return paginator.get_paginated_response(serialized.data)
+
+    def post(self, request):
+        ingredient_ids = request.data.get('ingredient_ids')
+
+        if not isinstance(ingredient_ids, list):
+            return Response(
+                {'error': 'ingredient_ids must be a list'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if len(ingredient_ids) > 0 and not Ingredient.objects.filter(id__in=ingredient_ids).exists():
+            return Response(
+                {'error': 'One or more ingredient IDs are invalid'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        with transaction.atomic():
+            current_ingredient_ids = set(
+                DietaryIngredient.objects.filter(user=request.user).values_list('ingredient_id', flat=True)
+            )
+            request_ingredient_ids = set(ingredient_ids)
+
+            to_create = request_ingredient_ids - current_ingredient_ids
+            to_delete = current_ingredient_ids - request_ingredient_ids
+
+            DietaryIngredient.objects.filter(user=request.user, ingredient_id__in=to_delete).delete()
+            DietaryIngredient.objects.bulk_create(
+                DietaryIngredient(user=request.user, ingredient_id=ingredient_id)
+                for ingredient_id in to_create
+            )
+
+        return Response(
+            {'message':'Successfully updated restricted ingredients'},
+            status.HTTP_200_OK,
+        )
+
+class RecipeDetailView(generics.RetrieveAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    queryset = Recipe.objects.all()
+    serializer_class = RecipeSerializer
 
 class GetTags(APIView):
     """Retrieve list of the current user's recipe tags"""
     permission_classes = [permissions.IsAuthenticated]
 
-class GetUserRecipe(APIView):
+class GetUserRecipes(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
@@ -606,7 +776,7 @@ class UpdateUserRecipe(APIView):
         original_recipe = request.data['original_recipe']
         # check if user already has a custom recipe saved
         print(f'REQUEST: {request}')
-        user_recipe = UserRecipe.objects.filter(user=request.user).filter(original_recipe=Recipe.objects.get(request.data[original_recipe]))
+        user_recipe = UserRecipe.objects.filter(user=request.user).filter(original_recipe=Recipe.objects.get(original_recipe))
         if not user_recipe:
             # create new entry
             user_recipe = UserRecipe.objects.create(

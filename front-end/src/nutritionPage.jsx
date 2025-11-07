@@ -2,20 +2,37 @@ import './style.css';
 import { useNavigate } from 'react-router';
 import { useState, useEffect, useRef } from 'react';
 import * as echarts from 'echarts';
+import { useApi } from './useApi.jsx';
 
 export default function Nutrition() {
   const navigate = useNavigate();
   const [currentDate, setCurrentDate] = useState('');
+  const [nutritionData, setNutritionData] = useState([]);
 
-  // Store goals from API (fallbacks keep UI usable before load)
   const [goals, setGoals] = useState({
-    calories_goal: 3000,
-    protein_goal_g: 200,
+    calories_goal: 2500,
+    protein_goal_g: 150,
   });
 
   // ref for chart dom/instance
   const chartRef = useRef(null);
   const chartInstanceRef = useRef(null);
+  const {api} = useApi();
+
+  useEffect(() => {
+    api.UserNutritionLastDay().then(response => {
+      console.log('Nutrition last day data:', response);
+
+      const updatedNutrition = [
+        { label: 'Calories (kCal)', consumed: response.calories, goal: goals.calories_goal, color: '#f87171' },
+        { label: 'Protein (g)', consumed: response.proteins, goal: goals.protein_goal_g, color: '#60a5fa' },
+        { label: 'Fat (g)', consumed: response.fats, goal: 80, color: '#facc15' },
+        { label: 'Carbohydrates (g)', consumed: response.carbs, goal: 300, color: '#4ade80' },
+      ];
+
+      setNutritionData(updatedNutrition);
+    });
+  }, []);
 
   useEffect(() => {
     const today = new Date();
@@ -72,15 +89,15 @@ export default function Nutrition() {
     })();
   }, []);
 
-  // Use API-driven goals in the bars
-  const nutritionData = [
-    { label: 'Calories',      consumed: 2000, goal: goals.calories_goal,  color: '#f87171' },
-    { label: 'Protein (g)',   consumed: 120,  goal: goals.protein_goal_g, color: '#60a5fa' },
-    { label: 'Fat',           consumed: 60,   goal: 80,                   color: '#facc15' },
-    { label: 'Carbohydrates', consumed: 220,  goal: 300,                  color: '#4ade80' },
-  ];
+  const [lastWeek, setLastWeek] = useState(undefined);
 
-  // Chart
+  useEffect(() => {
+    (async function () {
+      const response = await api.UserCaloriesLastWeek();
+      setLastWeek(response);
+    })();
+  }, [])
+
   useEffect(() => {
     const chartDom = document.getElementById('main');
     if (!chartDom) return;
@@ -88,9 +105,11 @@ export default function Nutrition() {
     const myChart = echarts.init(chartDom);
     chartInstanceRef.current = myChart;
 
+    if (!lastWeek) return;
+
     const days = [];
-    const calories = [2100, 2300, 1950, 2600, 2400, 2200, 2000];
     const today = new Date();
+    const calories = lastWeek.daily_calories.map(val => val.calories); // replace with lastWeek if available
 
     // Generate past 7 days labels
     for (let i = 6; i >= 0; i--) {
@@ -159,7 +178,7 @@ export default function Nutrition() {
       chartInstanceRef.current = null;
     };
     // Rebuild chart when the goal changes so the markLine/label stay in sync
-  }, [goals.calories_goal]);
+  }, [goals.calories_goal, lastWeek]);
 
   return (
     <div className="nutrition-page">
