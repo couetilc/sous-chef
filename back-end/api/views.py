@@ -18,7 +18,7 @@ from .serializers import UserSerializer, GroupSerializer, UserRegistrationSerial
 from decimal import Decimal, InvalidOperation
 from .models import (
     Ingredient, DietaryIngredient, Diet, UserDiet,
-    Recipe, CookedRecipe, Meal, FavoriteRecipe, UserInventory, OnboardingSubmission, RecipeIngredient, HealthDetails, Tag
+    Recipe, CookedRecipe, Meal, FavoriteRecipe, UserInventory, OnboardingSubmission, RecipeIngredient, HealthDetails, Tag, TaggedRecipe
 )
 from .serializers import (
     UserSerializer, GroupSerializer, UserRegistrationSerializer,
@@ -777,11 +777,44 @@ class TagDetail(APIView):
         queryset.delete()
         return Response(
             {'message': 'successfully delete tag'},
-            status.HTTP_400_BAD_REQUEST
+            status.HTTP_200_OK
         )
 
 class TaggedRecipeDetail(APIView):
-    def post(self, request, tag_id, ingredient_id):
-        pass
-    def delete(self, request, tag_id, ingredient_id):
-        pass
+    def post(self, request, tag_id, recipe_id):
+        if not Tag.objects.filter(id=tag_id).exists():
+            return Response(
+                {'error': 'invalid tag id'},
+                status.HTTP_400_BAD_REQUEST
+            )
+        if not Recipe.objects.filter(id=recipe_id).exists():
+            return Response(
+                {'error': 'invalid recipe id'},
+                status.HTTP_400_BAD_REQUEST
+            )
+
+        TaggedRecipe.objects.get_or_create(user=request.user, tag_id=tag_id, recipe_id=recipe_id)
+
+        return Response(
+            {'message': 'successfully tagged recipe'},
+            status.HTTP_200_OK
+        )
+
+    def delete(self, request, tag_id, recipe_id):
+        queryset = TaggedRecipe.objects.filter(
+            user=request.user,
+            tag_id=tag_id,
+            recipe_id=recipe_id
+        )
+
+        if not queryset.exists():
+            return Response(
+                {'error': 'unable to find tagged recipe'},
+                status.HTTP_400_BAD_REQUEST
+            )
+
+        queryset.delete()
+        return Response(
+            {'message': 'successfully untagged recipe'},
+            status.HTTP_200_OK
+        )

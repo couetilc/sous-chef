@@ -33,3 +33,56 @@ class TestTagsAPI:
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert 'error' in response.data
+
+    def test_create_tagged_recipe(self, authenticated_client, test_user):
+        tag = Tag.objects.create(name='foo')
+        recipe = Recipe.objects.create(title='bar')
+
+        response = authenticated_client.post(f'/api/tags/{tag.id}/recipe/{recipe.id}/')
+
+        assert response.status_code == status.HTTP_200_OK
+        assert 'message' in response.data
+        assert TaggedRecipe.objects.all().count() == 1
+        last = TaggedRecipe.objects.all().last()
+        assert last.recipe == recipe
+        assert last.tag == tag
+        assert last.user == test_user
+
+    def test_create_tagged_recipe_recipe_must_exist(self, authenticated_client, test_user):
+        tag = Tag.objects.create(name='foo')
+        recipe = Recipe.objects.create(title='bar')
+
+        response = authenticated_client.post(f'/api/tags/{tag.id}/recipe/{recipe.id + 1}/')
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'error' in response.data
+
+    def test_create_tagged_recipe_tag_must_exist(self, authenticated_client, test_user):
+        tag = Tag.objects.create(name='foo')
+        recipe = Recipe.objects.create(title='bar')
+
+        response = authenticated_client.post(f'/api/tags/{tag.id + 1}/recipe/{recipe.id}/')
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'error' in response.data
+
+
+    def test_delete_tagged_recipe(self, authenticated_client, test_user):
+        tag = Tag.objects.create(name='foo')
+        recipe = Recipe.objects.create(title='bar')
+        TaggedRecipe.objects.create(tag=tag, recipe=recipe, user=test_user)
+
+        response = authenticated_client.delete(f'/api/tags/{tag.id}/recipe/{recipe.id}/')
+
+        assert response.status_code == status.HTTP_200_OK
+        assert 'message' in response.data
+        assert TaggedRecipe.objects.all().count() == 0
+
+    def test_delete_tagged_recipe_must_exist(self, authenticated_client, test_user):
+        tag = Tag.objects.create(name='foo')
+        recipe = Recipe.objects.create(title='bar')
+
+        response = authenticated_client.delete(f'/api/tags/{tag.id}/recipe/{recipe.id}/')
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'error' in response.data
