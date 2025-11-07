@@ -69,7 +69,7 @@ export default function Recipe(props) {
                   className="button-blue"
                   onClick={() => navigate(`/sous-chef/${recipe.id}`)}
                 >
-                  Cook Now!
+                  Ready to cook?
                 </button>
       <div className="image-ingredients">
         {recipe.image_url &&
