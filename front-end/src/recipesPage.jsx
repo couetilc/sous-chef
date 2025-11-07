@@ -4,11 +4,13 @@ import { useNavigate } from 'react-router';
 import { useApi } from './useApi';
 import IngredientsSelectMultiple from './ingredientsSelectMultiple'
 import Recipe from './recipe'
+import { useGET } from './useGET'
 
 import SousChefLogo from './souschef-logo.png';
 
 export default function Recipes() {
   const { api } = useApi();
+  const tags = useGET('getTags')
   const [enteredName, setEnteredName] = useState('')
   const [filterInventory, setFilterInventory] = useState(false)
   const [filterFavorites, setFilterFavorites] = useState(false)
@@ -116,7 +118,7 @@ export default function Recipes() {
       </div>
       <div className="recipes-list">
         {recipes?.results.map(recipe => {
-          return <Recipe recipe={recipe} triggerRefresh={updateList} />
+          return <Recipe tags={tags} recipe={recipe} triggerRefresh={updateList} />
         })}
       </div>
 

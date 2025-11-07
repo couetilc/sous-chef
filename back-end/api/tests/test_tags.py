@@ -86,3 +86,11 @@ class TestTagsAPI:
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert 'error' in response.data
+
+    def test_get_tags(self, authenticated_client):
+        Tag.objects.create(name='foo')
+        Tag.objects.create(name='bar')
+        response = authenticated_client.get('/api/tags/')
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data) == 2
+        assert response.data[0]['name'] == 'bar'
