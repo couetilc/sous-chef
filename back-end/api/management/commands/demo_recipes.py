@@ -18,7 +18,7 @@ class Command(BaseCommand):
 
             # Create Recipe Objects
             recipe1 = Recipe.objects.filter(title="Couscous with Asparagus and Bleu Cheese").first()
-            if (recipe1 != Recipe.objects.none()): recipe1.delete()
+            if (recipe1 != None): recipe1.delete()
             recipe1 = Recipe.objects.create(
                 title="Couscous with Asparagus and Bleu Cheese",
                 ingredients="2.75 cups water, divided | 2 cups uncooked couscous | 0.5 cup raisins | 1.5 tablespoons olive oil | 1.5 cups fresh asparagus tips and pieces | 0.5 cup thinly sliced green onions | 0.33333334326744 cup shredded carrots | 2 tablespoons white wine vinegar | 1 tablespoon white sugar | 1.5 teaspoons curry powder | 1 teaspoon minced fresh ginger root | 0.75 teaspoon salt | 3 ounces crumbled blue cheese | 0.25 cup sunflower kernels",
@@ -38,7 +38,7 @@ class Command(BaseCommand):
             )
 
             recipe2 = Recipe.objects.filter(title="Roasted Chorizo with Potatoes and Asparagus for Two").first()
-            if (recipe2 != Recipe.objects.none()): recipe2.delete()
+            if (recipe2 != None): recipe2.delete()
             recipe2 = Recipe.objects.create(
                 title="Roasted Chorizo with Potatoes and Asparagus for Two",
                 ingredients="0.5 pound baby red potatoes, halved | 1 cup baby carrots | 3 tablespoons olive oil, divided | 0.5 teaspoon salt | 0.25 teaspoon ground black pepper | 0.25 teaspoon garlic powder | 0.25 teaspoon smoked paprika | 2 links chorizo sausage | 1 red onion, quartered | 0.25 bunch fresh asparagus, trimmed",
@@ -57,7 +57,7 @@ class Command(BaseCommand):
             )
 
             recipe3 = Recipe.objects.filter(title="Stuffed Chicken Breasts with Asparagus and Parmesan Rice").first()
-            if (recipe3 != Recipe.objects.none()): recipe3.delete()
+            if (recipe3 != None): recipe3.delete()
             recipe3 = Recipe.objects.create(
                 title="Stuffed Chicken Breasts with Asparagus and Parmesan Rice",
                 ingredients="4 skinless, boneless chicken breast halves | 1 tablespoon extra-virgin olive oil, or more as needed | 1 cup chopped fresh asparagus | 0.25 teaspoon garlic powder, or to taste | salt and ground black pepper to taste | 4 slices deli ham | 0.5 cup shredded Cheddar cheese | 2 tablespoons butter, divided | 2 cups chicken broth | 1 tablespoon butter | 1 cup uncooked white rice | 1 (14.5 ounce) can diced tomatoes with onion and celery, drained | 0.33333334326744 cup grated Parmesan cheese, or to taste",
