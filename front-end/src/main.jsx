@@ -48,6 +48,7 @@ export default function App(props) {
         {/* private pages */}
         <Route path="home" element={home} />
         <Route path="sous-chef" element={souschef} />
+        <Route path="sous-chef/:id" element={souschef} />
         <Route path="nutritionist" element={nutritionist} />
         <Route path="recipes" element={recipes} />
         <Route path="inventory" element={inventory} />

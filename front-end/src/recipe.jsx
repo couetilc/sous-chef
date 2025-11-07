@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useApi } from './useApi'
+import { useNavigate } from 'react-router'
 
 const formatCurrency = (val) => {
   const num = Number(val)
@@ -18,6 +19,7 @@ export default function Recipe(props) {
   const { api } = useApi()
   const isDetailPage = props.isDetailPage
   const [editMode, setEditMode] = useState(false)
+  const navigate = useNavigate()
 
   const [ingredients, setIngredients] = useState(props.recipe.ingredients)
   const [instructions, setInstructions] = useState(props.recipe.instructions)
@@ -50,7 +52,7 @@ export default function Recipe(props) {
             }>
               Edit
             </button>
-          }
+          } 
         </h3>
       }
       {!isDetailPage &&
@@ -60,6 +62,12 @@ export default function Recipe(props) {
           </a>
         </h3>
       }
+      <button
+                  className="button-blue"
+                  onClick={() => navigate(`/sous-chef/${recipe.id}`)}
+                >
+                  Cook Now!
+                </button>
       <div className="image-ingredients">
         {recipe.image_url &&
           <img width="200px" src={recipe.image_url} loading="lazy" alt={recipe.title} />}
