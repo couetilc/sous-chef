@@ -267,3 +267,17 @@ class HealthDetails(models.Model):
 
     def __str__(self):
         return f"age: {age}, height: {height_ft} feet {height_in} inches, weight: {weight}, {activity_level} activity, goal: {goal}"
+
+class Tag(models.Model):
+    name = models.TextField()
+
+    def __str__(self):
+        return f"#{self.name}"
+
+class TaggedRecipe(models.Model):
+    tag = models.ForeignKey(Tag, on_delete=models.CASCADE, related_name='recipes')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='tagged_recipes')
+    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE, related_name='tagged')
+
+    def __str__(self):
+        return f"user {self.user} placed tag {self.tag} on recipe {self.recipe}"

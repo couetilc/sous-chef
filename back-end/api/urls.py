@@ -56,4 +56,9 @@ urlpatterns = [
     path('settings/restricted_ingredients/',
          views.SettingsRestrictedIngredients.as_view(),
          name='settings-restricted-ingredients'),
+
+    # tag endpoints
+    path('tags/', views.TagList.as_view(), name='tags-list'),
+    path('tags/<int:pk>/', views.TagDetail.as_view(), name='tags-detail'),
+    path('tags/<int:tag_id>/recipe/<int:recipe_id>/', views.TaggedRecipeDetail.as_view(), name='tagged-recipe-detail'),
 ]

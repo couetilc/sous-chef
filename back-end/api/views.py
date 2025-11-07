@@ -18,7 +18,7 @@ from .serializers import UserSerializer, GroupSerializer, UserRegistrationSerial
 from decimal import Decimal, InvalidOperation
 from .models import (
     Ingredient, DietaryIngredient, Diet, UserDiet,
-    Recipe, CookedRecipe, Meal, FavoriteRecipe, UserInventory, OnboardingSubmission, RecipeIngredient, HealthDetails
+    Recipe, CookedRecipe, Meal, FavoriteRecipe, UserInventory, OnboardingSubmission, RecipeIngredient, HealthDetails, Tag
 )
 from .serializers import (
     UserSerializer, GroupSerializer, UserRegistrationSerializer,
@@ -750,3 +750,38 @@ class RecipeDetailView(generics.RetrieveAPIView):
     permission_classes = [permissions.IsAuthenticated]
     queryset = Recipe.objects.all()
     serializer_class = RecipeSerializer
+
+class TagList(APIView):
+    def post(self, request):
+        name = request.data.get('name')
+        if not name:
+            return Response(
+                {'error': 'must specify a name in the request'},
+                status.HTTP_400_BAD_REQUEST,
+            )
+
+        Tag.objects.get_or_create(name=request.data.get('name'))
+        return Response(
+            {'message': f'successfully created tag {name}'},
+            status.HTTP_200_OK,
+        )
+
+class TagDetail(APIView):
+    def delete(self, request, pk):
+        queryset = Tag.objects.filter(id=pk)
+        if not queryset.exists():
+            return Response(
+                {'error': 'must pass a valid tag id'},
+                status.HTTP_400_BAD_REQUEST
+            )
+        queryset.delete()
+        return Response(
+            {'message': 'successfully delete tag'},
+            status.HTTP_400_BAD_REQUEST
+        )
+
+class TaggedRecipeDetail(APIView):
+    def post(self, request, tag_id, ingredient_id):
+        pass
+    def delete(self, request, tag_id, ingredient_id):
+        pass
