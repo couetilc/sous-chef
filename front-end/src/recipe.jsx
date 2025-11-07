@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useApi }  from './useApi.jsx';
 
 const formatCurrency = (val) => {
   const num = Number(val)
@@ -13,6 +14,7 @@ const hasCookTime = (t) => {
 }
 
 export default function Recipe(props) {
+  const { api } = useApi();
   const recipe = props.recipe
   const isDetailPage = props.isDetailPage
   const [editMode, setEditMode] = useState(false)
@@ -24,14 +26,16 @@ export default function Recipe(props) {
 
   const pricePer = formatCurrency(recipe.price_per_serving_usd)
   const priceTotal = formatCurrency(recipe.total_price_usd)
-
+  async function submitChanges() {
+    await api.updateCustomRecipe({id: recipe.id, ingredients: ingredients, instructions: instructions})
+  }
   return (
     <div key={recipe.id} className="recipe">
       {isDetailPage &&
         <h3>
           {recipe.title} {editMode
             ? <>
-                <button className="button" type="button">
+                <button className="button" type="button" onClick = {submitChanges}>
                   Save
                 </button> <button className="button-blue" type="button" onClick={
                   () => {
