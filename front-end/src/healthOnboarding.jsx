@@ -2,7 +2,7 @@ import React from 'react';
 import {useNavigate, Navigate} from 'react-router';
 import Home from './home.jsx';
 import { useUser } from './useUser.jsx';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useApi } from './useApi.jsx';
 
 const HealthComponent = () => {
@@ -20,8 +20,6 @@ export default function HealthOnboarding(props) {
   const navigate = useNavigate();
   const { user } = useUser();
   const { api } = useApi();
-  const boolTrue = true;
-  const boolFalse = false;
   const [age, setAge] = useState(0);
   const [height_ft, setHeight_ft] = useState(0);
   const [height_in, setHeight_in] = useState(0);
@@ -34,16 +32,33 @@ export default function HealthOnboarding(props) {
     return navigate("/home");
   }
 
+  useEffect(() => {
+    async function apiCall() {
+    //fill health fields with db info on page load
+        let response = await api.getHealthInfo();
+        console.log(response);
+        setAge(response.data['age']);
+        setHeight_ft(response.data['height_ft']);
+        setHeight_in(response.data['height_in']);
+        setWeight(response.data['weight']);
+        setActivityLevel(response.data['activity_level']);
+        setGoal(response.data['goal']);
+        setSex(response.data['sex']);
+    }
+    apiCall();
+  }, [])
+
   function submit() {
  
-    api.setHealthInfo({age, height_ft, height_in, weight, activity_level, goal});
-    alert("1");
+    api.setHealthInfo({age, height_ft, height_in, weight, activity_level, goal, sex});
     //update user onboarded status
     api.setOnboardingStatus({new_onboarded: true, new_skipped: false});
     navToHome();
   }
 
   return (
+    <div className="settings-container">
+      <h1> Health Details </h1>
     <div className="health">
       <div className="health-row">
         <p> Age: </p>
@@ -109,6 +124,7 @@ export default function HealthOnboarding(props) {
           Submit
         </button>
       </div>
+    </div>
     </div>
   );
 

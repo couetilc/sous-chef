@@ -245,7 +245,7 @@ export class Api {
   }
 
   async updateCustomRecipe({id, ingredients, instructions}) {
-    return this.fetch('api/user_recipe_update/{id}/', {
+    return this.fetch(`api/user_recipe_update/${id}/`, {
       body: JSON.stringify({
         ingredients,
         instructions

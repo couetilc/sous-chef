@@ -14,7 +14,6 @@ const hasCookTime = (t) => {
 }
 
 export default function Recipe(props) {
-  const { api } = useApi();
   const recipe = props.recipe
   const { api } = useApi()
   const isDetailPage = props.isDetailPage

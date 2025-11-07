@@ -142,7 +142,15 @@ class HealthView(APIView):
     def get(self, request):
         health = HealthDetails.objects.filter(user=request.user).order_by('-id').first()
         if not health:
-            return Response({'error': 'No health profile found'}, status=status.HTTP_404_NOT_FOUND)
+             return Response({
+                'age': 0,
+                'height_ft': 0,
+                'height_in': 0,
+                'weight': 0,
+                'activity_level': 'low',
+                'goal': 'maintain',
+                'sex': 'lose'
+            }, status=status.HTTP_200_OK)
         return Response({
             'age': health.age,
             'height_ft': health.height_ft,
@@ -158,13 +166,32 @@ class UpdateHealthView(APIView):
     permission_classes = [permissions.IsAuthenticated]
     def post(self, request):
         user = request.user
-        user.health.first().age = request.data['age']
-        user.health.first().height_ft = request.data['height_ft']
-        user.health.first().height_in = request.data['height_in']
-        user.health.first().weight = request.data['weight']
-        user.health.first().activity_level = request.data['activity_level']
-        user.health.first().goal = request.data['goal']
-        user.health.first().sex = request.data['sex']
+        print(user)
+        if user.health.first() is None:
+            HealthDetails.objects.create(
+              user = user,
+              age=0,
+              height_ft = 0,
+              height_in = 0,
+              weight = 0,
+              activity_level = 'low',
+              goal = 'maintain',
+              sex = 'male' 
+            )
+        user.refresh_from_db()
+        health = user.health.first()
+
+        print(request.data)
+       
+        health.age = request.data['age']
+        health.height_ft = request.data['height_ft']
+        health.height_in = request.data['height_in']
+        health.weight = request.data['weight']
+        health.activity_level = request.data['activity_level']
+        health.goal = request.data['goal']
+        health.sex = request.data['sex']
+
+        return Response({}, status=status.HTTP_200_OK)
 
 class HealthRecommendationsView(APIView):
     """Compute calorie/protein recommendations from the user's HealthDetails"""
@@ -789,4 +816,4 @@ class UpdateUserRecipe(APIView):
         user_recipe.instructions=instructions
         user_recipe.original_recipe=request.original_recipe
 
-        return Response(status=status.HTTP_200_OK)
+        return Response({}, status=status.HTTP_200_OK)
