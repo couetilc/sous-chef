@@ -10,6 +10,7 @@ export default function Inventory() {
   const selectRef = useRef()
   const { data, refresh } = useGET('UserInventory')
   const { api } = useApi()
+  const [searchTerm, setSearchTerm] = useState('')
 
   return (
     <div className="inventory-page">
@@ -39,8 +40,22 @@ export default function Inventory() {
         <h2>
           Your Inventory
         </h2>
+        <div style={{ marginBottom: 8 }}>
+          <input
+            className="text-input"
+            placeholder="Search inventory by name"
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            style={{ padding: '6px 8px', width: '100%', maxWidth: 360 }}
+          />
+        </div>
         <div className="inventory-ingredient-list">
-          {data && data.map(item => (
+          {data && data
+            .filter(item => {
+              if (!searchTerm) return true
+              return item.ingredient.name.toLowerCase().includes(searchTerm.toLowerCase())
+            })
+            .map(item => (
             <div className="inventory-item">
               <div className="inventory-item-name">{item.ingredient.name}</div>
               <ul className="inventory-item-nutrition">
