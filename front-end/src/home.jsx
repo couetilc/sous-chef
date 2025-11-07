@@ -11,11 +11,10 @@ import { useApi } from './useApi.jsx';
 
 // home page, only accesssed after a user has logged in
 
-
 export default function Home(props) {
   const [onboarded, setOnboarded] = useState(false);
   const [skipped, setSkipped] = useState(false);
-  
+
 
   useEffect(() => {
     //runs once on page mount
