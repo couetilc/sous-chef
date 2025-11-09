@@ -306,13 +306,16 @@ class HealthDetails(models.Model):
     def __str__(self):
         return f"age: {age}, height: {height_ft} feet {height_in} inches, weight: {weight}, {activity_level} activity, goal: {goal}"
 
+
 class RecipeTag(models.Model):
     """Connects a User to their created tags"""
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='recipe_tag')
     tag_name = models.CharField(max_length=200)
 
 class TaggedRecipe(models.Model):
-    """Connects a tag to the recipes it refers to for a user"""
-    tag = models.ForeignKey(RecipeTag, on_delete=models.CASCADE, related_name='tagged_recipe')
-    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE, related_name='tagged_recipe');
+    tag = models.ForeignKey(Tag, on_delete=models.CASCADE, related_name='recipes')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='tagged_recipes')
+    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE, related_name='tagged')
 
+    def __str__(self):
+        return f"user {self.user} placed tag {self.tag} on recipe {self.recipe}"
