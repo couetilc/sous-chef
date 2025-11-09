@@ -3,7 +3,7 @@ from django.contrib import admin
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
-from .models import Ingredient, Diet, CookedRecipe, Meal, Recipe, FavoriteRecipe, OnboardingSubmission, UserInventory, Tag, UserRecipe
+from .models import Ingredient, Diet, CookedRecipe, Meal, Recipe, FavoriteRecipe, OnboardingSubmission, UserInventory, RecipeTag, UserRecipe
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -166,5 +166,5 @@ class UserInventorySerializer(serializers.ModelSerializer):
 
 class TagSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Tag
+        model = RecipeTag
         fields = ('id', 'name')

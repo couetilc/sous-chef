@@ -14,11 +14,11 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.pagination import PageNumberPagination
 from django.contrib.auth.models import User, Group
-from .serializers import UserSerializer, GroupSerializer, UserRegistrationSerializer, IngredientSerializer, DietSerializer, CookedRecipeSerializer, MealSerializer, OnboardSerializer, SettingsIngredientSerializer, UserInventorySerializer, TagSerializer, UserRecipeSerialiszer
+from .serializers import UserSerializer, GroupSerializer, UserRegistrationSerializer, IngredientSerializer, DietSerializer, CookedRecipeSerializer, MealSerializer, OnboardSerializer, SettingsIngredientSerializer, UserInventorySerializer, TagSerializer, UserRecipeSerializer
 from decimal import Decimal, InvalidOperation
 from .models import (
     Ingredient, DietaryIngredient, Diet, UserDiet,
-    Recipe, CookedRecipe, Meal, FavoriteRecipe, UserInventory, OnboardingSubmission, RecipeIngredient, HealthDetails, Tag, TaggedRecipe
+    Recipe, CookedRecipe, Meal, FavoriteRecipe, UserInventory, OnboardingSubmission, RecipeIngredient, HealthDetails, RecipeTag, TaggedRecipe
 )
 from .serializers import (
     UserSerializer, GroupSerializer, UserRegistrationSerializer,
@@ -819,8 +819,8 @@ class UpdateUserRecipe(APIView):
         return Response({}, status=status.HTTP_200_OK)
 class TagList(APIView):
     def get(self, request):
-        queryset = Tag.objects.order_by('name')
-        serialized = TagSerializer(queryset, many = True)
+        queryset = RecipeTag.objects.order_by('name').filter(user=request.user)
+        serialized = RecipeTagSerializer(queryset, many = True)
         return Response(
             serialized.data,
             status.HTTP_200_OK
@@ -834,7 +834,7 @@ class TagList(APIView):
                 status.HTTP_400_BAD_REQUEST,
             )
 
-        Tag.objects.get_or_create(name=request.data.get('name'))
+        RecipeTag.objects.get_or_create(name=request.data.get('name'))
         return Response(
             {'message': f'successfully created tag {name}'},
             status.HTTP_200_OK,
@@ -842,7 +842,7 @@ class TagList(APIView):
 
 class TagDetail(APIView):
     def delete(self, request, pk):
-        queryset = Tag.objects.filter(id=pk)
+        queryset = RecipeTag.objects.filter(id=pk)
         if not queryset.exists():
             return Response(
                 {'error': 'must pass a valid tag id'},
@@ -856,7 +856,7 @@ class TagDetail(APIView):
 
 class TaggedRecipeDetail(APIView):
     def post(self, request, tag_id, recipe_id):
-        if not Tag.objects.filter(id=tag_id).exists():
+        if not RecipeTag.objects.filter(id=tag_id).exists():
             return Response(
                 {'error': 'invalid tag id'},
                 status.HTTP_400_BAD_REQUEST

@@ -310,11 +310,10 @@ class HealthDetails(models.Model):
 class RecipeTag(models.Model):
     """Connects a User to their created tags"""
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='recipe_tag')
-    tag_name = models.CharField(max_length=200)
+    name = models.CharField(max_length=200)
 
 class TaggedRecipe(models.Model):
-    tag = models.ForeignKey(Tag, on_delete=models.CASCADE, related_name='recipes')
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='tagged_recipes')
+    tag = models.ForeignKey(RecipeTag, on_delete=models.CASCADE, related_name='recipes')
     recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE, related_name='tagged')
 
     def __str__(self):
