@@ -38,12 +38,15 @@ export class Api {
           .then(res => res.json());
 
         if (response.csrfToken) {
+          console.log('received token ', response.csrfToken)
           this.csrfToken = response.csrfToken;
           this.ready_state = this.READY_STATES.YES;
         } else {
+        console.log('token not ready')
           this.ready_state = this.READY_STATES.NO;
         }
       } catch (error) {
+        console.log('token error')
         this.ready_state = this.READY_STATES.NO;
         throw error;
       } finally {
@@ -192,7 +195,7 @@ export class Api {
   }
 
   async setOnboardingStatus({new_onboarded, new_skipped}) {
-   return this.fetch('/api/user/updateOnboarded/', {method: "POST",
+   return this.fetch('/api/user/updateOnboarded/', {
      body: JSON.stringify({
        new_onboarded,
        new_skipped
@@ -233,6 +236,19 @@ export class Api {
     return this.fetch('/api/recipes/createFavorite/', {
       body: JSON.stringify({
         recipeID: id
+      })
+    })
+  }
+
+  async getCustomRecipe() {
+    return this.fetch('/api/user_recipes/');
+  }
+
+  async updateCustomRecipe({id, ingredients, instructions}) {
+    return this.fetch(`api/user_recipe_update/${id}/`, {
+      body: JSON.stringify({
+        ingredients,
+        instructions
       })
     })
   }
@@ -306,7 +322,9 @@ export function ApiProvider(props) {
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
+  console.log('ready effect triggered')
     if (!api.isReady()) {
+    console.log('becoming ready')
       api.becomeReady().then(() => { setIsReady(true) });
     }
   })

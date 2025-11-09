@@ -23,14 +23,15 @@ export default function Recipe(props) {
 
   const [ingredients, setIngredients] = useState(props.recipe.ingredients)
   const [instructions, setInstructions] = useState(props.recipe.instructions)
-  const [tagValue, setTagValue] = useState('')
 
   const [servings, setServings] = useState()
 
   const pricePer = formatCurrency(recipe.price_per_serving_usd)
   const priceTotal = formatCurrency(recipe.total_price_usd)
+  async function submitChanges() {
+    await api.updateCustomRecipe({id: recipe.id, ingredients: ingredients, instructions: instructions})
+  }
 
-  const dialogRef = useRef()
 
   return (
     <div key={recipe.id} className="recipe">
@@ -38,7 +39,7 @@ export default function Recipe(props) {
         <h3>
           {recipe.title} {editMode
             ? <>
-                <button className="button" type="button">
+                <button className="button" type="button" onClick = {submitChanges}>
                   Save
                 </button> <button className="button-blue" type="button" onClick={
                   () => {
@@ -192,56 +193,8 @@ export default function Recipe(props) {
         {recipe.is_favorited ? '★ Unfavorite this recipe' : '☆ Favorite this recipe'}
       </button>
 
-      <button
-        className="button-blue"
-        type="button"
-        onClick={() => {
-          if (dialogRef.current) {
-            dialogRef.current.showModal()
-          }
-        }}
-      >
-        Manage Tags
-      </button>
-
-      <dialog ref={dialogRef}>
-        {/* UI for creating tags, viewing tags, and deleting tags */}
-        <input type="text" className="text-input" value={tagValue} onChange={e => setTagValue(e.target.value)}>
-        </input>
-        <button className="button" type="button" onClick={async () => {
-          await api.createTag({ name: tagValue })
-          setTagValue('')
-          props.tags.refresh()
-        }}>
-          Create Tag
-        </button>
-        <ul>
-          {props.tags?.data && props.tags.data.map(tag => (
-            <li key={tag.id}>
-              {tag.name}
-
-              <button type="button" className="button" onClick={async () => {
-                await api.deleteTag({ id: tag.id })
-                props.tags.refresh()
-              }}>
-                Delete
-              </button>
-            </li>
-          ))
-          }
-        </ul>
-        <button className="button-blue" type="button" onClick={
-          () => {
-            if (dialogRef.current) {
-              setTagValue('')
-              dialogRef.current.close()
-            }
-          }
-        }>
-          Cancel
-        </button>
-      </dialog>
-
+ 
+    
       {recipe.source_url &&
         <a className="source-url" href={recipe.source_url} target="_blank" rel="noreferrer">source</a>}
     </div>

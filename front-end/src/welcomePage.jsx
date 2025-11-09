@@ -11,14 +11,14 @@ export default function WelcomePage(props) {
   const { user } = useUser();
   const { api } = useApi();
 
-  function navToHome() {
+  async function navToHome() {
     //update onboarding skipped property
-    api.setOnboardingStatus({new_onboarded: false, new_skipped: true});
+    await api.setOnboardingStatus({new_onboarded: false, new_skipped: true});
     return navigate("/home");
   }
 
-  function navToOnboard() {
-    api.setOnboardingStatus({new_onboarded: false, new_skipped: false});
+  async function navToOnboard() {
+    await api.setOnboardingStatus({new_onboarded: false, new_skipped: false});
     return navigate("/onboarding");
   }
 

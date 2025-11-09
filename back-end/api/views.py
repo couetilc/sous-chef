@@ -14,11 +14,11 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.pagination import PageNumberPagination
 from django.contrib.auth.models import User, Group
-from .serializers import UserSerializer, GroupSerializer, UserRegistrationSerializer, IngredientSerializer, DietSerializer, CookedRecipeSerializer, MealSerializer, OnboardSerializer, SettingsIngredientSerializer, UserInventorySerializer, TagSerializer
+from .serializers import UserSerializer, GroupSerializer, UserRegistrationSerializer, IngredientSerializer, DietSerializer, CookedRecipeSerializer, MealSerializer, OnboardSerializer, SettingsIngredientSerializer, UserInventorySerializer, TagSerializer, UserRecipeSerializer
 from decimal import Decimal, InvalidOperation
 from .models import (
     Ingredient, DietaryIngredient, Diet, UserDiet,
-    Recipe, CookedRecipe, Meal, FavoriteRecipe, UserInventory, OnboardingSubmission, RecipeIngredient, HealthDetails, Tag, TaggedRecipe
+    Recipe, CookedRecipe, Meal, FavoriteRecipe, UserInventory, OnboardingSubmission, RecipeIngredient, HealthDetails, RecipeTag, TaggedRecipe
 )
 from .serializers import (
     UserSerializer, GroupSerializer, UserRegistrationSerializer,
@@ -142,7 +142,15 @@ class HealthView(APIView):
     def get(self, request):
         health = HealthDetails.objects.filter(user=request.user).order_by('-id').first()
         if not health:
-            return Response({'error': 'No health profile found'}, status=status.HTTP_404_NOT_FOUND)
+             return Response({
+                'age': 0,
+                'height_ft': 0,
+                'height_in': 0,
+                'weight': 0,
+                'activity_level': 'low',
+                'goal': 'maintain',
+                'sex': 'lose'
+            }, status=status.HTTP_200_OK)
         return Response({
             'age': health.age,
             'height_ft': health.height_ft,
@@ -158,13 +166,32 @@ class UpdateHealthView(APIView):
     permission_classes = [permissions.IsAuthenticated]
     def post(self, request):
         user = request.user
-        user.health.first().age = request.data['age']
-        user.health.first().height_ft = request.data['height_ft']
-        user.health.first().height_in = request.data['height_in']
-        user.health.first().weight = request.data['weight']
-        user.health.first().activity_level = request.data['activity_level']
-        user.health.first().goal = request.data['goal']
-        user.health.first().sex = request.data['sex']
+        print(user)
+        if user.health.first() is None:
+            HealthDetails.objects.create(
+              user = user,
+              age=0,
+              height_ft = 0,
+              height_in = 0,
+              weight = 0,
+              activity_level = 'low',
+              goal = 'maintain',
+              sex = 'male' 
+            )
+        user.refresh_from_db()
+        health = user.health.first()
+
+        print(request.data)
+       
+        health.age = request.data['age']
+        health.height_ft = request.data['height_ft']
+        health.height_in = request.data['height_in']
+        health.weight = request.data['weight']
+        health.activity_level = request.data['activity_level']
+        health.goal = request.data['goal']
+        health.sex = request.data['sex']
+
+        return Response({}, status=status.HTTP_200_OK)
 
 class HealthRecommendationsView(APIView):
     """Compute calorie/protein recommendations from the user's HealthDetails"""
@@ -751,10 +778,49 @@ class RecipeDetailView(generics.RetrieveAPIView):
     queryset = Recipe.objects.all()
     serializer_class = RecipeSerializer
 
+class GetTags(APIView):
+    """Retrieve list of the current user's recipe tags"""
+    permission_classes = [permissions.IsAuthenticated]
+
+class GetUserRecipes(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        userRecipe = UserRecipe.objects.filter(user=request.user).all()
+        serialized = UserRecipeSerializer(userRecipe, many=True)
+
+
+        if not userRecipe:
+            return Response({'error': 'No user recipe found'}, status=status.HTTP_404_NOT_FOUND)
+        return Response(serialized.data, status=status.HTTP_200_OK)
+
+class UpdateUserRecipe(APIView):
+    permission_classse = [permissions.IsAuthenticated]
+    def post(self, request, id):
+        print(id)
+        user = request.user
+        ingredients = request.data['ingredients']
+        instructions = request.data['instructions']
+        original_recipe = request.data['original_recipe']
+        # check if user already has a custom recipe saved
+        print(f'REQUEST: {request}')
+        user_recipe = UserRecipe.objects.filter(user=request.user).filter(original_recipe=Recipe.objects.get(original_recipe))
+        if not user_recipe:
+            # create new entry
+            user_recipe = UserRecipe.objects.create(
+              ingredients=ingredients,
+              instructions=instructions,
+              original_recipe=original_recipe
+            )
+        user_recipe.ingredients=ingredients
+        user_recipe.instructions=instructions
+        user_recipe.original_recipe=request.original_recipe
+
+        return Response({}, status=status.HTTP_200_OK)
 class TagList(APIView):
     def get(self, request):
-        queryset = Tag.objects.order_by('name')
-        serialized = TagSerializer(queryset, many = True)
+        queryset = RecipeTag.objects.order_by('name').filter(user=request.user)
+        serialized = RecipeTagSerializer(queryset, many = True)
         return Response(
             serialized.data,
             status.HTTP_200_OK
@@ -768,7 +834,7 @@ class TagList(APIView):
                 status.HTTP_400_BAD_REQUEST,
             )
 
-        Tag.objects.get_or_create(name=request.data.get('name'))
+        RecipeTag.objects.get_or_create(name=request.data.get('name'))
         return Response(
             {'message': f'successfully created tag {name}'},
             status.HTTP_200_OK,
@@ -776,7 +842,7 @@ class TagList(APIView):
 
 class TagDetail(APIView):
     def delete(self, request, pk):
-        queryset = Tag.objects.filter(id=pk)
+        queryset = RecipeTag.objects.filter(id=pk)
         if not queryset.exists():
             return Response(
                 {'error': 'must pass a valid tag id'},
@@ -790,7 +856,7 @@ class TagDetail(APIView):
 
 class TaggedRecipeDetail(APIView):
     def post(self, request, tag_id, recipe_id):
-        if not Tag.objects.filter(id=tag_id).exists():
+        if not RecipeTag.objects.filter(id=tag_id).exists():
             return Response(
                 {'error': 'invalid tag id'},
                 status.HTTP_400_BAD_REQUEST

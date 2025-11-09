@@ -9,6 +9,7 @@ class Command(BaseCommand):
         users = [
             # username, password, is_superuser
             ('Dalbert', 'Password', False),
+            ('Andrew', 'Password', False),
         ]
         # Step 1: Delete existing demo user if exists
         for username, password, is_superuser in users:

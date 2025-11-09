@@ -4,6 +4,7 @@ import './style.css'
 import Home from './home.jsx';
 import { useUser } from './useUser.jsx';
 import DietComponent from './settingsDietPreference';
+import RestrictedIngredientComponent from './settingsRestrictedIngredients.jsx';
 import { useState } from 'react';
 import { useApi } from './useApi.jsx';
 
@@ -23,6 +24,7 @@ export default function Onboarding(props) {
     <div className="centered-div">
       <h1> Onboarding </h1>
       <DietComponent> </DietComponent>
+        <RestrictedIngredientComponent> </RestrictedIngredientComponent>
       <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
        <button className="continue-btn" onClick ={navToHealthOnboard}>
          Continue

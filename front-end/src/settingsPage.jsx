@@ -6,6 +6,7 @@ import DeleteComponent from './settingsDeleteAccount';
 import DietComponent from './settingsDietPreference';
 import RestrictedIngredientsComponent from './settingsRestrictedIngredients';
 import Home from './home';
+import HealthOnboarding from './healthOnboarding.jsx';
 
 import { BrowserRouter, Routes, Route, Link } from 'react-router';
 
@@ -18,6 +19,7 @@ const SettingsPage = () => {
                   <DeleteComponent />
                   <DietComponent />
                   <RestrictedIngredientsComponent />
+                  <HealthOnboarding />
                 </div>
             </div>
     );
