@@ -925,6 +925,27 @@ llm_chain = prompt | llm
 class NutritionistChat(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
+    def get(self, request):
+        """Get the current active conversation with all messages"""
+        user = request.user
+
+        # Get active conversation
+        conversation = ChatConversation.objects.filter(
+            user=user,
+            is_active=True
+        ).first()
+
+        if not conversation:
+            # Return empty conversation if none exists
+            return Response(
+                {'id': None, 'messages': []},
+                status=status.HTTP_200_OK
+            )
+
+        # Return full conversation
+        serializer = ChatConversationSerializer(conversation)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
     def post(self, request):
         # Validate message parameter
         message = request.data.get('message')

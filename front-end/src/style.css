@@ -489,7 +489,7 @@ body {
 .recipe-history-page h1 {
   font-size: 2em;
   align-self: center;
-  margin: .5em 0 ;
+  margin: .5em 0;
 }
 
 .recipe-history-recipe {
@@ -1162,12 +1162,101 @@ h1 {
   display: flex;
   flex-flow: column nowrap;
   gap: 1em;
+  height: calc(100vh - 4em);
 }
 
-.nutritionist-page .user-message {
+.nutritionist-page h1 {
+  text-align: center;
+  margin: 0;
+}
+
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
   display: flex;
-  flex-flow: column wrap;
-  gap: .5em;
+  flex-direction: column;
+  gap: 1em;
+  padding: 1em;
+  border-radius: 8px;
+}
+
+.message {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25em;
+  max-width: 70%;
+}
+
+.message.user {
+  align-self: flex-end;
+  background: #007AFF;
+  color: white;
+  padding: 0.75em 1em;
+  border-radius: 18px 18px 4px 18px;
+}
+
+.message.assistant {
+  align-self: flex-start;
+}
+
+.message-content {
+  word-wrap: break-word;
+  white-space: pre-wrap;
+}
+
+.message-time {
+  font-size: 0.75em;
+  opacity: 0.7;
+  align-self: flex-end;
+}
+
+.message.assistant .message-time {
+  align-self: flex-start;
+}
+
+.loading-indicator {
+  align-self: flex-start;
+  padding: 0.75em 1em;
+  font-style: italic;
+  opacity: 0.7;
+}
+
+.chat-input {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5em;
+}
+
+.chat-input textarea {
+  min-height: 80px;
+  resize: vertical;
+  padding: 0.75em;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-family: inherit;
+}
+
+.chat-input textarea:disabled {
+  background: #f5f5f5;
+  cursor: not-allowed;
+}
+
+.button-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.chat-button-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+}
+
+.error-indicator {
+  color: #ff3b30;
+  font-size: 1.2em;
+  font-weight: bold;
 }
 
 /* END NUTRITIONIST PAGE */

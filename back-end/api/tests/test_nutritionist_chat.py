@@ -213,6 +213,68 @@ class TestNutritionistChatEndpoint:
 
 
 @pytest.mark.django_db
+class TestGetConversationEndpoint:
+    """Test get conversation endpoint GET /api/nutritionist/conversation/"""
+
+    def test_authentication_required(self, api_client):
+        """Test that unauthenticated requests are rejected"""
+        response = api_client.get('/api/nutritionist/conversation/')
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_get_conversation_when_none_exists(self, authenticated_client, test_user):
+        """Test that GET returns empty conversation when none exists"""
+        response = authenticated_client.get('/api/nutritionist/conversation/')
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['id'] is None
+        assert response.data['messages'] == []
+
+    @patch('api.views.llm_chain')
+    def test_get_conversation_with_messages(self, mock_llm, authenticated_client, test_user):
+        """Test that GET returns existing conversation with all messages"""
+        # Create a conversation with messages
+        mock_response = MagicMock()
+        mock_response.content = "Hello! How can I help?"
+        mock_llm.invoke.return_value = mock_response
+
+        # Send a message to create conversation
+        authenticated_client.post('/api/nutritionist/conversation/', {'message': 'Hi there'})
+
+        # Now GET the conversation
+        response = authenticated_client.get('/api/nutritionist/conversation/')
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['id'] is not None
+        assert len(response.data['messages']) == 2  # user + assistant
+        assert response.data['messages'][0]['role'] == 'user'
+        assert response.data['messages'][0]['content'] == 'Hi there'
+        assert response.data['messages'][1]['role'] == 'assistant'
+
+    @patch('api.views.llm_chain')
+    def test_get_only_returns_active_conversation(self, mock_llm, authenticated_client, test_user):
+        """Test that GET only returns active conversation, not inactive ones"""
+        mock_response = MagicMock()
+        mock_response.content = "Response"
+        mock_llm.invoke.return_value = mock_response
+
+        # Create first conversation
+        authenticated_client.post('/api/nutritionist/conversation/', {'message': 'First'})
+
+        # Clear it
+        authenticated_client.post('/api/nutritionist/conversation/clear/')
+
+        # Create new conversation
+        authenticated_client.post('/api/nutritionist/conversation/', {'message': 'Second'})
+
+        # GET should return only the new active conversation
+        response = authenticated_client.get('/api/nutritionist/conversation/')
+
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data['messages']) == 2
+        assert response.data['messages'][0]['content'] == 'Second'
+
+
+@pytest.mark.django_db
 class TestClearConversationEndpoint:
     """Test clear conversation endpoint /api/nutritionist/conversation/clear/"""
 

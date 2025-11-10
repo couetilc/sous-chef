@@ -316,9 +316,21 @@ export class Api {
     })
   }
 
+  async getConversation() {
+    return this.fetch(`/api/nutritionist/conversation/`, {
+      method: 'GET',
+    })
+  }
+
   async nutritionistChat({ message }) {
-    return this.fetch(`/api/nutritionist/chat/`, {
+    return this.fetch(`/api/nutritionist/conversation/`, {
       body: JSON.stringify({ message }),
+    })
+  }
+
+  async clearConversation() {
+    return this.fetch(`/api/nutritionist/conversation/clear/`, {
+      body: JSON.stringify({}),
     })
   }
 }
