@@ -1154,3 +1154,20 @@ h1 {
   list-style-type: disc;
   list-style-position: inside;
 }
+
+/* NUTRITIONIST PAGE */
+
+.nutritionist-page {
+  padding: 1em;
+  display: flex;
+  flex-flow: column nowrap;
+  gap: 1em;
+}
+
+.nutritionist-page .user-message {
+  display: flex;
+  flex-flow: column wrap;
+  gap: .5em;
+}
+
+/* END NUTRITIONIST PAGE */

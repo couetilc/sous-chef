@@ -1,3 +1,4 @@
+import os
 from django.shortcuts import render, redirect
 from rest_framework.filters import SearchFilter, OrderingFilter
 from django.db import transaction
@@ -27,6 +28,8 @@ from .serializers import (
 )
 from .utils.recommended import compute_recommendations
 from zoneinfo import ZoneInfo
+from langchain_openai import ChatOpenAI
+from langchain_core.prompts import PromptTemplate
 
 class Paginator(PageNumberPagination):
     page_size = 100
@@ -176,13 +179,13 @@ class UpdateHealthView(APIView):
               weight = 0,
               activity_level = 'low',
               goal = 'maintain',
-              sex = 'male' 
+              sex = 'male'
             )
         user.refresh_from_db()
         health = user.health.first()
 
         print(request.data)
-       
+
         health.age = request.data['age']
         health.height_ft = request.data['height_ft']
         health.height_in = request.data['height_in']
@@ -795,7 +798,7 @@ class GetUserRecipes(APIView):
         return Response(serialized.data, status=status.HTTP_200_OK)
 
 class UpdateUserRecipe(APIView):
-    permission_classse = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated]
     def post(self, request, id):
         print(id)
         user = request.user
@@ -818,6 +821,7 @@ class UpdateUserRecipe(APIView):
 
         return Response({}, status=status.HTTP_200_OK)
 class TagList(APIView):
+    permission_classes = [permissions.IsAuthenticated]
     def get(self, request):
         queryset = RecipeTag.objects.order_by('name').filter(user=request.user)
         serialized = RecipeTagSerializer(queryset, many = True)
@@ -841,6 +845,7 @@ class TagList(APIView):
         )
 
 class TagDetail(APIView):
+    permission_classes = [permissions.IsAuthenticated]
     def delete(self, request, pk):
         queryset = RecipeTag.objects.filter(id=pk)
         if not queryset.exists():
@@ -855,6 +860,7 @@ class TagDetail(APIView):
         )
 
 class TaggedRecipeDetail(APIView):
+    permission_classes = [permissions.IsAuthenticated]
     def post(self, request, tag_id, recipe_id):
         if not RecipeTag.objects.filter(id=tag_id).exists():
             return Response(
@@ -890,5 +896,33 @@ class TaggedRecipeDetail(APIView):
         queryset.delete()
         return Response(
             {'message': 'successfully untagged recipe'},
+            status.HTTP_200_OK
+        )
+
+template="""
+You are a nutritionist, ready to help customers create nutritious, simple recipes they want to cook. The current customer's name is {username}. They've sent you a message: {message}
+""".strip()
+
+prompt = PromptTemplate(
+    template=template,
+    input_variables=["username", "message"]
+)
+
+llm = ChatOpenAI(
+  api_key=os.environ.get("OPEN_ROUTER_API_KEY"),
+  base_url="https://openrouter.ai/api/v1",
+  model="openrouter/polaris-alpha",
+)
+
+llm_chain = prompt | llm
+
+class NutritionistChat(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    def post(self, request):
+        username = request.user.username
+        message = request.data.get('message', 'make me a recipe')
+        answer = llm_chain.invoke({"username": username, "message": message})
+        return Response(
+            {'message': answer.content},
             status.HTTP_200_OK
         )

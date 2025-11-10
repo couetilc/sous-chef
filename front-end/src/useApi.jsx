@@ -315,6 +315,12 @@ export class Api {
       body: JSON.stringify({ name })
     })
   }
+
+  async nutritionistChat({ message }) {
+    return this.fetch(`/api/nutritionist/chat/`, {
+      body: JSON.stringify({ message }),
+    })
+  }
 }
 
 export function ApiProvider(props) {
