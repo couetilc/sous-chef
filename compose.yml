@@ -30,6 +30,7 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    env_file: .env
     environment:
       DJANGO_DB_NAME: "api"
       DJANGO_DB_USER: "dbuser"

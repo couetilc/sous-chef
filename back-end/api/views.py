@@ -1,3 +1,4 @@
+import os
 from django.shortcuts import render, redirect
 from rest_framework.filters import SearchFilter, OrderingFilter
 from django.db import transaction
@@ -18,15 +19,19 @@ from .serializers import UserSerializer, GroupSerializer, UserRegistrationSerial
 from decimal import Decimal, InvalidOperation
 from .models import (
     Ingredient, DietaryIngredient, Diet, UserDiet,
-    Recipe, CookedRecipe, Meal, FavoriteRecipe, UserInventory, OnboardingSubmission, RecipeIngredient, HealthDetails, RecipeTag, TaggedRecipe
+    Recipe, CookedRecipe, Meal, FavoriteRecipe, UserInventory, OnboardingSubmission, RecipeIngredient, HealthDetails, RecipeTag, TaggedRecipe,
+    ChatConversation, ChatMessage
 )
 from .serializers import (
     UserSerializer, GroupSerializer, UserRegistrationSerializer,
     IngredientSerializer, DietSerializer,
-    CookedRecipeSerializer, MealSerializer, RecipeSerializer
+    CookedRecipeSerializer, MealSerializer, RecipeSerializer,
+    ChatConversationSerializer, ChatMessageSerializer
 )
 from .utils.recommended import compute_recommendations
 from zoneinfo import ZoneInfo
+from langchain_openai import ChatOpenAI
+from langchain_core.prompts import PromptTemplate
 
 class Paginator(PageNumberPagination):
     page_size = 100
@@ -176,13 +181,13 @@ class UpdateHealthView(APIView):
               weight = 0,
               activity_level = 'low',
               goal = 'maintain',
-              sex = 'male' 
+              sex = 'male'
             )
         user.refresh_from_db()
         health = user.health.first()
 
         print(request.data)
-       
+
         health.age = request.data['age']
         health.height_ft = request.data['height_ft']
         health.height_in = request.data['height_in']
@@ -795,7 +800,7 @@ class GetUserRecipes(APIView):
         return Response(serialized.data, status=status.HTTP_200_OK)
 
 class UpdateUserRecipe(APIView):
-    permission_classse = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated]
     def post(self, request, id):
         print(id)
         user = request.user
@@ -818,6 +823,7 @@ class UpdateUserRecipe(APIView):
 
         return Response({}, status=status.HTTP_200_OK)
 class TagList(APIView):
+    permission_classes = [permissions.IsAuthenticated]
     def get(self, request):
         queryset = RecipeTag.objects.order_by('name').filter(user=request.user)
         serialized = RecipeTagSerializer(queryset, many = True)
@@ -841,6 +847,7 @@ class TagList(APIView):
         )
 
 class TagDetail(APIView):
+    permission_classes = [permissions.IsAuthenticated]
     def delete(self, request, pk):
         queryset = RecipeTag.objects.filter(id=pk)
         if not queryset.exists():
@@ -855,6 +862,7 @@ class TagDetail(APIView):
         )
 
 class TaggedRecipeDetail(APIView):
+    permission_classes = [permissions.IsAuthenticated]
     def post(self, request, tag_id, recipe_id):
         if not RecipeTag.objects.filter(id=tag_id).exists():
             return Response(
@@ -891,4 +899,125 @@ class TaggedRecipeDetail(APIView):
         return Response(
             {'message': 'successfully untagged recipe'},
             status.HTTP_200_OK
+        )
+
+template="""
+You are a nutritionist, ready to help customers create nutritious, simple recipes they want to cook. The current customer's name is {username}.
+
+{conversation_history}
+
+Current message from {username}: {message}
+""".strip()
+
+prompt = PromptTemplate(
+    template=template,
+    input_variables=["username", "conversation_history", "message"]
+)
+
+llm = ChatOpenAI(
+  api_key=os.environ.get("OPEN_ROUTER_API_KEY"),
+  base_url="https://openrouter.ai/api/v1",
+  model="openrouter/polaris-alpha",
+)
+
+llm_chain = prompt | llm
+
+class NutritionistChat(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        """Get the current active conversation with all messages"""
+        user = request.user
+
+        # Get active conversation
+        conversation = ChatConversation.objects.filter(
+            user=user,
+            is_active=True
+        ).first()
+
+        if not conversation:
+            # Return empty conversation if none exists
+            return Response(
+                {'id': None, 'messages': []},
+                status=status.HTTP_200_OK
+            )
+
+        # Return full conversation
+        serializer = ChatConversationSerializer(conversation)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        # Validate message parameter
+        message = request.data.get('message')
+        if not message or not message.strip():
+            return Response(
+                {'error': 'Message parameter is required and cannot be empty'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        user = request.user
+        username = user.username
+
+        # Get or create active conversation
+        conversation = ChatConversation.objects.filter(
+            user=user,
+            is_active=True
+        ).first()
+
+        if not conversation:
+            conversation = ChatConversation.objects.create(user=user)
+
+        # Get previous messages BEFORE adding the new one
+        previous_messages = ChatMessage.objects.filter(
+            conversation=conversation
+        ).order_by('created_at')
+
+        # Format conversation history for LLM context
+        conversation_history = ""
+        if previous_messages.exists():
+            history_lines = []
+            for msg in previous_messages:
+                role_label = "User" if msg.role == "user" else "Assistant"
+                history_lines.append(f"{role_label}: {msg.content}")
+            conversation_history = "Previous conversation:\n" + "\n".join(history_lines)
+
+        # Now save the current user message
+        ChatMessage.objects.create(
+            conversation=conversation,
+            role='user',
+            content=message
+        )
+
+        # Get LLM response with full context
+        answer = llm_chain.invoke({
+            "username": username,
+            "conversation_history": conversation_history,
+            "message": message
+        })
+
+        # Save assistant response
+        ChatMessage.objects.create(
+            conversation=conversation,
+            role='assistant',
+            content=answer.content
+        )
+
+        # Return full conversation
+        serializer = ChatConversationSerializer(conversation)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class ClearConversation(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        # Mark current active conversation as inactive
+        ChatConversation.objects.filter(
+            user=request.user,
+            is_active=True
+        ).update(is_active=False)
+
+        return Response(
+            {'success': True, 'message': 'Conversation cleared'},
+            status=status.HTTP_200_OK
         )
