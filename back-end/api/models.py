@@ -318,3 +318,37 @@ class TaggedRecipe(models.Model):
 
     def __str__(self):
         return f"user {self.user} placed tag {self.tag} on recipe {self.recipe}"
+
+
+class ChatConversation(models.Model):
+    """AI nutritionist chat conversation for a user"""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='chat_conversations')
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-updated_at']
+
+    def __str__(self):
+        status = 'active' if self.is_active else 'inactive'
+        return f"{self.user.username}'s chat ({status}) - {self.created_at.strftime('%Y-%m-%d %H:%M')}"
+
+
+class ChatMessage(models.Model):
+    """Individual message in a chat conversation"""
+    ROLE_CHOICES = [
+        ('user', 'User'),
+        ('assistant', 'Assistant'),
+    ]
+
+    conversation = models.ForeignKey(ChatConversation, on_delete=models.CASCADE, related_name='messages')
+    role = models.CharField(max_length=10, choices=ROLE_CHOICES)
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f"{self.role}: {self.content[:50]}..."

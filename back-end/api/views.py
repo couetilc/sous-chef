@@ -19,12 +19,14 @@ from .serializers import UserSerializer, GroupSerializer, UserRegistrationSerial
 from decimal import Decimal, InvalidOperation
 from .models import (
     Ingredient, DietaryIngredient, Diet, UserDiet,
-    Recipe, CookedRecipe, Meal, FavoriteRecipe, UserInventory, OnboardingSubmission, RecipeIngredient, HealthDetails, RecipeTag, TaggedRecipe
+    Recipe, CookedRecipe, Meal, FavoriteRecipe, UserInventory, OnboardingSubmission, RecipeIngredient, HealthDetails, RecipeTag, TaggedRecipe,
+    ChatConversation, ChatMessage
 )
 from .serializers import (
     UserSerializer, GroupSerializer, UserRegistrationSerializer,
     IngredientSerializer, DietSerializer,
-    CookedRecipeSerializer, MealSerializer, RecipeSerializer
+    CookedRecipeSerializer, MealSerializer, RecipeSerializer,
+    ChatConversationSerializer, ChatMessageSerializer
 )
 from .utils.recommended import compute_recommendations
 from zoneinfo import ZoneInfo
@@ -900,12 +902,16 @@ class TaggedRecipeDetail(APIView):
         )
 
 template="""
-You are a nutritionist, ready to help customers create nutritious, simple recipes they want to cook. The current customer's name is {username}. They've sent you a message: {message}
+You are a nutritionist, ready to help customers create nutritious, simple recipes they want to cook. The current customer's name is {username}.
+
+{conversation_history}
+
+Current message from {username}: {message}
 """.strip()
 
 prompt = PromptTemplate(
     template=template,
-    input_variables=["username", "message"]
+    input_variables=["username", "conversation_history", "message"]
 )
 
 llm = ChatOpenAI(
@@ -918,11 +924,79 @@ llm_chain = prompt | llm
 
 class NutritionistChat(APIView):
     permission_classes = [permissions.IsAuthenticated]
+
     def post(self, request):
-        username = request.user.username
-        message = request.data.get('message', 'make me a recipe')
-        answer = llm_chain.invoke({"username": username, "message": message})
+        # Validate message parameter
+        message = request.data.get('message')
+        if not message or not message.strip():
+            return Response(
+                {'error': 'Message parameter is required and cannot be empty'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        user = request.user
+        username = user.username
+
+        # Get or create active conversation
+        conversation = ChatConversation.objects.filter(
+            user=user,
+            is_active=True
+        ).first()
+
+        if not conversation:
+            conversation = ChatConversation.objects.create(user=user)
+
+        # Get previous messages BEFORE adding the new one
+        previous_messages = ChatMessage.objects.filter(
+            conversation=conversation
+        ).order_by('created_at')
+
+        # Format conversation history for LLM context
+        conversation_history = ""
+        if previous_messages.exists():
+            history_lines = []
+            for msg in previous_messages:
+                role_label = "User" if msg.role == "user" else "Assistant"
+                history_lines.append(f"{role_label}: {msg.content}")
+            conversation_history = "Previous conversation:\n" + "\n".join(history_lines)
+
+        # Now save the current user message
+        ChatMessage.objects.create(
+            conversation=conversation,
+            role='user',
+            content=message
+        )
+
+        # Get LLM response with full context
+        answer = llm_chain.invoke({
+            "username": username,
+            "conversation_history": conversation_history,
+            "message": message
+        })
+
+        # Save assistant response
+        ChatMessage.objects.create(
+            conversation=conversation,
+            role='assistant',
+            content=answer.content
+        )
+
+        # Return full conversation
+        serializer = ChatConversationSerializer(conversation)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class ClearConversation(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        # Mark current active conversation as inactive
+        ChatConversation.objects.filter(
+            user=request.user,
+            is_active=True
+        ).update(is_active=False)
+
         return Response(
-            {'message': answer.content},
-            status.HTTP_200_OK
+            {'success': True, 'message': 'Conversation cleared'},
+            status=status.HTTP_200_OK
         )

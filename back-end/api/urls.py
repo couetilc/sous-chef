@@ -65,5 +65,6 @@ urlpatterns = [
     path('tags/<int:tag_id>/recipe/<int:recipe_id>/', views.TaggedRecipeDetail.as_view(), name='tagged-recipe-detail'),
 
     # nutritionist endpoints
-    path('nutritionist/chat/', views.NutritionistChat.as_view(), name='nutritionist-chat'),
+    path('nutritionist/conversation/', views.NutritionistChat.as_view(), name='nutritionist-conversation'),
+    path('nutritionist/conversation/clear/', views.ClearConversation.as_view(), name='nutritionist-conversation-clear'),
 ]
