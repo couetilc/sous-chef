@@ -1062,13 +1062,27 @@ class NutritionistChat(APIView):
             "message": message
         })
 
-        # Check if the response contains tool calls
-        tool_calls_data = None
-        if hasattr(response, 'tool_calls') and response.tool_calls:
-            # Execute each tool call and capture data
-            tool_messages = []
-            tool_calls_data = []
+        # Build initial message history for tool calling loop
+        from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
 
+        messages = [
+            HumanMessage(content=f"Username: {username}\n\n{conversation_history}\n\nCurrent message: {message}")
+        ]
+
+        # Track all tool calls across multiple rounds
+        all_tool_calls_data = []
+
+        # Loop until the model stops requesting tool calls
+        max_iterations = 10  # Safety limit to prevent infinite loops
+        iteration_count = 0
+
+        while hasattr(response, 'tool_calls') and response.tool_calls and iteration_count < max_iterations:
+            iteration_count += 1
+
+            # Add the AI's response with tool calls to message history
+            messages.append(response)
+
+            # Execute each tool call
             for tool_call in response.tool_calls:
                 tool_name = tool_call['name']
                 tool_args = tool_call['args']
@@ -1077,43 +1091,27 @@ class NutritionistChat(APIView):
                 # Execute the tool
                 if tool_name == 'search_recipes_tool':
                     tool_result = search_recipes_tool.invoke(tool_args)
-                    tool_messages.append({
-                        'role': 'tool',
-                        'content': tool_result,
-                        'tool_call_id': tool_call.get('id', 'unknown')
-                    })
+
+                    # Add tool result to message history
+                    messages.append(ToolMessage(
+                        content=tool_result,
+                        tool_call_id=tool_call.get('id', 'unknown')
+                    ))
 
                     # Capture tool call data for admin visibility
-                    tool_calls_data.append({
+                    all_tool_calls_data.append({
                         'tool_name': tool_name,
                         'parameters': tool_args,
                         'result': tool_result,
                         'timestamp': call_timestamp
                     })
 
-            # Build conversation with tool results
-            from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
+            # Get next response from LLM with tool results
+            response = llm_with_tools.invoke(messages)
 
-            messages = [
-                HumanMessage(content=f"Username: {username}\n\n{conversation_history}\n\nCurrent message: {message}")
-            ]
-
-            # Add the AI's response with tool calls
-            messages.append(response)
-
-            # Add tool results
-            for tool_msg in tool_messages:
-                messages.append(ToolMessage(
-                    content=tool_msg['content'],
-                    tool_call_id=tool_msg['tool_call_id']
-                ))
-
-            # Get final response from LLM with tool results
-            final_response = llm_with_tools.invoke(messages)
-            answer_content = final_response.content
-        else:
-            # No tool calls, use the response directly
-            answer_content = response.content
+        # After the loop, response.content is the final text answer
+        answer_content = response.content
+        tool_calls_data = all_tool_calls_data if all_tool_calls_data else None
 
         # Save assistant response with tool call data
         ChatMessage.objects.create(

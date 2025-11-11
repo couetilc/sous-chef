@@ -173,7 +173,7 @@ class TagSerializer(serializers.ModelSerializer):
 class ChatMessageSerializer(serializers.ModelSerializer):
     class Meta:
         model = ChatMessage
-        fields = ('id', 'role', 'content', 'created_at')
+        fields = ('id', 'role', 'content', 'created_at', 'tool_calls')
         read_only_fields = ('id', 'created_at')
 
 

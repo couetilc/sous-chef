@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.contrib.admin import SimpleListFilter
 from django.db.models import Q
+from django.urls import reverse
 from django.utils.html import format_html
 from decimal import Decimal
 
@@ -270,13 +271,18 @@ class ChatMessageInline(admin.TabularInline):
     can_delete = False
 
     def content_preview(self, obj):
-        """Show first 100 chars of message content"""
+        """Show first 100 chars of message content with link to detail page"""
         if obj.content:
             preview = obj.content[:100]
             if len(obj.content) > 100:
                 preview += '...'
-            return preview
-        return ''
+        else:
+            preview = ''
+
+        if obj.pk:
+            url = reverse('admin:api_chatmessage_change', args=[obj.pk])
+            return format_html('<a href="{}">{}</a>', url, preview if preview else '(empty)')
+        return preview
     content_preview.short_description = 'Content'
 
     def has_tool_calls(self, obj):
