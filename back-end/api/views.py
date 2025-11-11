@@ -1063,12 +1063,16 @@ class NutritionistChat(APIView):
         })
 
         # Check if the response contains tool calls
+        tool_calls_data = None
         if hasattr(response, 'tool_calls') and response.tool_calls:
-            # Execute each tool call
+            # Execute each tool call and capture data
             tool_messages = []
+            tool_calls_data = []
+
             for tool_call in response.tool_calls:
                 tool_name = tool_call['name']
                 tool_args = tool_call['args']
+                call_timestamp = timezone.now().isoformat()
 
                 # Execute the tool
                 if tool_name == 'search_recipes_tool':
@@ -1077,6 +1081,14 @@ class NutritionistChat(APIView):
                         'role': 'tool',
                         'content': tool_result,
                         'tool_call_id': tool_call.get('id', 'unknown')
+                    })
+
+                    # Capture tool call data for admin visibility
+                    tool_calls_data.append({
+                        'tool_name': tool_name,
+                        'parameters': tool_args,
+                        'result': tool_result,
+                        'timestamp': call_timestamp
                     })
 
             # Build conversation with tool results
@@ -1103,11 +1115,12 @@ class NutritionistChat(APIView):
             # No tool calls, use the response directly
             answer_content = response.content
 
-        # Save assistant response
+        # Save assistant response with tool call data
         ChatMessage.objects.create(
             conversation=conversation,
             role='assistant',
-            content=answer_content
+            content=answer_content,
+            tool_calls=tool_calls_data
         )
 
         # Return full conversation

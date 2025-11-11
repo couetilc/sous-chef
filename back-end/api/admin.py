@@ -242,12 +242,31 @@ class MealAdmin(admin.ModelAdmin):
 
 
 # AI Chat Admin
+class HasToolCallsFilter(SimpleListFilter):
+    """Custom filter to show messages with or without tool calls"""
+    title = 'has tool calls'
+    parameter_name = 'has_tool_calls'
+
+    def lookups(self, request, model_admin):
+        return (
+            ('yes', 'Yes'),
+            ('no', 'No'),
+        )
+
+    def queryset(self, request, queryset):
+        if self.value() == 'yes':
+            return queryset.exclude(tool_calls__isnull=True).exclude(tool_calls=[])
+        if self.value() == 'no':
+            return queryset.filter(Q(tool_calls__isnull=True) | Q(tool_calls=[]))
+        return queryset
+
+
 class ChatMessageInline(admin.TabularInline):
     """Show chat messages inline on the ChatConversation admin page."""
     model = ChatMessage
     extra = 0
-    fields = ('role', 'content_preview', 'created_at')
-    readonly_fields = ('role', 'content_preview', 'created_at')
+    fields = ('role', 'content_preview', 'has_tool_calls', 'created_at')
+    readonly_fields = ('role', 'content_preview', 'has_tool_calls', 'created_at')
     can_delete = False
 
     def content_preview(self, obj):
@@ -259,6 +278,13 @@ class ChatMessageInline(admin.TabularInline):
             return preview
         return ''
     content_preview.short_description = 'Content'
+
+    def has_tool_calls(self, obj):
+        """Show if message has associated tool calls"""
+        if obj.tool_calls:
+            return '✓'
+        return '✗'
+    has_tool_calls.short_description = 'Tools'
 
     def has_add_permission(self, request, obj=None):
         return False
@@ -280,6 +306,7 @@ class ChatConversationAdmin(admin.ModelAdmin):
 
     def full_conversation(self, obj):
         """Display the full conversation in a readable format"""
+        import json
         messages = obj.messages.all()
         if not messages:
             return format_html('<p><em>No messages yet</em></p>')
@@ -289,8 +316,27 @@ class ChatConversationAdmin(admin.ModelAdmin):
             role_color = '#2196F3' if msg.role == 'user' else '#4CAF50'
             html += f'<div style="margin-bottom: 15px; padding: 10px; background: var(--body-bg); border-left: 3px solid {role_color};">'
             html += f'<strong style="color: {role_color};">{msg.role.upper()}</strong> '
-            html += f'<span style="color: var(--body-quiet-color); font-size: 0.9em;">({msg.created_at.strftime("%Y-%m-%d %H:%M:%S")})</span><br>'
+            html += f'<span style="color: var(--body-quiet-color); font-size: 0.9em;">({msg.created_at.strftime("%Y-%m-%d %H:%M:%S")})</span>'
+
+            # Show tool call indicator if present
+            if msg.tool_calls:
+                html += f' <span style="background: #007bff; color: white; padding: 2px 6px; border-radius: 3px; font-size: 0.8em;">🔧 Tool Call</span>'
+
+            html += '<br>'
             html += f'{msg.content}'
+
+            # Show tool call details if present
+            if msg.tool_calls:
+                html += '<div style="margin-top: 10px; padding: 8px; background: #f0f8ff; border-radius: 4px; font-size: 0.85em;">'
+                for i, tool_call in enumerate(msg.tool_calls):
+                    tool_name = tool_call.get('tool_name', 'Unknown')
+                    parameters = tool_call.get('parameters', {})
+                    # Escape curly braces for format_html by doubling them
+                    params_json = json.dumps(parameters).replace('{', '{{').replace('}', '}}')
+                    html += f'<strong>Tool:</strong> {tool_name}<br>'
+                    html += f'<strong>Params:</strong> {params_json}<br>'
+                html += '</div>'
+
             html += '</div>'
         html += '</div>'
         return format_html(html)
@@ -299,10 +345,10 @@ class ChatConversationAdmin(admin.ModelAdmin):
 
 @admin.register(ChatMessage)
 class ChatMessageAdmin(admin.ModelAdmin):
-    list_display = ('id', 'conversation_user', 'role', 'content_preview', 'created_at')
+    list_display = ('id', 'conversation_user', 'role', 'content_preview', 'has_tool_calls', 'created_at')
     search_fields = ('conversation__user__username', 'content')
-    list_filter = ('role', 'created_at', 'conversation__user')
-    readonly_fields = ('conversation', 'role', 'content', 'created_at')
+    list_filter = ('role', 'created_at', 'conversation__user', HasToolCallsFilter)
+    readonly_fields = ('conversation', 'role', 'content', 'tool_calls_display', 'created_at')
     ordering = ('-created_at',)
 
     def conversation_user(self, obj):
@@ -320,6 +366,61 @@ class ChatMessageAdmin(admin.ModelAdmin):
             return preview
         return ''
     content_preview.short_description = 'Content Preview'
+
+    def has_tool_calls(self, obj):
+        """Show if message has associated tool calls"""
+        if obj.tool_calls:
+            return '✓'
+        return '✗'
+    has_tool_calls.short_description = 'Tool Calls'
+    has_tool_calls.admin_order_field = 'tool_calls'
+
+    def tool_calls_display(self, obj):
+        """Display tool calls in an expandable format"""
+        if not obj.tool_calls:
+            return 'No tool calls'
+
+        from django.utils.html import format_html
+        import json
+
+        html_parts = []
+        for i, tool_call in enumerate(obj.tool_calls):
+            tool_name = tool_call.get('tool_name', 'Unknown')
+            parameters = tool_call.get('parameters', {})
+            result = tool_call.get('result', '')
+            timestamp = tool_call.get('timestamp', 'Unknown')
+
+            # Format parameters as pretty JSON
+            # Escape curly braces for format_html by doubling them
+            params_json = json.dumps(parameters, indent=2).replace('{', '{{').replace('}', '}}')
+
+            # Truncate result if too long (show first 500 chars)
+            result_preview = result[:500]
+            result_full = result
+            if len(result) > 500:
+                result_preview += '... (truncated)'
+
+            # Create expandable section with <details> tag
+            html = f"""
+            <div style="margin-bottom: 20px; padding: 15px; background-color: #f8f9fa; border-left: 4px solid #007bff; border-radius: 4px;">
+                <details>
+                    <summary style="cursor: pointer; font-weight: bold; font-size: 14px; color: #007bff;">
+                        🔧 Tool Call #{i+1}: {tool_name}
+                    </summary>
+                    <div style="margin-top: 15px; padding: 10px; background-color: white; border-radius: 4px;">
+                        <p><strong>⏰ Timestamp:</strong> {timestamp}</p>
+                        <p><strong>📥 Parameters:</strong></p>
+                        <pre style="background-color: #f4f4f4; padding: 10px; border-radius: 4px; overflow-x: auto; font-size: 12px;">{params_json}</pre>
+                        <p><strong>📤 Result:</strong></p>
+                        <pre style="background-color: #f4f4f4; padding: 10px; border-radius: 4px; overflow-x: auto; max-height: 400px; font-size: 12px; white-space: pre-wrap;">{result_full}</pre>
+                    </div>
+                </details>
+            </div>
+            """
+            html_parts.append(html)
+
+        return format_html(''.join(html_parts))
+    tool_calls_display.short_description = 'Tool Call Details'
 
     def has_add_permission(self, request):
         """Prevent manual message creation through admin"""

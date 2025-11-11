@@ -345,6 +345,7 @@ class ChatMessage(models.Model):
     conversation = models.ForeignKey(ChatConversation, on_delete=models.CASCADE, related_name='messages')
     role = models.CharField(max_length=10, choices=ROLE_CHOICES)
     content = models.TextField()
+    tool_calls = models.JSONField(null=True, blank=True, help_text="Tool calls made by the assistant (name, parameters, results, timestamp)")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
