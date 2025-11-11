@@ -15,12 +15,12 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.pagination import PageNumberPagination
 from django.contrib.auth.models import User, Group
-from .serializers import UserSerializer, GroupSerializer, UserRegistrationSerializer, IngredientSerializer, DietSerializer, CookedRecipeSerializer, MealSerializer, OnboardSerializer, SettingsIngredientSerializer, UserInventorySerializer, TagSerializer, UserRecipeSerializer
+from .serializers import UserSerializer, GroupSerializer, UserRegistrationSerializer, IngredientSerializer, DietSerializer, CookedRecipeSerializer, MealSerializer, OnboardSerializer, SettingsIngredientSerializer, UserInventorySerializer, TagSerializer, UserRecipeSerializer, CuratedIngredientSerializer
 from decimal import Decimal, InvalidOperation
 from .models import (
     Ingredient, DietaryIngredient, Diet, UserDiet,
     Recipe, CookedRecipe, Meal, FavoriteRecipe, UserInventory, OnboardingSubmission, RecipeIngredient, HealthDetails, RecipeTag, TaggedRecipe,
-    ChatConversation, ChatMessage
+    ChatConversation, ChatMessage, CuratedIngredient
 )
 from .serializers import (
     UserSerializer, GroupSerializer, UserRegistrationSerializer,
@@ -293,6 +293,35 @@ class IngredientList(generics.ListAPIView):
     filter_backends = [SearchFilter, OrderingFilter]
     search_fields = ['name', '^name']
     ordering = ['name']
+
+
+class CuratedIngredientList(generics.ListAPIView):
+    """List all curated (staple) ingredients"""
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = CuratedIngredientSerializer
+    pagination_class = Paginator
+    filter_backends = [SearchFilter, OrderingFilter]
+    search_fields = ['name', '^name']
+    ordering = ['name']
+
+    def get_queryset(self):
+        """Return only approved curated ingredients by default"""
+        queryset = CuratedIngredient.objects.all()
+
+        # Filter by approval status (default: only approved)
+        show_unapproved = self.request.query_params.get('show_unapproved', 'false').lower() == 'true'
+        if not show_unapproved:
+            queryset = queryset.filter(is_approved=True)
+
+        return queryset
+
+
+class CuratedIngredientDetail(generics.RetrieveAPIView):
+    """Retrieve a single curated ingredient"""
+    permission_classes = [permissions.IsAuthenticated]
+    queryset = CuratedIngredient.objects.all()
+    serializer_class = CuratedIngredientSerializer
+
 
 class DietaryIngredientList(generics.ListAPIView):
     """List restricted ingredients for the authenticated user"""
