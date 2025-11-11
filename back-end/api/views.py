@@ -32,6 +32,7 @@ from .utils.recommended import compute_recommendations
 from zoneinfo import ZoneInfo
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import PromptTemplate
+from langchain_core.tools import tool
 
 class Paginator(PageNumberPagination):
     page_size = 100
@@ -901,6 +902,69 @@ class TaggedRecipeDetail(APIView):
             status.HTTP_200_OK
         )
 
+@tool
+def search_recipes_tool(
+    title_query: str = "",
+    max_calories: int = None,
+    min_protein: int = None,
+    max_fat: int = None,
+    max_carbs: int = None
+) -> str:
+    """Search for recipes in the recipe library.
+
+    Use this tool to find recipes based on title keywords and nutritional criteria.
+    Returns up to 5 recipes with complete details including ingredients and instructions.
+
+    Args:
+        title_query: Keywords to search in recipe titles (e.g., "chicken pasta", "salad")
+        max_calories: Maximum calories per serving (optional)
+        min_protein: Minimum protein in grams (optional)
+        max_fat: Maximum fat in grams (optional)
+        max_carbs: Maximum carbohydrates in grams (optional)
+
+    Returns:
+        A formatted string containing recipe details (id, title, nutrition, ingredients, instructions)
+    """
+    # Start with base queryset
+    queryset = Recipe.objects.all().order_by('-created_at')
+
+    # Apply filters
+    if title_query and title_query.strip():
+        queryset = queryset.filter(title__icontains=title_query.strip())
+
+    if max_calories is not None:
+        queryset = queryset.filter(calories_per_serving__lte=max_calories)
+
+    if min_protein is not None:
+        queryset = queryset.filter(protein_g__gte=min_protein)
+
+    if max_fat is not None:
+        queryset = queryset.filter(fat_g__lte=max_fat)
+
+    if max_carbs is not None:
+        queryset = queryset.filter(carbs_g__lte=max_carbs)
+
+    # Limit to 5 results
+    recipes = queryset[:5]
+
+    if not recipes:
+        return "No recipes found matching the search criteria."
+
+    # Format results
+    results = []
+    for recipe in recipes:
+        recipe_text = f"""
+Recipe ID: {recipe.id}
+Title: {recipe.title}
+Nutrition (per serving): {recipe.calories_per_serving} calories, {recipe.protein_g}g protein, {recipe.carbs_g}g carbs, {recipe.fat_g}g fat
+Servings: {recipe.servings}
+Ingredients: {recipe.ingredients}
+Instructions: {recipe.instructions}
+---"""
+        results.append(recipe_text.strip())
+
+    return "\n\n".join(results)
+
 template="""
 You are a nutritionist, ready to help customers create nutritious, simple recipes they want to cook. The current customer's name is {username}.
 
@@ -920,7 +984,10 @@ llm = ChatOpenAI(
   model="openrouter/polaris-alpha",
 )
 
-llm_chain = prompt | llm
+# Bind tools to LLM
+llm_with_tools = llm.bind_tools([search_recipes_tool])
+
+llm_chain = prompt | llm_with_tools
 
 class NutritionistChat(APIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -989,17 +1056,58 @@ class NutritionistChat(APIView):
         )
 
         # Get LLM response with full context
-        answer = llm_chain.invoke({
+        response = llm_chain.invoke({
             "username": username,
             "conversation_history": conversation_history,
             "message": message
         })
 
+        # Check if the response contains tool calls
+        if hasattr(response, 'tool_calls') and response.tool_calls:
+            # Execute each tool call
+            tool_messages = []
+            for tool_call in response.tool_calls:
+                tool_name = tool_call['name']
+                tool_args = tool_call['args']
+
+                # Execute the tool
+                if tool_name == 'search_recipes_tool':
+                    tool_result = search_recipes_tool.invoke(tool_args)
+                    tool_messages.append({
+                        'role': 'tool',
+                        'content': tool_result,
+                        'tool_call_id': tool_call.get('id', 'unknown')
+                    })
+
+            # Build conversation with tool results
+            from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
+
+            messages = [
+                HumanMessage(content=f"Username: {username}\n\n{conversation_history}\n\nCurrent message: {message}")
+            ]
+
+            # Add the AI's response with tool calls
+            messages.append(response)
+
+            # Add tool results
+            for tool_msg in tool_messages:
+                messages.append(ToolMessage(
+                    content=tool_msg['content'],
+                    tool_call_id=tool_msg['tool_call_id']
+                ))
+
+            # Get final response from LLM with tool results
+            final_response = llm_with_tools.invoke(messages)
+            answer_content = final_response.content
+        else:
+            # No tool calls, use the response directly
+            answer_content = response.content
+
         # Save assistant response
         ChatMessage.objects.create(
             conversation=conversation,
             role='assistant',
-            content=answer.content
+            content=answer_content
         )
 
         # Return full conversation
