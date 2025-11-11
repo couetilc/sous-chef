@@ -4,7 +4,7 @@ from django.db.models import Q
 from django.utils.html import format_html
 from decimal import Decimal
 
-from api.models import Recipe, Ingredient, DietaryIngredient, RecipeIngredient, ScrapedInventory, ScrapedRecipe, ScrapedIngredient, ScrapedNutritionalInfo, CookedRecipe, Meal
+from api.models import Recipe, Ingredient, DietaryIngredient, RecipeIngredient, ScrapedInventory, ScrapedRecipe, ScrapedIngredient, ScrapedNutritionalInfo, CookedRecipe, Meal, ChatConversation, ChatMessage
 
 
 class IngredientInline(admin.TabularInline):
@@ -239,3 +239,92 @@ class MealAdmin(admin.ModelAdmin):
     search_fields = ('cooked_recipe__recipe__title', 'cooked_recipe__user__username')
     list_filter = ('eaten_at',)
     ordering = ('-eaten_at',)
+
+
+# AI Chat Admin
+class ChatMessageInline(admin.TabularInline):
+    """Show chat messages inline on the ChatConversation admin page."""
+    model = ChatMessage
+    extra = 0
+    fields = ('role', 'content_preview', 'created_at')
+    readonly_fields = ('role', 'content_preview', 'created_at')
+    can_delete = False
+
+    def content_preview(self, obj):
+        """Show first 100 chars of message content"""
+        if obj.content:
+            preview = obj.content[:100]
+            if len(obj.content) > 100:
+                preview += '...'
+            return preview
+        return ''
+    content_preview.short_description = 'Content'
+
+    def has_add_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(ChatConversation)
+class ChatConversationAdmin(admin.ModelAdmin):
+    list_display = ('id', 'user', 'is_active', 'message_count', 'created_at', 'updated_at')
+    search_fields = ('user__username', 'user__email')
+    list_filter = ('is_active', 'created_at', 'updated_at')
+    readonly_fields = ('created_at', 'updated_at', 'message_count', 'full_conversation')
+    inlines = (ChatMessageInline,)
+    ordering = ('-updated_at',)
+
+    def message_count(self, obj):
+        """Display the number of messages in the conversation"""
+        return obj.messages.count()
+    message_count.short_description = 'Messages'
+
+    def full_conversation(self, obj):
+        """Display the full conversation in a readable format"""
+        messages = obj.messages.all()
+        if not messages:
+            return format_html('<p><em>No messages yet</em></p>')
+
+        html = '<div style="font-family: monospace; white-space: pre-wrap;">'
+        for msg in messages:
+            role_color = '#2196F3' if msg.role == 'user' else '#4CAF50'
+            html += f'<div style="margin-bottom: 15px; padding: 10px; background: var(--body-bg); border-left: 3px solid {role_color};">'
+            html += f'<strong style="color: {role_color};">{msg.role.upper()}</strong> '
+            html += f'<span style="color: var(--body-quiet-color); font-size: 0.9em;">({msg.created_at.strftime("%Y-%m-%d %H:%M:%S")})</span><br>'
+            html += f'{msg.content}'
+            html += '</div>'
+        html += '</div>'
+        return format_html(html)
+    full_conversation.short_description = 'Full Conversation'
+
+
+@admin.register(ChatMessage)
+class ChatMessageAdmin(admin.ModelAdmin):
+    list_display = ('id', 'conversation_user', 'role', 'content_preview', 'created_at')
+    search_fields = ('conversation__user__username', 'content')
+    list_filter = ('role', 'created_at', 'conversation__user')
+    readonly_fields = ('conversation', 'role', 'content', 'created_at')
+    ordering = ('-created_at',)
+
+    def conversation_user(self, obj):
+        """Display which user this message belongs to"""
+        return obj.conversation.user.username
+    conversation_user.short_description = 'User'
+    conversation_user.admin_order_field = 'conversation__user__username'
+
+    def content_preview(self, obj):
+        """Show first 100 chars of message content"""
+        if obj.content:
+            preview = obj.content[:100]
+            if len(obj.content) > 100:
+                preview += '...'
+            return preview
+        return ''
+    content_preview.short_description = 'Content Preview'
+
+    def has_add_permission(self, request):
+        """Prevent manual message creation through admin"""
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        """Prevent message deletion through admin (for data integrity)"""
+        return False
