@@ -5,7 +5,7 @@ from django.urls import reverse
 from django.utils.html import format_html
 from decimal import Decimal
 
-from api.models import Recipe, Ingredient, DietaryIngredient, RecipeIngredient, ScrapedInventory, ScrapedRecipe, ScrapedIngredient, ScrapedNutritionalInfo, CookedRecipe, Meal, ChatConversation, ChatMessage
+from api.models import Recipe, Ingredient, DietaryIngredient, RecipeIngredient, ScrapedInventory, ScrapedRecipe, ScrapedIngredient, ScrapedNutritionalInfo, CookedRecipe, Meal, ChatConversation, ChatMessage, CuratedIngredient, RecipeCuratedIngredient
 
 
 class IngredientInline(admin.TabularInline):
@@ -201,6 +201,47 @@ class RecipeIngredientAdmin(admin.ModelAdmin):
 	list_display = ('recipe', 'ingredient', 'quantity')
 	search_fields = ('recipe__title', 'ingredient__name')
 	list_filter = ('ingredient',)
+
+
+# Curated Ingredient Admin
+
+@admin.register(CuratedIngredient)
+class CuratedIngredientAdmin(admin.ModelAdmin):
+	list_display = ('name', 'is_approved', 'created_at')
+	search_fields = ('name',)
+	list_filter = ('is_approved', 'created_at')
+	ordering = ('name',)
+	readonly_fields = ('created_at',)
+	actions = ['approve_ingredients', 'unapprove_ingredients']
+
+	def approve_ingredients(self, request, queryset):
+		"""Bulk action to approve selected curated ingredients"""
+		updated = queryset.update(is_approved=True)
+		self.message_user(request, f'{updated} curated ingredient(s) successfully approved.')
+	approve_ingredients.short_description = 'Approve selected curated ingredients'
+
+	def unapprove_ingredients(self, request, queryset):
+		"""Bulk action to unapprove selected curated ingredients"""
+		updated = queryset.update(is_approved=False)
+		self.message_user(request, f'{updated} curated ingredient(s) unapproved.')
+	unapprove_ingredients.short_description = 'Unapprove selected curated ingredients'
+
+
+@admin.register(RecipeCuratedIngredient)
+class RecipeCuratedIngredientAdmin(admin.ModelAdmin):
+	list_display = ('recipe_title', 'curated_ingredient', 'created_at')
+	search_fields = ('recipe__title', 'curated_ingredient__name')
+	list_filter = ('curated_ingredient', 'created_at')
+	ordering = ('recipe', 'curated_ingredient__name')
+	readonly_fields = ('created_at',)
+
+	def recipe_title(self, obj):
+		"""Display recipe title with link"""
+		url = reverse('admin:api_recipe_change', args=[obj.recipe.pk])
+		return format_html('<a href="{}">{}</a>', url, obj.recipe.title)
+	recipe_title.short_description = 'Recipe'
+	recipe_title.admin_order_field = 'recipe__title'
+
 
 @admin.register(ScrapedInventory)
 class ScrapedInventoryAdmin(admin.ModelAdmin):

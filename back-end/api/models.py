@@ -114,6 +114,49 @@ class Ingredient(models.Model):
     def __str__(self):
         return self.name
 
+
+class CuratedIngredient(models.Model):
+    """
+    Simplified, generic ingredient representing a staple.
+    Independent from Ingredient model - no foreign key relationship.
+    Examples: 'chicken breast', 'olive oil', 'garlic', 'cheddar cheese'
+    """
+    name = models.CharField(max_length=200, unique=True, db_index=True)
+    is_approved = models.BooleanField(default=False, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+
+class RecipeCuratedIngredient(models.Model):
+    """
+    Links recipes to curated ingredients - parallel to RecipeIngredient.
+    Enables simplified recipe search and matching based on staple ingredients.
+    """
+    recipe = models.ForeignKey(
+        Recipe,
+        on_delete=models.CASCADE,
+        related_name='curated_ingredients'
+    )
+    curated_ingredient = models.ForeignKey(
+        CuratedIngredient,
+        on_delete=models.CASCADE,
+        related_name='recipe_uses'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['recipe', 'curated_ingredient__name']
+        unique_together = ['recipe', 'curated_ingredient']
+
+    def __str__(self):
+        return f"{self.curated_ingredient.name} in {self.recipe.title}"
+
+
 class DietaryIngredient(models.Model):
     """User-specific restricted ingredients based on dietary preferences"""
     ingredient = models.ForeignKey(Ingredient, on_delete=models.CASCADE, related_name='dietary_restrictions')
