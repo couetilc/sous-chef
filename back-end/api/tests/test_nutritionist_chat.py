@@ -27,6 +27,7 @@ class TestNutritionistChatEndpoint:
         # Mock LLM response
         mock_response = MagicMock()
         mock_response.content = "Hello! I'm here to help with nutrition."
+        mock_response.tool_calls = []  # No tool calls
         mock_llm.invoke.return_value = mock_response
 
         # Verify no conversation exists yet
@@ -61,8 +62,10 @@ class TestNutritionistChatEndpoint:
         # Mock LLM responses
         mock_response_1 = MagicMock()
         mock_response_1.content = "Great sources of protein include chicken, fish, and beans."
+        mock_response_1.tool_calls = []
         mock_response_2 = MagicMock()
         mock_response_2.content = "For vegetarian options, try tofu, lentils, and quinoa."
+        mock_response_2.tool_calls = []
         mock_llm.invoke.side_effect = [mock_response_1, mock_response_2]
 
         # First message
@@ -97,6 +100,7 @@ class TestNutritionistChatEndpoint:
         """Test that response includes all messages with timestamps"""
         mock_response = MagicMock()
         mock_response.content = "I can help with that!"
+        mock_response.tool_calls = []
         mock_llm.invoke.return_value = mock_response
 
         # Send a message
@@ -120,8 +124,10 @@ class TestNutritionistChatEndpoint:
         # Mock LLM responses
         mock_response_1 = MagicMock()
         mock_response_1.content = "First response"
+        mock_response_1.tool_calls = []
         mock_response_2 = MagicMock()
         mock_response_2.content = "Second response"
+        mock_response_2.tool_calls = []
         mock_llm.invoke.side_effect = [mock_response_1, mock_response_2]
 
         # First message
@@ -143,7 +149,12 @@ class TestNutritionistChatEndpoint:
     def test_messages_ordered_chronologically(self, mock_llm, authenticated_client, test_user):
         """Test that messages are returned in chronological order (oldest first)"""
         # Mock LLM responses
-        mock_responses = [MagicMock(content=f"Response {i}") for i in range(3)]
+        mock_responses = []
+        for i in range(3):
+            mock = MagicMock()
+            mock.content = f"Response {i}"
+            mock.tool_calls = []
+            mock_responses.append(mock)
         mock_llm.invoke.side_effect = mock_responses
 
         # Send 3 messages
@@ -168,6 +179,7 @@ class TestNutritionistChatEndpoint:
         """Test that different users have isolated conversations"""
         mock_response = MagicMock()
         mock_response.content = "Response"
+        mock_response.tool_calls = []
         mock_llm.invoke.return_value = mock_response
 
         # User 1 sends a message
@@ -235,6 +247,7 @@ class TestGetConversationEndpoint:
         # Create a conversation with messages
         mock_response = MagicMock()
         mock_response.content = "Hello! How can I help?"
+        mock_response.tool_calls = []
         mock_llm.invoke.return_value = mock_response
 
         # Send a message to create conversation
@@ -255,6 +268,7 @@ class TestGetConversationEndpoint:
         """Test that GET only returns active conversation, not inactive ones"""
         mock_response = MagicMock()
         mock_response.content = "Response"
+        mock_response.tool_calls = []
         mock_llm.invoke.return_value = mock_response
 
         # Create first conversation
@@ -289,6 +303,7 @@ class TestClearConversationEndpoint:
         # Create a conversation with messages
         mock_response = MagicMock()
         mock_response.content = "Response"
+        mock_response.tool_calls = []
         mock_llm.invoke.return_value = mock_response
 
         authenticated_client.post('/api/nutritionist/conversation/', {'message': 'Hello'})
@@ -314,6 +329,7 @@ class TestClearConversationEndpoint:
         # Create initial conversation
         mock_response = MagicMock()
         mock_response.content = "Response"
+        mock_response.tool_calls = []
         mock_llm.invoke.return_value = mock_response
 
         response1 = authenticated_client.post('/api/nutritionist/conversation/', {'message': 'First'})
@@ -347,3 +363,340 @@ class TestClearConversationEndpoint:
         response = authenticated_client.post('/api/nutritionist/conversation/clear/', {})
         assert response.status_code == status.HTTP_200_OK
         assert response.data['success'] is True
+
+
+@pytest.mark.django_db
+class TestToolCallingFunctionality:
+    """Test tool calling scenarios including single/multiple rounds"""
+
+    @patch('api.views.search_recipes_tool')
+    @patch('api.views.llm_with_tools')
+    @patch('api.views.llm_chain')
+    def test_single_tool_call_one_round(self, mock_llm_chain, mock_llm_with_tools, mock_search_tool, authenticated_client, test_user):
+        """Test that a message triggering a single tool call executes and returns properly"""
+        # Round 1: Initial LLM call with tool request
+        mock_response_1 = MagicMock()
+        mock_response_1.tool_calls = [{
+            'id': 'call_1',
+            'name': 'search_recipes_tool',
+            'args': {'title_query': 'chicken', 'max_calories': 500}
+        }]
+        mock_llm_chain.invoke.return_value = mock_response_1
+
+        # Round 2: After tool execution, LLM returns final text response (no more tool calls)
+        mock_response_2 = MagicMock()
+        mock_response_2.tool_calls = []
+        mock_response_2.content = "Here are some chicken recipes with under 500 calories!"
+        mock_llm_with_tools.invoke.return_value = mock_response_2
+
+        # Mock tool execution
+        mock_search_tool.invoke.return_value = "Recipe ID: 1\nTitle: Grilled Chicken\nNutrition: 450 calories..."
+
+        # Send message
+        data = {'message': 'Find me low calorie chicken recipes'}
+        response = authenticated_client.post('/api/nutritionist/conversation/', data)
+
+        # Verify response
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data['messages']) == 2  # user + assistant
+
+        # Verify assistant response content
+        assistant_message = response.data['messages'][1]
+        assert assistant_message['role'] == 'assistant'
+        assert assistant_message['content'] == "Here are some chicken recipes with under 500 calories!"
+
+        # Verify tool call data was saved
+        assert assistant_message['tool_calls'] is not None
+        assert len(assistant_message['tool_calls']) == 1
+        tool_call = assistant_message['tool_calls'][0]
+        assert tool_call['tool_name'] == 'search_recipes_tool'
+        assert tool_call['parameters'] == {'title_query': 'chicken', 'max_calories': 500}
+        assert 'Recipe ID: 1' in tool_call['result']
+        assert 'timestamp' in tool_call
+
+        # Verify LLM was called correctly
+        assert mock_llm_chain.invoke.call_count == 1
+        assert mock_llm_with_tools.invoke.call_count == 1
+        assert mock_search_tool.invoke.call_count == 1
+
+    @patch('api.views.search_recipes_tool')
+    @patch('api.views.llm_with_tools')
+    @patch('api.views.llm_chain')
+    def test_multiple_rounds_of_tool_calls(self, mock_llm_chain, mock_llm_with_tools, mock_search_tool, authenticated_client, test_user):
+        """Test that multiple rounds of tool calls are handled correctly (most important test!)"""
+        # Round 1: Initial LLM call with first tool request
+        mock_response_1 = MagicMock()
+        mock_response_1.tool_calls = [{
+            'id': 'call_1',
+            'name': 'search_recipes_tool',
+            'args': {'title_query': 'chicken'}
+        }]
+        mock_llm_chain.invoke.return_value = mock_response_1
+
+        # Round 2: After first tool execution, LLM requests ANOTHER tool call
+        mock_response_2 = MagicMock()
+        mock_response_2.tool_calls = [{
+            'id': 'call_2',
+            'name': 'search_recipes_tool',
+            'args': {'title_query': 'vegetarian', 'min_protein': 20}
+        }]
+
+        # Round 3: After second tool execution, LLM returns final text response
+        mock_response_3 = MagicMock()
+        mock_response_3.tool_calls = []
+        mock_response_3.content = "I found both chicken and vegetarian high-protein recipes!"
+
+        mock_llm_with_tools.invoke.side_effect = [mock_response_2, mock_response_3]
+
+        # Mock tool execution returns
+        mock_search_tool.invoke.side_effect = [
+            "Recipe ID: 1\nTitle: Grilled Chicken\nCalories: 400...",
+            "Recipe ID: 5\nTitle: Lentil Curry\nCalories: 350..."
+        ]
+
+        # Send message
+        data = {'message': 'Find me chicken and vegetarian recipes with high protein'}
+        response = authenticated_client.post('/api/nutritionist/conversation/', data)
+
+        # Verify response
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data['messages']) == 2
+
+        # Verify assistant response
+        assistant_message = response.data['messages'][1]
+        assert assistant_message['content'] == "I found both chicken and vegetarian high-protein recipes!"
+
+        # Verify BOTH tool calls were saved
+        assert len(assistant_message['tool_calls']) == 2
+
+        # Check first tool call
+        tool_call_1 = assistant_message['tool_calls'][0]
+        assert tool_call_1['tool_name'] == 'search_recipes_tool'
+        assert tool_call_1['parameters'] == {'title_query': 'chicken'}
+        assert 'Grilled Chicken' in tool_call_1['result']
+
+        # Check second tool call
+        tool_call_2 = assistant_message['tool_calls'][1]
+        assert tool_call_2['tool_name'] == 'search_recipes_tool'
+        assert tool_call_2['parameters'] == {'title_query': 'vegetarian', 'min_protein': 20}
+        assert 'Lentil Curry' in tool_call_2['result']
+
+        # Verify the while loop executed correctly
+        assert mock_llm_chain.invoke.call_count == 1  # Initial call
+        assert mock_llm_with_tools.invoke.call_count == 2  # Two iterations in the loop
+        assert mock_search_tool.invoke.call_count == 2  # Two tool executions
+
+    @patch('api.views.search_recipes_tool')
+    @patch('api.views.llm_with_tools')
+    @patch('api.views.llm_chain')
+    def test_max_iterations_safety_limit(self, mock_llm_chain, mock_llm_with_tools, mock_search_tool, authenticated_client, test_user):
+        """Test that tool calling loop stops at max_iterations to prevent infinite loops"""
+        # Initial call returns tool calls
+        mock_response_initial = MagicMock()
+        mock_response_initial.tool_calls = [{
+            'id': 'call_initial',
+            'name': 'search_recipes_tool',
+            'args': {'title_query': 'test'}
+        }]
+        mock_llm_chain.invoke.return_value = mock_response_initial
+
+        # Create 20 mock responses that ALL have tool calls (simulating infinite loop)
+        mock_responses = []
+        for i in range(20):
+            mock = MagicMock()
+            mock.tool_calls = [{
+                'id': f'call_{i}',
+                'name': 'search_recipes_tool',
+                'args': {'title_query': f'query_{i}'}
+            }]
+            mock.content = f"Response {i}"
+            mock_responses.append(mock)
+
+        mock_llm_with_tools.invoke.side_effect = mock_responses
+        mock_search_tool.invoke.return_value = "Some recipes..."
+
+        # Send message
+        data = {'message': 'Find recipes'}
+        response = authenticated_client.post('/api/nutritionist/conversation/', data)
+
+        # Should still succeed (not crash)
+        assert response.status_code == status.HTTP_200_OK
+
+        # Verify loop stopped at exactly 10 iterations
+        assert mock_llm_with_tools.invoke.call_count == 10
+
+        # Verify message was saved
+        assistant_message = response.data['messages'][1]
+
+        # Should have exactly 10 tool calls (max_iterations limit)
+        assert len(assistant_message['tool_calls']) == 10
+
+        # Tool should have been called 10 times
+        assert mock_search_tool.invoke.call_count == 10
+
+    @patch('api.views.search_recipes_tool')
+    @patch('api.views.llm_with_tools')
+    @patch('api.views.llm_chain')
+    def test_multiple_tool_calls_in_one_round(self, mock_llm_chain, mock_llm_with_tools, mock_search_tool, authenticated_client, test_user):
+        """Test that multiple tool calls in a single LLM response are handled"""
+        # LLM returns multiple tool calls at once
+        mock_response_1 = MagicMock()
+        mock_response_1.tool_calls = [
+            {
+                'id': 'call_1',
+                'name': 'search_recipes_tool',
+                'args': {'title_query': 'pasta', 'max_calories': 600}
+            },
+            {
+                'id': 'call_2',
+                'name': 'search_recipes_tool',
+                'args': {'title_query': 'salad', 'max_fat': 10}
+            }
+        ]
+        mock_llm_chain.invoke.return_value = mock_response_1
+
+        # After both tools execute, return final response
+        mock_response_2 = MagicMock()
+        mock_response_2.tool_calls = []
+        mock_response_2.content = "Here are pasta and salad options!"
+        mock_llm_with_tools.invoke.return_value = mock_response_2
+
+        # Mock tool returns
+        mock_search_tool.invoke.side_effect = [
+            "Recipe ID: 1\nTitle: Spaghetti\n...",
+            "Recipe ID: 2\nTitle: Caesar Salad\n..."
+        ]
+
+        # Send message
+        data = {'message': 'Show me pasta and salad recipes'}
+        response = authenticated_client.post('/api/nutritionist/conversation/', data)
+
+        # Verify response
+        assert response.status_code == status.HTTP_200_OK
+        assistant_message = response.data['messages'][1]
+
+        # Both tool calls should be saved
+        assert len(assistant_message['tool_calls']) == 2
+        assert assistant_message['tool_calls'][0]['parameters']['title_query'] == 'pasta'
+        assert assistant_message['tool_calls'][1]['parameters']['title_query'] == 'salad'
+
+        # Both tools should have been executed
+        assert mock_search_tool.invoke.call_count == 2
+
+    @patch('api.views.llm_chain')
+    def test_message_with_no_tool_calls(self, mock_llm_chain, authenticated_client, test_user):
+        """Test that messages without tool calls work correctly (text response only)"""
+        # LLM returns text response without any tool calls
+        mock_response = MagicMock()
+        mock_response.tool_calls = []
+        mock_response.content = "A balanced diet includes fruits, vegetables, proteins, and whole grains."
+        mock_llm_chain.invoke.return_value = mock_response
+
+        # Send message
+        data = {'message': 'What is a balanced diet?'}
+        response = authenticated_client.post('/api/nutritionist/conversation/', data)
+
+        # Verify response
+        assert response.status_code == status.HTTP_200_OK
+        assistant_message = response.data['messages'][1]
+        assert assistant_message['content'] == "A balanced diet includes fruits, vegetables, proteins, and whole grains."
+
+        # No tool calls should be saved
+        assert assistant_message['tool_calls'] is None or len(assistant_message['tool_calls']) == 0
+
+        # LLM should only be called once (no loop iterations)
+        assert mock_llm_chain.invoke.call_count == 1
+
+    @patch('api.views.search_recipes_tool')
+    @patch('api.views.llm_with_tools')
+    @patch('api.views.llm_chain')
+    def test_tool_returns_no_results(self, mock_llm_chain, mock_llm_with_tools, mock_search_tool, authenticated_client, test_user):
+        """Test that tool returning no results is handled gracefully"""
+        # LLM requests tool
+        mock_response_1 = MagicMock()
+        mock_response_1.tool_calls = [{
+            'id': 'call_1',
+            'name': 'search_recipes_tool',
+            'args': {'title_query': 'unicorn meat', 'max_calories': 1}
+        }]
+        mock_llm_chain.invoke.return_value = mock_response_1
+
+        # Tool returns "no results" message
+        mock_search_tool.invoke.return_value = "No recipes found matching the search criteria."
+
+        # LLM receives no results and responds appropriately
+        mock_response_2 = MagicMock()
+        mock_response_2.tool_calls = []
+        mock_response_2.content = "I'm sorry, I couldn't find any recipes matching those criteria."
+        mock_llm_with_tools.invoke.return_value = mock_response_2
+
+        # Send message
+        data = {'message': 'Find me recipes with unicorn meat under 1 calorie'}
+        response = authenticated_client.post('/api/nutritionist/conversation/', data)
+
+        # Verify response
+        assert response.status_code == status.HTTP_200_OK
+        assistant_message = response.data['messages'][1]
+
+        # Verify tool was called and "no results" was saved
+        assert len(assistant_message['tool_calls']) == 1
+        assert "No recipes found" in assistant_message['tool_calls'][0]['result']
+
+        # Verify LLM received the "no results" and responded appropriately
+        assert "couldn't find" in assistant_message['content']
+
+    @patch('api.views.search_recipes_tool')
+    @patch('api.views.llm_with_tools')
+    @patch('api.views.llm_chain')
+    def test_conversation_context_preserved_with_tool_calls(self, mock_llm_chain, mock_llm_with_tools, mock_search_tool, authenticated_client, test_user):
+        """Test that conversation history is preserved across messages with tool calls"""
+        # First message with tool call
+        mock_response_1 = MagicMock()
+        mock_response_1.tool_calls = [{
+            'id': 'call_1',
+            'name': 'search_recipes_tool',
+            'args': {'title_query': 'chicken'}
+        }]
+
+        mock_response_2 = MagicMock()
+        mock_response_2.tool_calls = []
+        mock_response_2.content = "I found 5 chicken recipes!"
+
+        mock_llm_chain.invoke.return_value = mock_response_1
+        mock_llm_with_tools.invoke.return_value = mock_response_2
+        mock_search_tool.invoke.return_value = "Recipe ID: 1\nTitle: Chicken Salad..."
+
+        # Send first message
+        authenticated_client.post('/api/nutritionist/conversation/', {'message': 'Find chicken recipes'})
+
+        # Reset mocks for second message
+        mock_llm_chain.reset_mock()
+        mock_llm_with_tools.reset_mock()
+        mock_search_tool.reset_mock()
+
+        # Second message with tool call
+        mock_response_3 = MagicMock()
+        mock_response_3.tool_calls = [{
+            'id': 'call_2',
+            'name': 'search_recipes_tool',
+            'args': {'title_query': 'beef'}
+        }]
+
+        mock_response_4 = MagicMock()
+        mock_response_4.tool_calls = []
+        mock_response_4.content = "I also found beef recipes!"
+
+        mock_llm_chain.invoke.return_value = mock_response_3
+        mock_llm_with_tools.invoke.return_value = mock_response_4
+        mock_search_tool.invoke.return_value = "Recipe ID: 10\nTitle: Beef Stew..."
+
+        # Send second message
+        authenticated_client.post('/api/nutritionist/conversation/', {'message': 'Now find beef recipes'})
+
+        # Verify LLM received context from first exchange
+        call_args = mock_llm_chain.invoke.call_args[0][0]
+        conversation_history = call_args['conversation_history']
+
+        # Should include the first user message and assistant response
+        assert 'Find chicken recipes' in conversation_history
+        assert 'I found 5 chicken recipes!' in conversation_history
