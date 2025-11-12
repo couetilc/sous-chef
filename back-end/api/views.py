@@ -1,4 +1,5 @@
 import os
+import logging
 from django.shortcuts import render, redirect
 from rest_framework.filters import SearchFilter, OrderingFilter
 from django.db import transaction
@@ -15,6 +16,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.pagination import PageNumberPagination
 from django.contrib.auth.models import User, Group
+
+logger = logging.getLogger(__name__)
 from .serializers import UserSerializer, GroupSerializer, UserRegistrationSerializer, IngredientSerializer, DietSerializer, CookedRecipeSerializer, MealSerializer, OnboardSerializer, SettingsIngredientSerializer, UserInventorySerializer, UserCuratedInventorySerializer, TagSerializer, UserRecipeSerializer, CuratedIngredientSerializer
 from decimal import Decimal, InvalidOperation
 from .models import (
@@ -30,9 +33,6 @@ from .serializers import (
 )
 from .utils.recommended import compute_recommendations
 from zoneinfo import ZoneInfo
-from langchain_openai import ChatOpenAI
-from langchain_core.prompts import PromptTemplate
-from langchain_core.tools import tool
 
 class Paginator(PageNumberPagination):
     page_size = 100
@@ -994,93 +994,6 @@ class TaggedRecipeDetail(APIView):
             status.HTTP_200_OK
         )
 
-@tool
-def search_recipes_tool(
-    title_query: str = "",
-    max_calories: int = None,
-    min_protein: int = None,
-    max_fat: int = None,
-    max_carbs: int = None
-) -> str:
-    """Search for recipes in the recipe library.
-
-    Use this tool to find recipes based on title keywords and nutritional criteria.
-    Returns up to 5 recipes with complete details including ingredients and instructions.
-
-    Args:
-        title_query: Keywords to search in recipe titles (e.g., "chicken pasta", "salad")
-        max_calories: Maximum calories per serving (optional)
-        min_protein: Minimum protein in grams (optional)
-        max_fat: Maximum fat in grams (optional)
-        max_carbs: Maximum carbohydrates in grams (optional)
-
-    Returns:
-        A formatted string containing recipe details (id, title, nutrition, ingredients, instructions)
-    """
-    # Start with base queryset
-    queryset = Recipe.objects.all().order_by('-created_at')
-
-    # Apply filters
-    if title_query and title_query.strip():
-        queryset = queryset.filter(title__icontains=title_query.strip())
-
-    if max_calories is not None:
-        queryset = queryset.filter(calories_per_serving__lte=max_calories)
-
-    if min_protein is not None:
-        queryset = queryset.filter(protein_g__gte=min_protein)
-
-    if max_fat is not None:
-        queryset = queryset.filter(fat_g__lte=max_fat)
-
-    if max_carbs is not None:
-        queryset = queryset.filter(carbs_g__lte=max_carbs)
-
-    # Limit to 5 results
-    recipes = queryset[:5]
-
-    if not recipes:
-        return "No recipes found matching the search criteria."
-
-    # Format results
-    results = []
-    for recipe in recipes:
-        recipe_text = f"""
-Recipe ID: {recipe.id}
-Title: {recipe.title}
-Nutrition (per serving): {recipe.calories_per_serving} calories, {recipe.protein_g}g protein, {recipe.carbs_g}g carbs, {recipe.fat_g}g fat
-Servings: {recipe.servings}
-Ingredients: {recipe.ingredients}
-Instructions: {recipe.instructions}
----"""
-        results.append(recipe_text.strip())
-
-    return "\n\n".join(results)
-
-template="""
-You are a nutritionist, ready to help customers create nutritious, simple recipes they want to cook. The current customer's name is {username}.
-
-{conversation_history}
-
-Current message from {username}: {message}
-""".strip()
-
-prompt = PromptTemplate(
-    template=template,
-    input_variables=["username", "conversation_history", "message"]
-)
-
-llm = ChatOpenAI(
-  api_key=os.environ.get("OPEN_ROUTER_API_KEY"),
-  base_url="https://openrouter.ai/api/v1",
-  model="openrouter/polaris-alpha",
-)
-
-# Bind tools to LLM
-llm_with_tools = llm.bind_tools([search_recipes_tool])
-
-llm_chain = prompt | llm_with_tools
-
 class NutritionistChat(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
@@ -1088,11 +1001,11 @@ class NutritionistChat(APIView):
         """Get the current active conversation with all messages"""
         user = request.user
 
-        # Get active conversation
+        # Get active conversation with messages prefetched to avoid N+1 query
         conversation = ChatConversation.objects.filter(
             user=user,
             is_active=True
-        ).first()
+        ).prefetch_related('messages').first()
 
         if not conversation:
             # Return empty conversation if none exists
@@ -1115,107 +1028,83 @@ class NutritionistChat(APIView):
             )
 
         user = request.user
-        username = user.username
 
-        # Get or create active conversation
-        conversation = ChatConversation.objects.filter(
-            user=user,
-            is_active=True
-        ).first()
+        # Use atomic transaction to ensure data consistency
+        try:
+            with transaction.atomic():
+                # Get or create active conversation (prevents race condition)
+                conversation, created = ChatConversation.objects.get_or_create(
+                    user=user,
+                    is_active=True
+                )
 
-        if not conversation:
-            conversation = ChatConversation.objects.create(user=user)
+                # Get previous messages BEFORE adding the new one
+                previous_messages = ChatMessage.objects.filter(
+                    conversation=conversation
+                ).order_by('created_at')
 
-        # Get previous messages BEFORE adding the new one
-        previous_messages = ChatMessage.objects.filter(
-            conversation=conversation
-        ).order_by('created_at')
+                # Format conversation history for LLM context
+                conversation_history = ""
+                if previous_messages.exists():
+                    history_lines = []
+                    for msg in previous_messages:
+                        role_label = "User" if msg.role == "user" else "Assistant"
+                        history_lines.append(f"{role_label}: {msg.content}")
+                    conversation_history = "Previous conversation:\n" + "\n".join(history_lines)
 
-        # Format conversation history for LLM context
-        conversation_history = ""
-        if previous_messages.exists():
-            history_lines = []
-            for msg in previous_messages:
-                role_label = "User" if msg.role == "user" else "Assistant"
-                history_lines.append(f"{role_label}: {msg.content}")
-            conversation_history = "Previous conversation:\n" + "\n".join(history_lines)
+                # Save the current user message
+                ChatMessage.objects.create(
+                    conversation=conversation,
+                    role='user',
+                    content=message
+                )
 
-        # Now save the current user message
-        ChatMessage.objects.create(
-            conversation=conversation,
-            role='user',
-            content=message
-        )
+                # Use the NutritionistAgent for clean, encapsulated AI interaction
+                from .ai import NutritionistAgent
 
-        # Get LLM response with full context
-        response = llm_chain.invoke({
-            "username": username,
-            "conversation_history": conversation_history,
-            "message": message
-        })
+                try:
+                    agent = NutritionistAgent(user=user)
+                    result = agent.chat(
+                        message=message,
+                        conversation_history=conversation_history
+                    )
+                except ValueError as e:
+                    # Handle missing API key or configuration errors
+                    logger.error(f"Configuration error for user {user.username}: {e}")
+                    return Response(
+                        {'error': 'AI service is not properly configured. Please contact support.'},
+                        status=status.HTTP_503_SERVICE_UNAVAILABLE
+                    )
+                except Exception as e:
+                    # Handle LLM API failures gracefully
+                    logger.error(f"AI agent error for user {user.username}: {e}", exc_info=True)
+                    result = {
+                        'content': "I'm sorry, I'm having trouble processing your request right now. Please try again in a moment.",
+                        'tool_calls': None
+                    }
 
-        # Build initial message history for tool calling loop
-        from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
+                # Save assistant response with tool call data
+                ChatMessage.objects.create(
+                    conversation=conversation,
+                    role='assistant',
+                    content=result['content'],
+                    tool_calls=result['tool_calls']
+                )
 
-        messages = [
-            HumanMessage(content=f"Username: {username}\n\n{conversation_history}\n\nCurrent message: {message}")
-        ]
+                # Prefetch messages to avoid N+1 query when serializing
+                conversation = ChatConversation.objects.prefetch_related('messages').get(id=conversation.id)
 
-        # Track all tool calls across multiple rounds
-        all_tool_calls_data = []
+                # Return full conversation
+                serializer = ChatConversationSerializer(conversation)
+                return Response(serializer.data, status=status.HTTP_200_OK)
 
-        # Loop until the model stops requesting tool calls
-        max_iterations = 10  # Safety limit to prevent infinite loops
-        iteration_count = 0
-
-        while hasattr(response, 'tool_calls') and response.tool_calls and iteration_count < max_iterations:
-            iteration_count += 1
-
-            # Add the AI's response with tool calls to message history
-            messages.append(response)
-
-            # Execute each tool call
-            for tool_call in response.tool_calls:
-                tool_name = tool_call['name']
-                tool_args = tool_call['args']
-                call_timestamp = timezone.now().isoformat()
-
-                # Execute the tool
-                if tool_name == 'search_recipes_tool':
-                    tool_result = search_recipes_tool.invoke(tool_args)
-
-                    # Add tool result to message history
-                    messages.append(ToolMessage(
-                        content=tool_result,
-                        tool_call_id=tool_call.get('id', 'unknown')
-                    ))
-
-                    # Capture tool call data for admin visibility
-                    all_tool_calls_data.append({
-                        'tool_name': tool_name,
-                        'parameters': tool_args,
-                        'result': tool_result,
-                        'timestamp': call_timestamp
-                    })
-
-            # Get next response from LLM with tool results
-            response = llm_with_tools.invoke(messages)
-
-        # After the loop, response.content is the final text answer
-        answer_content = response.content
-        tool_calls_data = all_tool_calls_data if all_tool_calls_data else None
-
-        # Save assistant response with tool call data
-        ChatMessage.objects.create(
-            conversation=conversation,
-            role='assistant',
-            content=answer_content,
-            tool_calls=tool_calls_data
-        )
-
-        # Return full conversation
-        serializer = ChatConversationSerializer(conversation)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        except Exception as e:
+            # Catch any unexpected errors
+            logger.error(f"Unexpected error in nutritionist chat for user {user.username}: {e}", exc_info=True)
+            return Response(
+                {'error': 'An unexpected error occurred. Please try again.'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 class ClearConversation(APIView):
