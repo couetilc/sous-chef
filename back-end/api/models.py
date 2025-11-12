@@ -212,6 +212,18 @@ class UserInventory(models.Model):
     def __str__(self):
         return f"{self.user.username} has {self.ingredient.name} in inventory"
 
+class UserCuratedInventory(models.Model):
+    """User-specific inventory of curated ingredients they have on hand"""
+    curated_ingredient = models.ForeignKey(CuratedIngredient, on_delete=models.CASCADE, related_name='in_curated_inventories')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='curated_inventory_items')
+
+    class Meta:
+        ordering = ['curated_ingredient__name']
+        unique_together = ['user', 'curated_ingredient']
+
+    def __str__(self):
+        return f"{self.user.username} has {self.curated_ingredient.name} in curated inventory"
+
 class CookingSession(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='cooking_sessions')
     recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE, related_name='cooking_sessions')

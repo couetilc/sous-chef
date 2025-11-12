@@ -15,11 +15,11 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.pagination import PageNumberPagination
 from django.contrib.auth.models import User, Group
-from .serializers import UserSerializer, GroupSerializer, UserRegistrationSerializer, IngredientSerializer, DietSerializer, CookedRecipeSerializer, MealSerializer, OnboardSerializer, SettingsIngredientSerializer, UserInventorySerializer, TagSerializer, UserRecipeSerializer, CuratedIngredientSerializer
+from .serializers import UserSerializer, GroupSerializer, UserRegistrationSerializer, IngredientSerializer, DietSerializer, CookedRecipeSerializer, MealSerializer, OnboardSerializer, SettingsIngredientSerializer, UserInventorySerializer, UserCuratedInventorySerializer, TagSerializer, UserRecipeSerializer, CuratedIngredientSerializer
 from decimal import Decimal, InvalidOperation
 from .models import (
     Ingredient, DietaryIngredient, Diet, UserDiet,
-    Recipe, CookedRecipe, Meal, FavoriteRecipe, UserInventory, OnboardingSubmission, RecipeIngredient, HealthDetails, RecipeTag, TaggedRecipe,
+    Recipe, CookedRecipe, Meal, FavoriteRecipe, UserInventory, UserCuratedInventory, OnboardingSubmission, RecipeIngredient, HealthDetails, RecipeTag, TaggedRecipe,
     ChatConversation, ChatMessage, CuratedIngredient
 )
 from .serializers import (
@@ -293,7 +293,6 @@ class IngredientList(generics.ListAPIView):
     filter_backends = [SearchFilter, OrderingFilter]
     search_fields = ['name', '^name']
     ordering = ['name']
-
 
 class CuratedIngredientList(generics.ListAPIView):
     """List all curated (staple) ingredients"""
@@ -644,6 +643,70 @@ class UserInventoryDetail(APIView):
         inventory.delete()
         return Response(
             {'message': 'Successfully deleted inventory item'},
+            status=status.HTTP_200_OK,
+        )
+
+class UserCuratedInventoryList(APIView):
+    """List user curated inventory for the authenticated user"""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        inventories = UserCuratedInventory.objects.filter(user=request.user).order_by('curated_ingredient__name')
+        serialized = UserCuratedInventorySerializer(inventories, many=True)
+        return Response(serialized.data, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        curated_ingredient_ids = request.data.get('curated_ingredient_ids')
+
+        if not isinstance(curated_ingredient_ids, list):
+            return Response(
+                {'error': 'curated_ingredient_ids must be a list'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if len(curated_ingredient_ids) > 0 and not CuratedIngredient.objects.filter(id__in=curated_ingredient_ids).exists():
+            return Response(
+                {'error': 'One or more curated ingredient IDs are invalid'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        with transaction.atomic():
+            for curated_ingredient_id in curated_ingredient_ids:
+                UserCuratedInventory.objects.get_or_create(
+                    user=request.user,
+                    curated_ingredient_id=curated_ingredient_id
+                )
+
+        return Response(
+            {'message': 'successfully created curated inventory items'},
+            status=status.HTTP_201_CREATED,
+        )
+
+class UserCuratedInventoryDetail(APIView):
+    """Retrieve, update or delete a user curated inventory item"""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, id):
+        try:
+            inventory = UserCuratedInventory.objects.get(id=id, user=request.user)
+        except UserCuratedInventory.DoesNotExist:
+            return Response({'error': 'Not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        data = {
+            'id': inventory.id,
+            'curated_ingredient': CuratedIngredientSerializer(inventory.curated_ingredient).data,
+        }
+        return Response(data, status=status.HTTP_200_OK)
+
+    def delete(self, request, id):
+        try:
+            inventory = UserCuratedInventory.objects.get(id=id, user=request.user)
+        except UserCuratedInventory.DoesNotExist:
+            return Response({'error': 'Not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        inventory.delete()
+        return Response(
+            {'message': 'Successfully deleted curated inventory item'},
             status=status.HTTP_200_OK,
         )
 

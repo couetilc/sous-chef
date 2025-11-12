@@ -137,6 +137,13 @@ export class Api {
     return this.fetch(url.toString(), options);
   }
 
+  async listCuratedIngredients({ page = 1, search } = {}, options) {
+    const url = new URL('/api/curated_ingredients/', window.location.href)
+    if (page) url.searchParams.set('page', page)
+    if (search) url.searchParams.set('search', search)
+    return this.fetch(url.toString(), options);
+  }
+
   async listRestricted() {
     return this.fetch('/api/ingredients/restricted', {})
   }
@@ -274,6 +281,22 @@ export class Api {
   async UserInventoryAddEntry({ ingredient_ids }) {
     return this.fetch(`/api/user_inventory/`, {
       body: JSON.stringify({ ingredient_ids })
+    })
+  }
+
+  async UserCuratedInventory() {
+    return this.fetch('/api/user_curated_inventory/')
+  }
+
+  async UserCuratedInventoryDeleteEntry({ inventory_id }) {
+    return this.fetch(`/api/user_curated_inventory/${inventory_id}/`,
+      { method: `DELETE` }
+    )
+  }
+
+  async UserCuratedInventoryAddEntry({ curated_ingredient_ids }) {
+    return this.fetch(`/api/user_curated_inventory/`, {
+      body: JSON.stringify({ curated_ingredient_ids })
     })
   }
 
