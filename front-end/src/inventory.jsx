@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router';
 import { useApi } from './useApi';
 import SousChefLogo from './souschef-logo.png';
 import { useEffect, useState, useRef } from 'react';
-import SelectInventoryIngredient from './selectInventoryIngredient.jsx'
+import SelectCuratedIngredients from './selectCuratedIngredients.jsx'
 import { useGET } from './useGET'
 
 export default function Inventory() {
@@ -28,7 +28,7 @@ export default function Inventory() {
           Add Ingredient to Inventory
         </h2>
         <div>
-          <SelectInventoryIngredient ref={selectRef} />
+          <SelectCuratedIngredients ref={selectRef} />
         </div>
         <button className="button" type="button" onClick={
           () => {

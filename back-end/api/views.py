@@ -294,7 +294,6 @@ class IngredientList(generics.ListAPIView):
     search_fields = ['name', '^name']
     ordering = ['name']
 
-
 class CuratedIngredientList(generics.ListAPIView):
     """List all curated (staple) ingredients"""
     permission_classes = [permissions.IsAuthenticated]

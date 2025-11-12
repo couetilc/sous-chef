@@ -10,6 +10,7 @@ class Command(BaseCommand):
             # username, password, is_superuser
             ('Dalbert', 'Password', False),
             ('Andrew', 'Password', False),
+            ('purdue', 'cs307team21', True),
         ]
         # Step 1: Delete existing demo user if exists
         for username, password, is_superuser in users:

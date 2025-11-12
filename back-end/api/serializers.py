@@ -29,10 +29,17 @@ class IngredientSerializer(serializers.ModelSerializer):
 
 class CuratedIngredientSerializer(serializers.ModelSerializer):
     """Serializer for curated (staple) ingredients"""
+    capitalized_name = serializers.SerializerMethodField()
+
     class Meta:
         model = CuratedIngredient
-        fields = ('id', 'name', 'is_approved', 'created_at')
+        fields = ('id', 'name', 'is_approved', 'created_at', 'capitalized_name')
         read_only_fields = ('id', 'created_at')
+
+    def get_capitalized_name(self, obj):
+        if obj.name:
+            return ' '.join(word.capitalize() for word in obj.name.split(' '))
+        return None
 
 
 class RecipeCuratedIngredientSerializer(serializers.ModelSerializer):
