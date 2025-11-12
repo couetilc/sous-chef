@@ -60,8 +60,8 @@ const SelectCuratedIngredients = forwardRef(function SeletCuratedIngredient(prop
     updateInventory: async () => {
       setIsLoading(true)
       try {
-        const ingredient_ids = value.map(val => val.value)
-        await api.UserInventoryAddEntry({ ingredient_ids })
+        const curated_ingredient_ids = value.map(val => val.value)
+        await api.UserCuratedInventoryAddEntry({ curated_ingredient_ids })
         setOptions([])
         setValue([])
         setPage(0) // triggers refresh of data

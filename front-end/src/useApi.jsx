@@ -284,6 +284,22 @@ export class Api {
     })
   }
 
+  async UserCuratedInventory() {
+    return this.fetch('/api/user_curated_inventory/')
+  }
+
+  async UserCuratedInventoryDeleteEntry({ inventory_id }) {
+    return this.fetch(`/api/user_curated_inventory/${inventory_id}/`,
+      { method: `DELETE` }
+    )
+  }
+
+  async UserCuratedInventoryAddEntry({ curated_ingredient_ids }) {
+    return this.fetch(`/api/user_curated_inventory/`, {
+      body: JSON.stringify({ curated_ingredient_ids })
+    })
+  }
+
   async UserNutritionLastDay() {
     return this.fetch('/api/nutrition/nutrition_last_day/')
   }
