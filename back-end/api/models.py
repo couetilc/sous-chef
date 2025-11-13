@@ -123,10 +123,12 @@ class CuratedIngredient(models.Model):
     """
     name = models.CharField(max_length=200, unique=True, db_index=True)
     is_approved = models.BooleanField(default=False, db_index=True)
+    frequency = models.IntegerField(default=0, db_index=True, help_text="Number of recipes using this ingredient")
+    percentage = models.DecimalField(max_digits=5, decimal_places=2, default=0.0, help_text="Percentage of recipes using this ingredient")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        ordering = ['name']
+        ordering = ['-frequency', 'name']  # Sort by frequency descending, then name
 
     def __str__(self):
         return self.name

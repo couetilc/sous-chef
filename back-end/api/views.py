@@ -301,7 +301,7 @@ class CuratedIngredientList(generics.ListAPIView):
     pagination_class = Paginator
     filter_backends = [SearchFilter, OrderingFilter]
     search_fields = ['name', '^name']
-    ordering = ['name']
+    # Use model default ordering: ['-frequency', 'name'] (most common first)
 
     def get_queryset(self):
         """Return only approved curated ingredients by default"""
@@ -311,6 +311,13 @@ class CuratedIngredientList(generics.ListAPIView):
         show_unapproved = self.request.query_params.get('show_unapproved', 'false').lower() == 'true'
         if not show_unapproved:
             queryset = queryset.filter(is_approved=True)
+
+        # Exclude ingredients already in user's inventory if requested
+        exclude_inventory = self.request.query_params.get('exclude_inventory', 'false').lower() == 'true'
+        if exclude_inventory:
+            # Get curated ingredient IDs that are already in the user's inventory
+            user_inventory_ids = self.request.user.curated_inventory_items.values_list('curated_ingredient_id', flat=True)
+            queryset = queryset.exclude(id__in=user_inventory_ids)
 
         return queryset
 

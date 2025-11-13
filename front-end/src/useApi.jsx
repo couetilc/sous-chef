@@ -137,10 +137,11 @@ export class Api {
     return this.fetch(url.toString(), options);
   }
 
-  async listCuratedIngredients({ page = 1, search } = {}, options) {
+  async listCuratedIngredients({ page = 1, search, exclude_inventory } = {}, options) {
     const url = new URL('/api/curated_ingredients/', window.location.href)
     if (page) url.searchParams.set('page', page)
     if (search) url.searchParams.set('search', search)
+    if (exclude_inventory) url.searchParams.set('exclude_inventory', 'true')
     return this.fetch(url.toString(), options);
   }
 
