@@ -4,7 +4,7 @@ Tests for Filtering Recipes
 import pytest
 from django.contrib.auth.models import User
 from rest_framework import status
-from api.models import Recipe, FavoriteRecipe, Ingredient, RecipeIngredient, UserInventory
+from api.models import Recipe, FavoriteRecipe, Ingredient, RecipeIngredient, UserInventory, CuratedIngredient, RecipeCuratedIngredient, UserCuratedInventory
 
 @pytest.mark.django_db
 class TestFilterRecipes:
@@ -272,6 +272,247 @@ class TestFilterRecipes:
 
         assert res.data['count'] == 200
         assert len(res.data['results']) == 100
+
+    # Tests for NEW curated ingredient filtering
+    def test_filter_curated_ingredient_single(self, authenticated_client, test_user):
+        """Test filtering recipes by a single curated ingredient"""
+        chicken = CuratedIngredient.objects.create(name='chicken breast', is_approved=True)
+        rice = CuratedIngredient.objects.create(name='rice', is_approved=True)
+
+        chicken_rice = Recipe.objects.create(title='Chicken Rice')
+        fried_rice = Recipe.objects.create(title='Fried Rice')
+        grilled_chicken = Recipe.objects.create(title='Grilled Chicken')
+
+        RecipeCuratedIngredient.objects.create(recipe=chicken_rice, curated_ingredient=chicken)
+        RecipeCuratedIngredient.objects.create(recipe=chicken_rice, curated_ingredient=rice)
+        RecipeCuratedIngredient.objects.create(recipe=fried_rice, curated_ingredient=rice)
+        RecipeCuratedIngredient.objects.create(recipe=grilled_chicken, curated_ingredient=chicken)
+
+        response = authenticated_client.post('/api/recipes/searchFiltered/', {
+            "curated_ingredients": [chicken.id]
+        })
+
+        assert len(response.data['results']) == 2
+        titles = [r['title'] for r in response.data['results']]
+        assert 'Chicken Rice' in titles
+        assert 'Grilled Chicken' in titles
+
+    def test_filter_curated_ingredient_multiple(self, authenticated_client, test_user):
+        """Test filtering recipes by multiple curated ingredients (AND logic)"""
+        chicken = CuratedIngredient.objects.create(name='chicken breast', is_approved=True)
+        rice = CuratedIngredient.objects.create(name='rice', is_approved=True)
+        salt = CuratedIngredient.objects.create(name='salt', is_approved=True)
+
+        chicken_rice = Recipe.objects.create(title='Chicken Rice')
+        fried_rice = Recipe.objects.create(title='Fried Rice')
+        grilled_chicken = Recipe.objects.create(title='Grilled Chicken')
+
+        RecipeCuratedIngredient.objects.create(recipe=chicken_rice, curated_ingredient=chicken)
+        RecipeCuratedIngredient.objects.create(recipe=chicken_rice, curated_ingredient=rice)
+        RecipeCuratedIngredient.objects.create(recipe=chicken_rice, curated_ingredient=salt)
+        RecipeCuratedIngredient.objects.create(recipe=fried_rice, curated_ingredient=rice)
+        RecipeCuratedIngredient.objects.create(recipe=grilled_chicken, curated_ingredient=chicken)
+        RecipeCuratedIngredient.objects.create(recipe=grilled_chicken, curated_ingredient=salt)
+
+        response = authenticated_client.post('/api/recipes/searchFiltered/', {
+            "curated_ingredients": [chicken.id, rice.id]
+        })
+
+        # Only Chicken Rice has both chicken AND rice
+        assert len(response.data['results']) == 1
+        assert response.data['results'][0]['title'] == 'Chicken Rice'
+
+    def test_filter_curated_ingredient_multiple_nomatch(self, authenticated_client, test_user):
+        """Test filtering with curated ingredients that no recipe has together"""
+        chicken = CuratedIngredient.objects.create(name='chicken breast', is_approved=True)
+        rice = CuratedIngredient.objects.create(name='rice', is_approved=True)
+        tomato = CuratedIngredient.objects.create(name='tomato', is_approved=True)
+
+        chicken_rice = Recipe.objects.create(title='Chicken Rice')
+        tomato_soup = Recipe.objects.create(title='Tomato Soup')
+
+        RecipeCuratedIngredient.objects.create(recipe=chicken_rice, curated_ingredient=chicken)
+        RecipeCuratedIngredient.objects.create(recipe=chicken_rice, curated_ingredient=rice)
+        RecipeCuratedIngredient.objects.create(recipe=tomato_soup, curated_ingredient=tomato)
+
+        response = authenticated_client.post('/api/recipes/searchFiltered/', {
+            "curated_ingredients": [chicken.id, tomato.id]
+        })
+
+        # No recipe has both chicken AND tomato
+        assert len(response.data['results']) == 0
+
+    def test_filter_curated_ingredient_or_logic(self, authenticated_client, test_user):
+        """Test filtering with OR logic - recipes with ANY selected ingredient"""
+        chicken = CuratedIngredient.objects.create(name='chicken breast', is_approved=True)
+        rice = CuratedIngredient.objects.create(name='rice', is_approved=True)
+        tomato = CuratedIngredient.objects.create(name='tomato', is_approved=True)
+
+        chicken_rice = Recipe.objects.create(title='Chicken Rice')
+        fried_rice = Recipe.objects.create(title='Fried Rice')
+        tomato_soup = Recipe.objects.create(title='Tomato Soup')
+        pasta = Recipe.objects.create(title='Pasta')
+
+        RecipeCuratedIngredient.objects.create(recipe=chicken_rice, curated_ingredient=chicken)
+        RecipeCuratedIngredient.objects.create(recipe=chicken_rice, curated_ingredient=rice)
+        RecipeCuratedIngredient.objects.create(recipe=fried_rice, curated_ingredient=rice)
+        RecipeCuratedIngredient.objects.create(recipe=tomato_soup, curated_ingredient=tomato)
+
+        response = authenticated_client.post('/api/recipes/searchFiltered/', {
+            "curated_ingredients": [chicken.id, tomato.id],
+            "curated_ingredients_match_all": False
+        })
+
+        # Should get Chicken Rice (has chicken) and Tomato Soup (has tomato)
+        assert len(response.data['results']) == 2
+        titles = [r['title'] for r in response.data['results']]
+        assert 'Chicken Rice' in titles
+        assert 'Tomato Soup' in titles
+
+    def test_filter_curated_ingredient_or_logic_multiple_matches(self, authenticated_client, test_user):
+        """Test OR logic with recipe that has multiple selected ingredients"""
+        chicken = CuratedIngredient.objects.create(name='chicken breast', is_approved=True)
+        rice = CuratedIngredient.objects.create(name='rice', is_approved=True)
+        tomato = CuratedIngredient.objects.create(name='tomato', is_approved=True)
+
+        chicken_rice = Recipe.objects.create(title='Chicken Rice')
+        fried_rice = Recipe.objects.create(title='Fried Rice')
+        pasta = Recipe.objects.create(title='Pasta')
+
+        RecipeCuratedIngredient.objects.create(recipe=chicken_rice, curated_ingredient=chicken)
+        RecipeCuratedIngredient.objects.create(recipe=chicken_rice, curated_ingredient=rice)
+        RecipeCuratedIngredient.objects.create(recipe=fried_rice, curated_ingredient=rice)
+
+        response = authenticated_client.post('/api/recipes/searchFiltered/', {
+            "curated_ingredients": [chicken.id, rice.id],
+            "curated_ingredients_match_all": False
+        })
+
+        # Should get both Chicken Rice (has both) and Fried Rice (has rice)
+        # Note: distinct() prevents duplicates, so Chicken Rice appears once
+        assert len(response.data['results']) == 2
+        titles = [r['title'] for r in response.data['results']]
+        assert 'Chicken Rice' in titles
+        assert 'Fried Rice' in titles
+
+    def test_filter_curated_ingredient_and_logic_explicit(self, authenticated_client, test_user):
+        """Test that AND logic still works when explicitly set to True"""
+        chicken = CuratedIngredient.objects.create(name='chicken breast', is_approved=True)
+        rice = CuratedIngredient.objects.create(name='rice', is_approved=True)
+
+        chicken_rice = Recipe.objects.create(title='Chicken Rice')
+        fried_rice = Recipe.objects.create(title='Fried Rice')
+
+        RecipeCuratedIngredient.objects.create(recipe=chicken_rice, curated_ingredient=chicken)
+        RecipeCuratedIngredient.objects.create(recipe=chicken_rice, curated_ingredient=rice)
+        RecipeCuratedIngredient.objects.create(recipe=fried_rice, curated_ingredient=rice)
+
+        response = authenticated_client.post('/api/recipes/searchFiltered/', {
+            "curated_ingredients": [chicken.id, rice.id],
+            "curated_ingredients_match_all": True
+        })
+
+        # Only Chicken Rice has both
+        assert len(response.data['results']) == 1
+        assert response.data['results'][0]['title'] == 'Chicken Rice'
+
+    def test_filter_curated_inventory(self, authenticated_client, test_user):
+        """Test filtering recipes by user's curated inventory"""
+        chicken = CuratedIngredient.objects.create(name='chicken breast', is_approved=True)
+        rice = CuratedIngredient.objects.create(name='rice', is_approved=True)
+        tomato = CuratedIngredient.objects.create(name='tomato', is_approved=True)
+
+        chicken_rice = Recipe.objects.create(title='Chicken Rice')
+        fried_rice = Recipe.objects.create(title='Fried Rice')
+        tomato_soup = Recipe.objects.create(title='Tomato Soup')
+
+        RecipeCuratedIngredient.objects.create(recipe=chicken_rice, curated_ingredient=chicken)
+        RecipeCuratedIngredient.objects.create(recipe=chicken_rice, curated_ingredient=rice)
+        RecipeCuratedIngredient.objects.create(recipe=fried_rice, curated_ingredient=rice)
+        RecipeCuratedIngredient.objects.create(recipe=tomato_soup, curated_ingredient=tomato)
+
+        # User has chicken in inventory
+        UserCuratedInventory.objects.create(user=test_user, curated_ingredient=chicken)
+
+        response = authenticated_client.post('/api/recipes/searchFiltered/', {
+            "searchCuratedInventory": True
+        })
+
+        # Should return only recipes with chicken
+        assert len(response.data['results']) == 1
+        assert response.data['results'][0]['title'] == 'Chicken Rice'
+
+    def test_filter_curated_inventory_multiple(self, authenticated_client, test_user):
+        """Test filtering with multiple items in curated inventory"""
+        chicken = CuratedIngredient.objects.create(name='chicken breast', is_approved=True)
+        rice = CuratedIngredient.objects.create(name='rice', is_approved=True)
+        tomato = CuratedIngredient.objects.create(name='tomato', is_approved=True)
+
+        chicken_rice = Recipe.objects.create(title='Chicken Rice')
+        fried_rice = Recipe.objects.create(title='Fried Rice')
+        tomato_soup = Recipe.objects.create(title='Tomato Soup')
+
+        RecipeCuratedIngredient.objects.create(recipe=chicken_rice, curated_ingredient=chicken)
+        RecipeCuratedIngredient.objects.create(recipe=chicken_rice, curated_ingredient=rice)
+        RecipeCuratedIngredient.objects.create(recipe=fried_rice, curated_ingredient=rice)
+        RecipeCuratedIngredient.objects.create(recipe=tomato_soup, curated_ingredient=tomato)
+
+        # User has chicken and rice in inventory
+        UserCuratedInventory.objects.create(user=test_user, curated_ingredient=chicken)
+        UserCuratedInventory.objects.create(user=test_user, curated_ingredient=rice)
+
+        response = authenticated_client.post('/api/recipes/searchFiltered/', {
+            "searchCuratedInventory": True
+        })
+
+        # Should return recipes with chicken OR rice
+        assert len(response.data['results']) == 2
+        titles = [r['title'] for r in response.data['results']]
+        assert 'Chicken Rice' in titles
+        assert 'Fried Rice' in titles
+
+    def test_filter_curated_inventory_empty(self, authenticated_client, test_user):
+        """Test filtering with empty curated inventory returns no results"""
+        chicken = CuratedIngredient.objects.create(name='chicken breast', is_approved=True)
+
+        chicken_rice = Recipe.objects.create(title='Chicken Rice')
+        RecipeCuratedIngredient.objects.create(recipe=chicken_rice, curated_ingredient=chicken)
+
+        # User has no inventory
+        response = authenticated_client.post('/api/recipes/searchFiltered/', {
+            "searchCuratedInventory": True
+        })
+
+        assert len(response.data['results']) == 0
+
+    # Tests for backward compatibility with OLD ingredient filtering
+    def test_old_ingredient_filter_still_works(self, authenticated_client, test_user):
+        """Test that old ingredient filtering parameters still work"""
+        potatoes = Ingredient.objects.create(name='Russet Potatoes')
+        fries = Recipe.objects.create(title='Fries')
+        RecipeIngredient.objects.create(ingredient=potatoes, recipe=fries)
+
+        response = authenticated_client.post('/api/recipes/searchFiltered/', {
+            "ingredients": [potatoes.id]
+        })
+
+        assert len(response.data['results']) == 1
+        assert response.data['results'][0]['title'] == 'Fries'
+
+    def test_old_inventory_filter_still_works(self, authenticated_client, test_user):
+        """Test that old inventory filtering still works"""
+        potatoes = Ingredient.objects.create(name='Russet Potatoes')
+        fries = Recipe.objects.create(title='Fries')
+        RecipeIngredient.objects.create(ingredient=potatoes, recipe=fries)
+
+        UserInventory.objects.create(ingredient=potatoes, user=test_user)
+
+        response = authenticated_client.post('/api/recipes/searchFiltered/', {
+            "searchInventory": True
+        })
+
+        assert len(response.data['results']) == 1
+        assert response.data['results'][0]['title'] == 'Fries'
 
 @pytest.mark.django_db
 class TestRecipeDetailAPI:

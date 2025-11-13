@@ -7,10 +7,11 @@
   --font-ui: var(--font-sans);
 
   /* Base Colors */
+  --color-auburn-rgb: 165, 36, 34;
   --color-cream: #FFFDD6;
   --color-french-gray: #CDD1DE;
   --color-rich-black: #101419;
-  --color-auburn: #A52422;
+  --color-auburn: rgb(var(--color-auburn-rgb));
   --color-blue: #3559c7;
   --color-yellow: #fb8500;
 
@@ -658,6 +659,46 @@ body {
   padding: 1em;
   align-items: center;
   justify-content: center;
+  border: 1px solid var(--color-french-gray);
+  margin: 1em;
+  border-radius: .5em;
+}
+
+.recipes-page input[type="checkbox"],
+.recipes-page input[type="radio"] {
+  accent-color: var(--color-auburn);
+}
+
+.recipes-page .filter-bar > form {
+  display: flex;
+  flex-flow: row wrap;
+  gap: 1em;
+}
+
+.recipes-page .filter-bar > form > *{
+  flex: 1 1 350px;
+}
+
+.recipes-page .filter-bar .filter-checkboxes {
+  display: flex;
+  flex-flow: column wrap;
+}
+
+.recipes-page .filter-bar .filter-buttons {
+  display: flex;
+  flex-flow: row wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 1em;
+}
+
+.recipes-page label:has(input) {
+  line-height: 1.5;
+}
+
+.recipes-page input[name="recipeName"] {
+  width: calc(100% - 16px);
+  padding: .75em .5em;
 }
 
 .recipes-page .paging {
