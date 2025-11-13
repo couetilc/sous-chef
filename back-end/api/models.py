@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from decimal import Decimal
+import datetime
 
 #title,url,image,ingredients,steps,prep_time_min,cook_time_min,total_time_min,servings,
 #calories_per_serving,fat_g,carbs_g,protein_g,price_per_serving_usd,total_price_usd
@@ -408,3 +409,54 @@ class ChatMessage(models.Model):
 
     def __str__(self):
         return f"{self.role}: {self.content[:50]}..."
+
+
+class MealPlan(models.Model):
+    """User assigned meal plan for a specific week"""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='meal_plans')
+    week_start = models.DateField(help_text="Monday at beginning of meal plan week")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        unique_together = ['user', 'week_start']
+
+    def __str__(self):
+        return f"{self.user.username}'s meal plan starting on ({self.week_start.isoformat()})"
+
+    def clean(self):
+        # Check that week_start is a Monday
+        if self.week_start and self.week_start.weekday() != 0:
+            raise ValidationError({'week_start': 'week_start must be a Monday.'})
+
+    @property
+    def is_complete(self):
+        # Check there are 21 meal entries
+        return self.entries.count() == 21
+
+    def get_recipes_for_day(self, day_index):
+        return [
+            e.recipe for e in self.entries.filter(day_of_week=day_index).order_by('meal_index')
+        ]
+
+
+class MealPlanEntry(models.Model):
+    """A single recipe entry in a meal plan"""
+    DAY_CHOICES = [(i, d) for i, d in enumerate(
+        ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+    )]
+    MEAL_CHOICES = [(1, 'Meal 1'), (2, 'Meal 2'), (3, 'Meal 3')]
+
+    meal_plan = models.ForeignKey(MealPlan, on_delete=models.CASCADE, related_name='entries')
+    day_of_week = models.IntegerField(choices=DAY_CHOICES)
+    meal_index = models.IntegerField(choices=MEAL_CHOICES, help_text='1..3 for the three daily meals')
+    recipe = models.ForeignKey('Recipe', on_delete=models.CASCADE, related_name='in_meal_plans')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['meal_plan', 'day_of_week', 'meal_index']
+        unique_together = ['meal_plan', 'day_of_week', 'meal_index']
+
+    def __str__(self):
+        day = dict(self.DAY_CHOICES).get(self.day_of_week, str(self.day_of_week))
+        return f"{self.meal_plan} - {day} meal {self.meal_index}: {self.recipe.title}"
