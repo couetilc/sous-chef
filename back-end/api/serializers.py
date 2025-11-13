@@ -3,7 +3,7 @@ from django.contrib import admin
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
-from .models import Ingredient, Diet, CookedRecipe, Meal, Recipe, FavoriteRecipe, OnboardingSubmission, UserInventory, RecipeTag, UserRecipe
+from .models import Ingredient, Diet, CookedRecipe, Meal, Recipe, FavoriteRecipe, OnboardingSubmission, UserInventory, UserCuratedInventory, RecipeTag, UserRecipe, ChatConversation, ChatMessage, CuratedIngredient, RecipeCuratedIngredient
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -25,6 +25,32 @@ class IngredientSerializer(serializers.ModelSerializer):
         model = Ingredient
         fields = ('id', 'name', 'food_category', 'quantity_other', 'calories', 'protein_g', 'fat_g', 'carbs_g', 'price', 'price_g')
         read_only_fields = ('id',)
+
+
+class CuratedIngredientSerializer(serializers.ModelSerializer):
+    """Serializer for curated (staple) ingredients"""
+    capitalized_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CuratedIngredient
+        fields = ('id', 'name', 'is_approved', 'created_at', 'capitalized_name')
+        read_only_fields = ('id', 'created_at')
+
+    def get_capitalized_name(self, obj):
+        if obj.name:
+            return ' '.join(word.capitalize() for word in obj.name.split(' '))
+        return None
+
+
+class RecipeCuratedIngredientSerializer(serializers.ModelSerializer):
+    """Serializer for recipe-curated ingredient relationships"""
+    curated_ingredient_name = serializers.CharField(source='curated_ingredient.name', read_only=True)
+
+    class Meta:
+        model = RecipeCuratedIngredient
+        fields = ('id', 'curated_ingredient', 'curated_ingredient_name', 'created_at')
+        read_only_fields = ('id', 'created_at')
+
 
 class DietSerializer(serializers.ModelSerializer):
     is_restricted = serializers.BooleanField(read_only=True)
@@ -164,7 +190,30 @@ class UserInventorySerializer(serializers.ModelSerializer):
         model = UserInventory
         fields = ('id', 'ingredient')
 
+class UserCuratedInventorySerializer(serializers.ModelSerializer):
+    curated_ingredient = CuratedIngredientSerializer()
+
+    class Meta:
+        model = UserCuratedInventory
+        fields = ('id', 'curated_ingredient')
+
 class TagSerializer(serializers.ModelSerializer):
     class Meta:
         model = RecipeTag
         fields = ('id', 'name')
+
+
+class ChatMessageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ChatMessage
+        fields = ('id', 'role', 'content', 'created_at', 'tool_calls')
+        read_only_fields = ('id', 'created_at')
+
+
+class ChatConversationSerializer(serializers.ModelSerializer):
+    messages = ChatMessageSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = ChatConversation
+        fields = ('id', 'messages')
+        read_only_fields = ('id',)

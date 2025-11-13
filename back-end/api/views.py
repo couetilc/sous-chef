@@ -1,3 +1,5 @@
+import os
+import logging
 from django.shortcuts import render, redirect
 from rest_framework.filters import SearchFilter, OrderingFilter
 from django.db import transaction
@@ -14,16 +16,20 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.pagination import PageNumberPagination
 from django.contrib.auth.models import User, Group
-from .serializers import UserSerializer, GroupSerializer, UserRegistrationSerializer, IngredientSerializer, DietSerializer, CookedRecipeSerializer, MealSerializer, OnboardSerializer, SettingsIngredientSerializer, UserInventorySerializer, TagSerializer, UserRecipeSerializer
+
+logger = logging.getLogger(__name__)
+from .serializers import UserSerializer, GroupSerializer, UserRegistrationSerializer, IngredientSerializer, DietSerializer, CookedRecipeSerializer, MealSerializer, OnboardSerializer, SettingsIngredientSerializer, UserInventorySerializer, UserCuratedInventorySerializer, TagSerializer, UserRecipeSerializer, CuratedIngredientSerializer
 from decimal import Decimal, InvalidOperation
 from .models import (
     Ingredient, DietaryIngredient, Diet, UserDiet,
-    Recipe, CookedRecipe, Meal, FavoriteRecipe, UserInventory, OnboardingSubmission, RecipeIngredient, HealthDetails, RecipeTag, TaggedRecipe
+    Recipe, CookedRecipe, Meal, FavoriteRecipe, UserInventory, UserCuratedInventory, OnboardingSubmission, RecipeIngredient, HealthDetails, RecipeTag, TaggedRecipe,
+    ChatConversation, ChatMessage, CuratedIngredient
 )
 from .serializers import (
     UserSerializer, GroupSerializer, UserRegistrationSerializer,
     IngredientSerializer, DietSerializer,
-    CookedRecipeSerializer, MealSerializer, RecipeSerializer
+    CookedRecipeSerializer, MealSerializer, RecipeSerializer,
+    ChatConversationSerializer, ChatMessageSerializer
 )
 from .utils.recommended import compute_recommendations
 from zoneinfo import ZoneInfo
@@ -176,13 +182,13 @@ class UpdateHealthView(APIView):
               weight = 0,
               activity_level = 'low',
               goal = 'maintain',
-              sex = 'male' 
+              sex = 'male'
             )
         user.refresh_from_db()
         health = user.health.first()
 
         print(request.data)
-       
+
         health.age = request.data['age']
         health.height_ft = request.data['height_ft']
         health.height_in = request.data['height_in']
@@ -287,6 +293,34 @@ class IngredientList(generics.ListAPIView):
     filter_backends = [SearchFilter, OrderingFilter]
     search_fields = ['name', '^name']
     ordering = ['name']
+
+class CuratedIngredientList(generics.ListAPIView):
+    """List all curated (staple) ingredients"""
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = CuratedIngredientSerializer
+    pagination_class = Paginator
+    filter_backends = [SearchFilter, OrderingFilter]
+    search_fields = ['name', '^name']
+    ordering = ['name']
+
+    def get_queryset(self):
+        """Return only approved curated ingredients by default"""
+        queryset = CuratedIngredient.objects.all()
+
+        # Filter by approval status (default: only approved)
+        show_unapproved = self.request.query_params.get('show_unapproved', 'false').lower() == 'true'
+        if not show_unapproved:
+            queryset = queryset.filter(is_approved=True)
+
+        return queryset
+
+
+class CuratedIngredientDetail(generics.RetrieveAPIView):
+    """Retrieve a single curated ingredient"""
+    permission_classes = [permissions.IsAuthenticated]
+    queryset = CuratedIngredient.objects.all()
+    serializer_class = CuratedIngredientSerializer
+
 
 class DietaryIngredientList(generics.ListAPIView):
     """List restricted ingredients for the authenticated user"""
@@ -612,6 +646,70 @@ class UserInventoryDetail(APIView):
             status=status.HTTP_200_OK,
         )
 
+class UserCuratedInventoryList(APIView):
+    """List user curated inventory for the authenticated user"""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        inventories = UserCuratedInventory.objects.filter(user=request.user).order_by('curated_ingredient__name')
+        serialized = UserCuratedInventorySerializer(inventories, many=True)
+        return Response(serialized.data, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        curated_ingredient_ids = request.data.get('curated_ingredient_ids')
+
+        if not isinstance(curated_ingredient_ids, list):
+            return Response(
+                {'error': 'curated_ingredient_ids must be a list'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if len(curated_ingredient_ids) > 0 and not CuratedIngredient.objects.filter(id__in=curated_ingredient_ids).exists():
+            return Response(
+                {'error': 'One or more curated ingredient IDs are invalid'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        with transaction.atomic():
+            for curated_ingredient_id in curated_ingredient_ids:
+                UserCuratedInventory.objects.get_or_create(
+                    user=request.user,
+                    curated_ingredient_id=curated_ingredient_id
+                )
+
+        return Response(
+            {'message': 'successfully created curated inventory items'},
+            status=status.HTTP_201_CREATED,
+        )
+
+class UserCuratedInventoryDetail(APIView):
+    """Retrieve, update or delete a user curated inventory item"""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, id):
+        try:
+            inventory = UserCuratedInventory.objects.get(id=id, user=request.user)
+        except UserCuratedInventory.DoesNotExist:
+            return Response({'error': 'Not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        data = {
+            'id': inventory.id,
+            'curated_ingredient': CuratedIngredientSerializer(inventory.curated_ingredient).data,
+        }
+        return Response(data, status=status.HTTP_200_OK)
+
+    def delete(self, request, id):
+        try:
+            inventory = UserCuratedInventory.objects.get(id=id, user=request.user)
+        except UserCuratedInventory.DoesNotExist:
+            return Response({'error': 'Not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        inventory.delete()
+        return Response(
+            {'message': 'Successfully deleted curated inventory item'},
+            status=status.HTTP_200_OK,
+        )
+
 class NutritionLastDayView(APIView):
     """Get calories, fats, carbs, and proteins consumed in the last day"""
     permission_classes = [permissions.IsAuthenticated]
@@ -795,7 +893,7 @@ class GetUserRecipes(APIView):
         return Response(serialized.data, status=status.HTTP_200_OK)
 
 class UpdateUserRecipe(APIView):
-    permission_classse = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated]
     def post(self, request, id):
         print(id)
         user = request.user
@@ -818,6 +916,7 @@ class UpdateUserRecipe(APIView):
 
         return Response({}, status=status.HTTP_200_OK)
 class TagList(APIView):
+    permission_classes = [permissions.IsAuthenticated]
     def get(self, request):
         queryset = RecipeTag.objects.order_by('name').filter(user=request.user)
         serialized = RecipeTagSerializer(queryset, many = True)
@@ -841,6 +940,7 @@ class TagList(APIView):
         )
 
 class TagDetail(APIView):
+    permission_classes = [permissions.IsAuthenticated]
     def delete(self, request, pk):
         queryset = RecipeTag.objects.filter(id=pk)
         if not queryset.exists():
@@ -855,6 +955,7 @@ class TagDetail(APIView):
         )
 
 class TaggedRecipeDetail(APIView):
+    permission_classes = [permissions.IsAuthenticated]
     def post(self, request, tag_id, recipe_id):
         if not RecipeTag.objects.filter(id=tag_id).exists():
             return Response(
@@ -891,4 +992,132 @@ class TaggedRecipeDetail(APIView):
         return Response(
             {'message': 'successfully untagged recipe'},
             status.HTTP_200_OK
+        )
+
+class NutritionistChat(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        """Get the current active conversation with all messages"""
+        user = request.user
+
+        # Get active conversation with messages prefetched to avoid N+1 query
+        conversation = ChatConversation.objects.filter(
+            user=user,
+            is_active=True
+        ).prefetch_related('messages').first()
+
+        if not conversation:
+            # Return empty conversation if none exists
+            return Response(
+                {'id': None, 'messages': []},
+                status=status.HTTP_200_OK
+            )
+
+        # Return full conversation
+        serializer = ChatConversationSerializer(conversation)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        # Validate message parameter
+        message = request.data.get('message')
+        if not message or not message.strip():
+            return Response(
+                {'error': 'Message parameter is required and cannot be empty'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        user = request.user
+
+        # Use atomic transaction to ensure data consistency
+        try:
+            with transaction.atomic():
+                # Get or create active conversation (prevents race condition)
+                conversation, created = ChatConversation.objects.get_or_create(
+                    user=user,
+                    is_active=True
+                )
+
+                # Get previous messages BEFORE adding the new one
+                previous_messages = ChatMessage.objects.filter(
+                    conversation=conversation
+                ).order_by('created_at')
+
+                # Format conversation history for LLM context
+                conversation_history = ""
+                if previous_messages.exists():
+                    history_lines = []
+                    for msg in previous_messages:
+                        role_label = "User" if msg.role == "user" else "Assistant"
+                        history_lines.append(f"{role_label}: {msg.content}")
+                    conversation_history = "Previous conversation:\n" + "\n".join(history_lines)
+
+                # Save the current user message
+                ChatMessage.objects.create(
+                    conversation=conversation,
+                    role='user',
+                    content=message
+                )
+
+                # Use the NutritionistAgent for clean, encapsulated AI interaction
+                from .ai import NutritionistAgent
+
+                try:
+                    agent = NutritionistAgent(user=user)
+                    result = agent.chat(
+                        message=message,
+                        conversation_history=conversation_history
+                    )
+                except ValueError as e:
+                    # Handle missing API key or configuration errors
+                    logger.error(f"Configuration error for user {user.username}: {e}")
+                    return Response(
+                        {'error': 'AI service is not properly configured. Please contact support.'},
+                        status=status.HTTP_503_SERVICE_UNAVAILABLE
+                    )
+                except Exception as e:
+                    # Handle LLM API failures gracefully
+                    logger.error(f"AI agent error for user {user.username}: {e}", exc_info=True)
+                    result = {
+                        'content': "I'm sorry, I'm having trouble processing your request right now. Please try again in a moment.",
+                        'tool_calls': None
+                    }
+
+                # Save assistant response with tool call data
+                ChatMessage.objects.create(
+                    conversation=conversation,
+                    role='assistant',
+                    content=result['content'],
+                    tool_calls=result['tool_calls']
+                )
+
+                # Prefetch messages to avoid N+1 query when serializing
+                conversation = ChatConversation.objects.prefetch_related('messages').get(id=conversation.id)
+
+                # Return full conversation
+                serializer = ChatConversationSerializer(conversation)
+                return Response(serializer.data, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            # Catch any unexpected errors
+            logger.error(f"Unexpected error in nutritionist chat for user {user.username}: {e}", exc_info=True)
+            return Response(
+                {'error': 'An unexpected error occurred. Please try again.'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+class ClearConversation(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        # Mark current active conversation as inactive
+        ChatConversation.objects.filter(
+            user=request.user,
+            is_active=True
+        ).update(is_active=False)
+
+        return Response(
+            {'success': True, 'message': 'Conversation cleared'},
+            status=status.HTTP_200_OK
         )

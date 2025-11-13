@@ -27,6 +27,10 @@ urlpatterns = [
     path('ingredients/restricted/', views.DietaryIngredientList.as_view(), name='restricted-ingredients'),
     path('ingredients/updateRestricted/', views.UpdateDietaryIngredientList.as_view(), name='restricted-ingredients-update'),
 
+    # Curated ingredient endpoints
+    path('curated_ingredients/', views.CuratedIngredientList.as_view(), name='curated-ingredient-list'),
+    path('curated_ingredients/<int:pk>/', views.CuratedIngredientDetail.as_view(), name='curated-ingredient-detail'),
+
     # Diet endpoints
     path('diets/', views.DietList.as_view(), name='diet-list'),
     path('diets/selected/', views.SelectedDietList.as_view(), name='selected-diet-list'),
@@ -48,6 +52,11 @@ urlpatterns = [
     # User inventory endpoints
     path('user_inventory/', views.UserInventoryList.as_view(), name='user-inventory-list'),
     path('user_inventory/<int:id>/', views.UserInventoryDetail.as_view(), name='user-inventory-detail'),
+
+    # User curated inventory endpoints
+    path('user_curated_inventory/', views.UserCuratedInventoryList.as_view(), name='user-curated-inventory-list'),
+    path('user_curated_inventory/<int:id>/', views.UserCuratedInventoryDetail.as_view(), name='user-curated-inventory-detail'),
+
     path('user_recipes/', views.GetUserRecipes.as_view(), name='user-recipe-info'),
     path('user_recipe_update/<int:id>/', views.UpdateUserRecipe.as_view(), name='user-recipe-info'),
 
@@ -63,4 +72,8 @@ urlpatterns = [
     path('tags/', views.TagList.as_view(), name='tags-list'),
     path('tags/<int:pk>/', views.TagDetail.as_view(), name='tags-detail'),
     path('tags/<int:tag_id>/recipe/<int:recipe_id>/', views.TaggedRecipeDetail.as_view(), name='tagged-recipe-detail'),
+
+    # nutritionist endpoints
+    path('nutritionist/conversation/', views.NutritionistChat.as_view(), name='nutritionist-conversation'),
+    path('nutritionist/conversation/clear/', views.ClearConversation.as_view(), name='nutritionist-conversation-clear'),
 ]

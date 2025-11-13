@@ -114,6 +114,49 @@ class Ingredient(models.Model):
     def __str__(self):
         return self.name
 
+
+class CuratedIngredient(models.Model):
+    """
+    Simplified, generic ingredient representing a staple.
+    Independent from Ingredient model - no foreign key relationship.
+    Examples: 'chicken breast', 'olive oil', 'garlic', 'cheddar cheese'
+    """
+    name = models.CharField(max_length=200, unique=True, db_index=True)
+    is_approved = models.BooleanField(default=False, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+
+class RecipeCuratedIngredient(models.Model):
+    """
+    Links recipes to curated ingredients - parallel to RecipeIngredient.
+    Enables simplified recipe search and matching based on staple ingredients.
+    """
+    recipe = models.ForeignKey(
+        Recipe,
+        on_delete=models.CASCADE,
+        related_name='curated_ingredients'
+    )
+    curated_ingredient = models.ForeignKey(
+        CuratedIngredient,
+        on_delete=models.CASCADE,
+        related_name='recipe_uses'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['recipe', 'curated_ingredient__name']
+        unique_together = ['recipe', 'curated_ingredient']
+
+    def __str__(self):
+        return f"{self.curated_ingredient.name} in {self.recipe.title}"
+
+
 class DietaryIngredient(models.Model):
     """User-specific restricted ingredients based on dietary preferences"""
     ingredient = models.ForeignKey(Ingredient, on_delete=models.CASCADE, related_name='dietary_restrictions')
@@ -168,6 +211,18 @@ class UserInventory(models.Model):
         unique_together = ['user', 'ingredient']
     def __str__(self):
         return f"{self.user.username} has {self.ingredient.name} in inventory"
+
+class UserCuratedInventory(models.Model):
+    """User-specific inventory of curated ingredients they have on hand"""
+    curated_ingredient = models.ForeignKey(CuratedIngredient, on_delete=models.CASCADE, related_name='in_curated_inventories')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='curated_inventory_items')
+
+    class Meta:
+        ordering = ['curated_ingredient__name']
+        unique_together = ['user', 'curated_ingredient']
+
+    def __str__(self):
+        return f"{self.user.username} has {self.curated_ingredient.name} in curated inventory"
 
 class CookingSession(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='cooking_sessions')
@@ -318,3 +373,38 @@ class TaggedRecipe(models.Model):
 
     def __str__(self):
         return f"user {self.user} placed tag {self.tag} on recipe {self.recipe}"
+
+
+class ChatConversation(models.Model):
+    """AI nutritionist chat conversation for a user"""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='chat_conversations')
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-updated_at']
+
+    def __str__(self):
+        status = 'active' if self.is_active else 'inactive'
+        return f"{self.user.username}'s chat ({status}) - {self.created_at.strftime('%Y-%m-%d %H:%M')}"
+
+
+class ChatMessage(models.Model):
+    """Individual message in a chat conversation"""
+    ROLE_CHOICES = [
+        ('user', 'User'),
+        ('assistant', 'Assistant'),
+    ]
+
+    conversation = models.ForeignKey(ChatConversation, on_delete=models.CASCADE, related_name='messages')
+    role = models.CharField(max_length=10, choices=ROLE_CHOICES)
+    content = models.TextField()
+    tool_calls = models.JSONField(null=True, blank=True, help_text="Tool calls made by the assistant (name, parameters, results, timestamp)")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f"{self.role}: {self.content[:50]}..."
