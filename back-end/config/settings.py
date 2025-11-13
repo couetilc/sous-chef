@@ -20,6 +20,9 @@ DEBUG = env.get("DJANGO_DEBUG", "False") == "True"
 
 # Application definition
 
+EMAIL_HOST = 'smtp4dev'
+EMAIL_PORT = 25
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
