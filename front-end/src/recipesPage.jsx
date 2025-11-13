@@ -16,6 +16,7 @@ export default function Recipes() {
   const [enteredName, setEnteredName] = useState('')
   const [filterInventory, setFilterInventory] = useState(false)
   const [filterFavorites, setFilterFavorites] = useState(false)
+  const [ingredientsMatchAll, setIngredientsMatchAll] = useState(false)
   const [page, setPage] = useState(1)
   const [recipes, setRecipes ] = useState();
   const [ingredientFilterTrigger, setIngredientFilterTrigger] = useState(0)
@@ -30,6 +31,7 @@ export default function Recipes() {
     name: '',
     inventory: false,
     favorites: false,
+    ingredientsMatchAll: true,
   })
 
   // Execute search with current filter values
@@ -48,6 +50,7 @@ export default function Recipes() {
       const curated_ingredients = curatedIngredientsRef.current.getSelectedIds()
       if (curated_ingredients.length > 0) {
         param.curated_ingredients = curated_ingredients
+        param.curated_ingredients_match_all = activeFilters.ingredientsMatchAll
       }
     }
     api.getRecipesFiltered(param).then((result) => {
@@ -68,6 +71,7 @@ export default function Recipes() {
       name: enteredName,
       inventory: filterInventory,
       favorites: filterFavorites,
+      ingredientsMatchAll: ingredientsMatchAll,
     }))
     setPage(1) // Reset to page 1 when searching
   }
@@ -76,6 +80,7 @@ export default function Recipes() {
     setEnteredName('')
     setFilterInventory(false)
     setFilterFavorites(false)
+    setIngredientsMatchAll(false)
     setIngredientFilterTrigger(t => t + 1)
     if (nameInputRef.current) {
       nameInputRef.current.value = ''
@@ -85,6 +90,7 @@ export default function Recipes() {
       name: '',
       inventory: false,
       favorites: false,
+      ingredientsMatchAll: true,
     }))
     setPage(1)
   }
@@ -122,6 +128,14 @@ export default function Recipes() {
               key={ingredientFilterTrigger}
               excludeInventory={false}
             />
+            </label>
+            <label>
+              <input
+                type="checkbox"
+                checked={ingredientsMatchAll}
+                onChange={(e) => setIngredientsMatchAll(e.target.checked)}
+              />
+              Must use ALL selected ingredients
             </label>
           </div>
 

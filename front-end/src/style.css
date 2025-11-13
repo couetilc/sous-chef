@@ -664,6 +664,11 @@ body {
   border-radius: .5em;
 }
 
+.recipes-page input[type="checkbox"],
+.recipes-page input[type="radio"] {
+  accent-color: var(--color-auburn);
+}
+
 .recipes-page .filter-bar > form {
   display: flex;
   flex-flow: row wrap;

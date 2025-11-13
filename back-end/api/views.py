@@ -548,11 +548,20 @@ class GetRecipesFiltered(APIView):
 
         # NEW: Curated ingredient filtering
         curated_ingredients = request.data.get('curated_ingredients')
+        curated_ingredients_match_all = request.data.get('curated_ingredients_match_all', True)
         if curated_ingredients:
-            for curated_ingredient_id in curated_ingredients:
-                queryset = queryset.filter(
-                    curated_ingredients__curated_ingredient_id=curated_ingredient_id
-                )
+            if curated_ingredients_match_all:
+                # AND logic: recipe must have ALL selected ingredients
+                for curated_ingredient_id in curated_ingredients:
+                    queryset = queryset.filter(
+                        curated_ingredients__curated_ingredient_id=curated_ingredient_id
+                    )
+            else:
+                # OR logic: recipe must have ANY of the selected ingredients
+                q_objects = Q()
+                for curated_ingredient_id in curated_ingredients:
+                    q_objects |= Q(curated_ingredients__curated_ingredient_id=curated_ingredient_id)
+                queryset = queryset.filter(q_objects)
 
         # OLD: Ingredient filtering (kept for backward compatibility)
         ingredients = request.data.get('ingredients')
