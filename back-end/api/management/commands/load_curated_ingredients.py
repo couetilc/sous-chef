@@ -12,7 +12,7 @@ class Command(BaseCommand):
         parser.add_argument(
             '--csv-path',
             type=str,
-            help='Path to the CSV file (default: /scraping/production/curated_ingredients.csv)',
+            help='Path to the CSV file (default: /scraping/production/curated_ingredients_frequency_report.csv)',
         )
         parser.add_argument(
             '--dry-run',
@@ -27,7 +27,7 @@ class Command(BaseCommand):
         parser.add_argument(
             '--auto-approve',
             action='store_true',
-            help='Automatically approve all loaded ingredients',
+            help='Automatically approve all loaded ingredients (only used when CSV lacks frequency data)',
         )
 
     def handle(self, *args, **options):

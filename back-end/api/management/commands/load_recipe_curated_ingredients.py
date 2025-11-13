@@ -41,71 +41,79 @@ class Command(BaseCommand):
 
         # Read and process CSV
         links = []
-        invalid_recipes = set()
-        invalid_ingredients = set()
+        invalid_recipes = []
+        invalid_ingredients = []
 
         try:
             with open(csv_path, 'r', encoding='utf-8') as csvfile:
                 reader = csv.DictReader(csvfile)
 
-                # Verify expected columns
-                if 'recipe_id' not in reader.fieldnames or 'curated_ingredient_id' not in reader.fieldnames:
-                    raise CommandError('CSV must have "recipe_id" and "curated_ingredient_id" columns')
+                # Verify expected columns (using natural keys)
+                if 'recipe_title' not in reader.fieldnames or 'curated_ingredient_name' not in reader.fieldnames:
+                    raise CommandError('CSV must have "recipe_title" and "curated_ingredient_name" columns')
 
                 for row in reader:
-                    recipe_id = row.get('recipe_id', '').strip()
-                    curated_ingredient_id = row.get('curated_ingredient_id', '').strip()
+                    recipe_title = row.get('recipe_title', '').strip()
+                    ingredient_name = row.get('curated_ingredient_name', '').strip()
 
-                    if recipe_id and curated_ingredient_id:
-                        try:
-                            links.append({
-                                'recipe_id': int(recipe_id),
-                                'curated_ingredient_id': int(curated_ingredient_id)
-                            })
-                        except ValueError:
-                            self.stdout.write(
-                                self.style.WARNING(
-                                    f'Skipping invalid IDs: recipe_id={recipe_id}, '
-                                    f'curated_ingredient_id={curated_ingredient_id}'
-                                )
-                            )
+                    if recipe_title and ingredient_name:
+                        links.append({
+                            'recipe_title': recipe_title,
+                            'ingredient_name': ingredient_name
+                        })
 
         except Exception as e:
             raise CommandError(f'Error reading CSV: {e}')
 
         self.stdout.write(f'Found {len(links)} links in CSV')
 
-        # Validate that recipes and curated ingredients exist
-        recipe_ids = {link['recipe_id'] for link in links}
-        ingredient_ids = {link['curated_ingredient_id'] for link in links}
+        # Build lookup dictionaries for recipes and curated ingredients
+        self.stdout.write('Building lookup tables...')
+        recipe_lookup = {recipe.title: recipe.id for recipe in Recipe.objects.all()}
+        ingredient_lookup = {ing.name: ing.id for ing in CuratedIngredient.objects.all()}
 
-        existing_recipes = set(Recipe.objects.filter(id__in=recipe_ids).values_list('id', flat=True))
-        existing_ingredients = set(
-            CuratedIngredient.objects.filter(id__in=ingredient_ids).values_list('id', flat=True)
-        )
-
-        # Filter out invalid links
+        # Validate and convert natural keys to IDs
         valid_links = []
         for link in links:
-            if link['recipe_id'] not in existing_recipes:
-                invalid_recipes.add(link['recipe_id'])
-            elif link['curated_ingredient_id'] not in existing_ingredients:
-                invalid_ingredients.add(link['curated_ingredient_id'])
+            recipe_title = link['recipe_title']
+            ingredient_name = link['ingredient_name']
+
+            recipe_id = recipe_lookup.get(recipe_title)
+            ingredient_id = ingredient_lookup.get(ingredient_name)
+
+            if recipe_id is None:
+                invalid_recipes.append(recipe_title)
+            elif ingredient_id is None:
+                invalid_ingredients.append(ingredient_name)
             else:
-                valid_links.append(link)
+                valid_links.append({
+                    'recipe_id': recipe_id,
+                    'ingredient_id': ingredient_id
+                })
 
         if invalid_recipes:
             self.stdout.write(
                 self.style.WARNING(
-                    f'Warning: {len(invalid_recipes)} recipe IDs not found in database'
+                    f'Warning: {len(invalid_recipes)} recipe titles not found in database'
                 )
             )
+            # Show first few examples
+            for title in invalid_recipes[:5]:
+                self.stdout.write(f'  - "{title}"')
+            if len(invalid_recipes) > 5:
+                self.stdout.write(f'  ... and {len(invalid_recipes) - 5} more')
+
         if invalid_ingredients:
             self.stdout.write(
                 self.style.WARNING(
-                    f'Warning: {len(invalid_ingredients)} curated ingredient IDs not found in database'
+                    f'Warning: {len(invalid_ingredients)} curated ingredient names not found in database'
                 )
             )
+            # Show first few examples
+            for name in invalid_ingredients[:5]:
+                self.stdout.write(f'  - "{name}"')
+            if len(invalid_ingredients) > 5:
+                self.stdout.write(f'  ... and {len(invalid_ingredients) - 5} more')
 
         self.stdout.write(f'Valid links to process: {len(valid_links)}')
 
@@ -135,7 +143,7 @@ class Command(BaseCommand):
             objects_to_create = [
                 RecipeCuratedIngredient(
                     recipe_id=link['recipe_id'],
-                    curated_ingredient_id=link['curated_ingredient_id']
+                    curated_ingredient_id=link['ingredient_id']
                 )
                 for link in valid_links
             ]

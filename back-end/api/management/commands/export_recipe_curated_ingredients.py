@@ -33,12 +33,12 @@ class Command(BaseCommand):
         with open(output_path, 'w', encoding='utf-8', newline='') as csvfile:
             writer = csv.writer(csvfile)
 
-            # Write header
-            writer.writerow(['recipe_id', 'curated_ingredient_id'])
+            # Write header (using natural keys instead of IDs)
+            writer.writerow(['recipe_title', 'curated_ingredient_name'])
 
             # Write data
             for link in links:
-                writer.writerow([link.recipe.id, link.curated_ingredient.id])
+                writer.writerow([link.recipe.title, link.curated_ingredient.name])
 
         self.stdout.write(
             self.style.SUCCESS(
