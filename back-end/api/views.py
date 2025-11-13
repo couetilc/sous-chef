@@ -23,7 +23,7 @@ from decimal import Decimal, InvalidOperation
 from .models import (
     Ingredient, DietaryIngredient, Diet, UserDiet,
     Recipe, CookedRecipe, Meal, FavoriteRecipe, UserInventory, UserCuratedInventory, OnboardingSubmission, RecipeIngredient, HealthDetails, RecipeTag, TaggedRecipe,
-    ChatConversation, ChatMessage, CuratedIngredient
+    ChatConversation, ChatMessage, CuratedIngredient, UserRecipe
 )
 from .serializers import (
     UserSerializer, GroupSerializer, UserRegistrationSerializer,
@@ -540,7 +540,8 @@ class GetRecipesFiltered(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
-        queryset = Recipe.objects.order_by('-created_at')
+        # Default: order by ingredient accessibility (most accessible first)
+        queryset = Recipe.objects.order_by_ingredient_accessibility()
 
         title = request.data.get('title')
         if title:
