@@ -3,6 +3,7 @@ import { useApi } from './useApi'
 import { useState, useEffect, useMemo, forwardRef, useImperativeHandle } from 'react'
 
 const SelectCuratedIngredients = forwardRef(function SeletCuratedIngredient(props, ref) {
+  const { excludeInventory = true, ...selectProps } = props
   const { api } = useApi()
   const [options, setOptions] = useState([])
   const [isLoading, setIsLoading] = useState(true)
@@ -13,7 +14,7 @@ const SelectCuratedIngredients = forwardRef(function SeletCuratedIngredient(prop
   useEffect(() => {
     setOptions([])
     setPage(0)
-  }, [search])
+  }, [search, excludeInventory])
 
   useEffect(() => {
     if (page === 0) {
@@ -27,13 +28,13 @@ const SelectCuratedIngredients = forwardRef(function SeletCuratedIngredient(prop
       setIsLoading(true)
       try {
         const response = await api.listCuratedIngredients(
-          { page, search },
+          { page, search, exclude_inventory: excludeInventory },
           { signal: abortController.signal },
         )
 
         const nextOptions = response.results.map(ingredient => ({
           value: ingredient.id,
-          label: ingredient.capitalized_name,
+          label: ingredient.display_name,
         }))
 
         setOptions(options => options.concat(nextOptions))
@@ -50,7 +51,7 @@ const SelectCuratedIngredients = forwardRef(function SeletCuratedIngredient(prop
       clearTimeout(timeoutId)
       abortController.abort()
     }
-  }, [page])
+  }, [page, search, excludeInventory, api])
 
   function onMenuScrollToBottom() {
     setPage(page => page + 1)
@@ -74,7 +75,7 @@ const SelectCuratedIngredients = forwardRef(function SeletCuratedIngredient(prop
 
   return (
     <Select
-      {...props}
+      {...selectProps}
       isMulti
       value={value}
       inputValue={search}
