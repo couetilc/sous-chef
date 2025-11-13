@@ -63,6 +63,7 @@ function Nav(props) {
         <li><Link onClick={onClick} to="/inventory/">Inventory</Link></li>
         <li><Link onClick={onClick} to="/history/">History</Link></li>
         <li><Link onClick={onClick} to="/nutrition">Nutrition</Link></li>
+        <li><Link onClick={onClick} to="/meal-plan">Meal Plan</Link></li>
         <li><Link onClick={onClick} to="/settings/">Account Settings</Link></li>
         <li><Link onClick={onClick} to="/logout/">Logout</Link></li>
       </ul>

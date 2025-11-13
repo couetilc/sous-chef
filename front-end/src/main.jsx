@@ -20,6 +20,7 @@ import RecipeHistory from './recipeHistory';
 import Theme from './theme';
 import Layout from './layout.jsx'
 import RecipesDetailPage from './recipesDetailPage.jsx';
+import MealPlanPage from './mealPlanPage.jsx';
 
 import { BrowserRouter, Routes, Route } from "react-router";
 import { Link } from 'react-router';
@@ -41,6 +42,7 @@ export default function App(props) {
   const history = <PrivatePage><RecipeHistory /></PrivatePage>
   const theme = <PrivatePage><Theme /></PrivatePage>
   const recipesDetail = <PrivatePage><RecipesDetailPage /></PrivatePage>
+  const mealPlan = <PrivatePage><MealPlanPage /></PrivatePage>
 
   return (
     <Layout>
@@ -60,6 +62,7 @@ export default function App(props) {
         <Route path="onboard-health" element={onboardHealth} />
         <Route path="theme" element={theme} />
         <Route path="recipes/:id" element={recipesDetail} />
+        <Route path="meal-plan" element={mealPlan} />
 
         {/* public pages */}
         <Route path="login" element={<Login />} />
