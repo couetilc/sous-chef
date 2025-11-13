@@ -546,6 +546,15 @@ class GetRecipesFiltered(APIView):
         if title:
             queryset = queryset.filter(title__icontains=title)
 
+        # NEW: Curated ingredient filtering
+        curated_ingredients = request.data.get('curated_ingredients')
+        if curated_ingredients:
+            for curated_ingredient_id in curated_ingredients:
+                queryset = queryset.filter(
+                    curated_ingredients__curated_ingredient_id=curated_ingredient_id
+                )
+
+        # OLD: Ingredient filtering (kept for backward compatibility)
         ingredients = request.data.get('ingredients')
         if ingredients:
             for ingredient_id in ingredients:
@@ -553,6 +562,15 @@ class GetRecipesFiltered(APIView):
                     ingredients_list__ingredient_id=ingredient_id
                 )
 
+        # NEW: Curated inventory filtering
+        searchCuratedInventory = request.data.get('searchCuratedInventory')
+        if searchCuratedInventory:
+            curated_ingredient_ids = request.user.curated_inventory_items.values_list('curated_ingredient_id', flat=True)
+            queryset = queryset.filter(
+                curated_ingredients__curated_ingredient_id__in=curated_ingredient_ids
+            )
+
+        # OLD: Inventory filtering (kept for backward compatibility)
         searchInventory = request.data.get('searchInventory')
         if searchInventory:
             ingredient_ids = request.user.inventory_items.values_list('ingredient_id')
@@ -563,6 +581,9 @@ class GetRecipesFiltered(APIView):
         searchFavorite = request.data.get('searchFavorite')
         if searchFavorite:
             queryset = queryset.filter(user_favorites__isnull=False)
+
+        # Remove duplicates that can occur from JOIN operations
+        queryset = queryset.distinct()
 
         paginator = Paginator()
         page = paginator.paginate_queryset(queryset, request)

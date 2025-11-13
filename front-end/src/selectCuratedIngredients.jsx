@@ -71,11 +71,31 @@ const SelectCuratedIngredients = forwardRef(function SeletCuratedIngredient(prop
         setIsLoading(false)
       }
     },
+    getSelectedIds: () => {
+      return value.map(val => val.value)
+    },
   }))
 
   return (
     <Select
       {...selectProps}
+      theme={theme => {
+        theme.colors.primary = 'var(--color-auburn)'
+        theme.colors.primary25 = 'rgba(var(--color-auburn-rgb), .25)'
+        theme.colors.primary50 = 'rgba(var(--color-auburn-rgb), .50)'
+        theme.colors.primary75 = 'rgba(var(--color-auburn-rgb), .75)'
+        return theme
+      }}
+      // theme={{
+      //   colors: (...args) => {
+      //     console.log("~~~~theme start~~~~")
+      //     for (let arg in args) {
+      //       console.log(arg)
+      //     }
+      //     console.log("~~~~theme end~~~~")
+      //     return args[0]
+      //   }
+      // }}
       isMulti
       value={value}
       inputValue={search}
