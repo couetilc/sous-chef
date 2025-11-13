@@ -1,4 +1,14 @@
 services:
+  smtp4dev:
+    image: rnwood/smtp4dev:v3
+    restart: always
+    ports:
+      - '5001:80'
+    volumes:
+      - smtp4dev-data:/smtp4dev
+    environment:
+      - ServerOptions__Urls=http://*:80
+      - ServerOptions__HostName=smtp4dev
 
   db:
     hostname: db
@@ -67,3 +77,4 @@ volumes:
   pgdata:
   pip-cache:
   pnpm-store:
+  smtp4dev-data:
