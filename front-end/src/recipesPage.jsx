@@ -17,6 +17,7 @@ export default function Recipes() {
   const [filterInventory, setFilterInventory] = useState(false)
   const [filterFavorites, setFilterFavorites] = useState(false)
   const [ingredientsMatchAll, setIngredientsMatchAll] = useState(false)
+  const [sortBy, setSortBy] = useState('accessibility')
   const [page, setPage] = useState(1)
   const [recipes, setRecipes ] = useState();
   const [ingredientFilterTrigger, setIngredientFilterTrigger] = useState(0)
@@ -32,6 +33,7 @@ export default function Recipes() {
     inventory: false,
     favorites: false,
     ingredientsMatchAll: true,
+    sortBy: 'accessibility',
   })
 
   // Execute search with current filter values
@@ -45,6 +47,9 @@ export default function Recipes() {
     }
     if (activeFilters.favorites) {
       param.searchFavorite = 'True'
+    }
+    if (activeFilters.sortBy) {
+      param.sort_by = activeFilters.sortBy
     }
     if (curatedIngredientsRef.current) {
       const curated_ingredients = curatedIngredientsRef.current.getSelectedIds()
@@ -72,8 +77,19 @@ export default function Recipes() {
       inventory: filterInventory,
       favorites: filterFavorites,
       ingredientsMatchAll: ingredientsMatchAll,
+      sortBy: sortBy,
     }))
     setPage(1) // Reset to page 1 when searching
+  }
+
+  const handleSortChange = (newSort) => {
+    setSortBy(newSort)
+    // Immediately update active filters and reset to page 1
+    setActiveFilters(prev => ({
+      ...prev,
+      sortBy: newSort,
+    }))
+    setPage(1)
   }
 
   const clearFilters = () => {
@@ -81,6 +97,7 @@ export default function Recipes() {
     setFilterInventory(false)
     setFilterFavorites(false)
     setIngredientsMatchAll(false)
+    setSortBy('accessibility')
     setIngredientFilterTrigger(t => t + 1)
     if (nameInputRef.current) {
       nameInputRef.current.value = ''
@@ -91,6 +108,7 @@ export default function Recipes() {
       inventory: false,
       favorites: false,
       ingredientsMatchAll: true,
+      sortBy: 'accessibility',
     }))
     setPage(1)
   }
@@ -139,6 +157,7 @@ export default function Recipes() {
             </label>
           </div>
 
+
           <div class="filter-checkboxes">
             <label>
               <input
@@ -164,6 +183,30 @@ export default function Recipes() {
             <button className="button-blue" type="button" onClick={clearFilters}>Clear Filters</button>
           </div>
         </form>
+      </div>
+      <div className="sort-bar">
+        <label>Sort by:</label>
+        <button
+          type="button"
+          className={sortBy === 'accessibility' ? 'button' : 'button-gray'}
+          onClick={() => handleSortChange('accessibility')}
+        >
+          ⭐ Easy-to-Make (default)
+        </button>
+        <button
+          type="button"
+          className={sortBy === 'deliciousness' ? 'button' : 'button-gray'}
+          onClick={() => handleSortChange('deliciousness')}
+        >
+          😋 Delicious
+        </button>
+        <button
+          type="button"
+          className={sortBy === 'combined' ? 'button' : 'button-gray'}
+          onClick={() => handleSortChange('combined')}
+        >
+          🌟 Delicious & Easy
+        </button>
       </div>
       <div className="paging">
         {recipes?.previous &&
