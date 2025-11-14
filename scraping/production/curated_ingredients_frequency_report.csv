@@ -1,0 +1,972 @@
+name,frequency,percentage
+salt,19399,61.4
+onion,10979,34.75
+butter,10648,33.7
+garlic,10479,33.17
+black pepper,10095,31.95
+egg,9150,28.96
+white sugar,8667,27.43
+cheese,7691,24.34
+water,7372,23.33
+olive oil,6696,21.19
+all-purpose flour,6221,19.69
+cream,5723,18.11
+cloves,5501,17.41
+tomato,4473,14.16
+brown sugar,4354,13.78
+vanilla extract,4344,13.75
+cinnamon,3699,11.71
+vinegar,3368,10.66
+vegetable oil,3206,10.15
+baking powder,2830,8.96
+rum,2750,8.7
+broth,2661,8.42
+lemon juice,2433,7.7
+salted butter,2383,7.54
+beef,2376,7.52
+carrot,2321,7.35
+baking soda,2295,7.26
+garlic powder,2266,7.17
+ginger,2256,7.14
+bread,2237,7.08
+berries,2160,6.84
+parsley,2127,6.73
+unsalted butter,2004,6.34
+celery,1929,6.11
+cumin,1925,6.09
+cayenne pepper,1859,5.88
+mustard,1826,5.78
+cheddar cheese,1822,5.77
+parmesan cheese,1803,5.71
+chicken breast,1792,5.67
+soy sauce,1769,5.6
+chicken broth,1701,5.38
+cream cheese,1683,5.33
+paprika,1675,5.3
+basil,1628,5.15
+honey,1602,5.07
+sour cream,1590,5.03
+oregano,1541,4.88
+bacon,1500,4.75
+nutmeg,1482,4.69
+thyme,1371,4.34
+pork,1330,4.21
+mayonnaise,1305,4.13
+sage,1296,4.1
+ground beef,1263,4.0
+cornstarch,1191,3.77
+red pepper flakes,1176,3.72
+bread crumbs,1155,3.66
+jalapeno,1054,3.34
+ham,1047,3.31
+worcestershire sauce,1046,3.31
+onion powder,988,3.13
+sausage,949,3.0
+lime juice,940,2.98
+apples,931,2.95
+spinach,884,2.8
+yogurt,870,2.75
+heavy cream,856,2.71
+whipping cream,842,2.67
+cocoa powder,835,2.64
+peas,821,2.6
+pineapple,787,2.49
+tortilla,785,2.48
+mozzarella cheese,777,2.46
+walnuts,772,2.44
+pumpkin,769,2.43
+strawberries,765,2.42
+zucchini,747,2.36
+rosemary,738,2.34
+pecans,734,2.32
+sesame oil,729,2.31
+avocado,723,2.29
+shrimp,697,2.21
+dill,683,2.16
+white vinegar,682,2.16
+almonds,676,2.14
+canola oil,666,2.11
+raisins,656,2.08
+orange juice,647,2.05
+buttermilk,628,1.99
+tomato sauce,625,1.98
+balsamic vinegar,623,1.97
+peanut butter,611,1.93
+cucumber,606,1.92
+yeast,591,1.87
+tomato paste,589,1.86
+black beans,571,1.81
+egg yolk,570,1.8
+vegetable broth,565,1.79
+maple syrup,563,1.78
+blueberries,560,1.77
+coconut milk,551,1.74
+cranberries,549,1.74
+broccoli,541,1.71
+olives,530,1.68
+wheat flour,507,1.6
+cake,505,1.6
+rolled oats,505,1.6
+egg white,495,1.57
+chicken thigh,493,1.56
+sweet potato,485,1.54
+garlic salt,478,1.51
+apple cider vinegar,472,1.49
+margarine,471,1.49
+bananas,463,1.47
+allspice,460,1.46
+whole wheat flour,456,1.44
+whole milk,451,1.43
+sesame seeds,449,1.42
+salsa,447,1.41
+ginger root,444,1.41
+lettuce,440,1.39
+curry powder,438,1.39
+cauliflower,426,1.35
+shortening,424,1.34
+rice vinegar,418,1.32
+fish,415,1.31
+feta cheese,413,1.31
+bay leaf,404,1.28
+pumpkin puree,404,1.28
+red wine vinegar,399,1.26
+taco seasoning,393,1.24
+salmon,385,1.22
+beef broth,374,1.18
+coffee,373,1.18
+active dry yeast,370,1.17
+green beans,362,1.15
+greek yogurt,356,1.13
+hot sauce,356,1.13
+chives,347,1.1
+applesauce,344,1.09
+sweetened condensed milk,341,1.08
+coconut oil,336,1.06
+powdered sugar,336,1.06
+flour tortilla,335,1.06
+apple juice,323,1.02
+cherry tomato,321,1.02
+mango,319,1.01
+white pepper,319,1.01
+monterey jack cheese,318,1.01
+sriracha,318,1.01
+butternut squash,311,0.98
+red potato,305,0.97
+pie crust,304,0.96
+cake mix,300,0.95
+evaporated milk,300,0.95
+ground turkey,290,0.92
+cardamom,289,0.91
+vodka,287,0.91
+almond milk,284,0.9
+pumpkin pie,284,0.9
+corn tortilla,281,0.89
+plain yogurt,277,0.88
+kidney beans,276,0.87
+cornmeal,275,0.87
+fish sauce,274,0.87
+pumpkin pie spice,274,0.87
+corn syrup,271,0.86
+cherries,266,0.84
+ricotta cheese,266,0.84
+radish,265,0.84
+asparagus,264,0.84
+frozen corn,264,0.84
+frozen peas,264,0.84
+raspberries,263,0.83
+whipped topping,262,0.83
+russet potato,261,0.83
+quinoa,251,0.79
+cream of mushroom soup,249,0.79
+kale,249,0.79
+peaches,245,0.78
+sprouts,243,0.77
+italian sausage,236,0.75
+pork chop,231,0.73
+white chocolate,230,0.73
+limes,229,0.72
+dark chocolate,226,0.72
+cream of chicken soup,225,0.71
+pudding mix,224,0.71
+peanuts,223,0.71
+grapes,222,0.7
+ranch dressing,220,0.7
+lentils,218,0.69
+broccoli florets,215,0.68
+shallots,214,0.68
+pineapple juice,211,0.67
+shredded coconut,211,0.67
+pears,209,0.66
+lemons,207,0.66
+melon,206,0.65
+cookies,200,0.63
+tofu,197,0.62
+whipped cream,193,0.61
+swiss cheese,189,0.6
+tuna,189,0.6
+jam,187,0.59
+roti,186,0.59
+chickpeas,184,0.58
+milk chocolate,184,0.58
+fennel,181,0.57
+ground pork,181,0.57
+seasoned bread crumbs,181,0.57
+whole chicken,181,0.57
+scallions,178,0.56
+garbanzo beans,176,0.56
+self-rising flour,176,0.56
+watermelon,175,0.55
+whiskey,175,0.55
+ice cream,174,0.55
+capers,173,0.55
+bread flour,172,0.54
+cajun seasoning,171,0.54
+baby carrots,170,0.54
+eggplant,170,0.54
+lamb,169,0.53
+pesto,166,0.53
+tarragon,166,0.53
+cream of tartar,165,0.52
+pine nuts,162,0.51
+blackberries,161,0.51
+blue cheese,161,0.51
+pinto beans,161,0.51
+egg noodles,160,0.51
+pork loin,160,0.51
+gelatin,158,0.5
+oranges,158,0.5
+extra virgin olive oil,156,0.49
+goat cheese,156,0.49
+marjoram,156,0.49
+hamburger bun,155,0.49
+serrano,155,0.49
+corn kernels,154,0.49
+cashews,152,0.48
+peanut oil,151,0.48
+artichoke,146,0.46
+soy milk,146,0.46
+puff pastry,145,0.46
+beef chuck,144,0.46
+crab,144,0.46
+romaine,142,0.45
+brussels sprouts,140,0.44
+rice flour,139,0.44
+cottage cheese,138,0.44
+poppy seed,137,0.43
+sun-dried tomato,137,0.43
+pork shoulder,136,0.43
+pork tenderloin,135,0.43
+romano cheese,134,0.42
+firm tofu,130,0.41
+tortilla chips,130,0.41
+dates,128,0.41
+chia seeds,127,0.4
+curry paste,127,0.4
+chicken wing,126,0.4
+avocado oil,124,0.39
+grape tomato,124,0.39
+enchilada sauce,122,0.39
+poblano,121,0.38
+beets,119,0.38
+agave,116,0.37
+tahini,115,0.36
+yellow squash,114,0.36
+skim milk,111,0.35
+fennel seed,110,0.35
+arugula,109,0.35
+chorizo,109,0.35
+lard,106,0.34
+poultry seasoning,106,0.34
+hoisin sauce,105,0.33
+relish,105,0.33
+grapeseed oil,104,0.33
+ground chicken,104,0.33
+mustard seed,104,0.33
+tilapia,102,0.32
+provolone cheese,101,0.32
+french bread,100,0.32
+saffron,100,0.32
+white bread,99,0.31
+sunflower seeds,98,0.31
+yellow cake,98,0.31
+cake flour,97,0.31
+espresso,96,0.3
+tamari,96,0.3
+apricots,95,0.3
+leeks,95,0.3
+bean sprouts,94,0.3
+flan,92,0.29
+instant coffee,92,0.29
+pumpkin seeds,90,0.28
+refried beans,90,0.28
+pepperoni,89,0.28
+bok choy,88,0.28
+american cheese,87,0.28
+shiitake mushrooms,87,0.28
+smoked sausage,87,0.28
+italian bread,86,0.27
+teriyaki sauce,86,0.27
+cannellini beans,85,0.27
+caraway seed,85,0.27
+sandwich cookies,85,0.27
+barbecue sauce,84,0.27
+cod,84,0.27
+pectin,84,0.27
+great northern beans,83,0.26
+portobello mushrooms,82,0.26
+scallops,82,0.26
+graham crackers,81,0.26
+miso,80,0.25
+spaghetti squash,80,0.25
+berry juice,79,0.25
+corned beef,78,0.25
+couscous,78,0.25
+black-eyed peas,77,0.24
+sauerkraut,77,0.24
+cremini mushrooms,73,0.23
+pepper jack cheese,73,0.23
+figs,72,0.23
+parsnip,72,0.23
+coriander seed,71,0.22
+pizza crust,71,0.22
+turnip,71,0.22
+clarified butter,70,0.22
+grapefruit,70,0.22
+sake,70,0.22
+tomato puree,70,0.22
+corn oil,69,0.22
+wheat germ,68,0.22
+ghee,67,0.21
+okra,67,0.21
+pizza sauce,67,0.21
+ramen noodles,67,0.21
+cranberry juice,66,0.21
+hot dog,66,0.21
+turkey breast,65,0.21
+beef brisket,64,0.2
+muffin,64,0.2
+saltine crackers,63,0.2
+wonton wrappers,63,0.2
+coleslaw mix,62,0.2
+jelly,61,0.19
+stuffing mix,61,0.19
+plums,60,0.19
+breakfast sausage,59,0.19
+tomato juice,59,0.19
+baking chocolate,58,0.18
+barley,58,0.18
+kiwi,58,0.18
+yellow cornmeal,58,0.18
+marmalade,57,0.18
+pasta sauce,57,0.18
+vinaigrette,57,0.18
+clams,56,0.18
+turbinado sugar,56,0.18
+chocolate syrup,54,0.17
+hazelnuts,54,0.17
+rice noodles,54,0.17
+acorn,53,0.17
+beef sirloin,53,0.17
+buckwheat,53,0.17
+potato starch,53,0.17
+red lentils,53,0.17
+sazon seasoning,53,0.17
+acorn squash,52,0.16
+almond butter,50,0.16
+light mayonnaise,50,0.16
+napa cabbage,50,0.16
+yam,50,0.16
+currants,49,0.16
+iceberg lettuce,49,0.16
+snap peas,49,0.16
+wild rice,49,0.16
+light sour cream,48,0.15
+lobster,48,0.15
+neufchatel cheese,48,0.15
+pomegranate juice,48,0.15
+snow peas,48,0.15
+whole wheat bread,48,0.15
+green tea,47,0.15
+smoked salmon,47,0.15
+popped popcorn,46,0.15
+swiss chard,46,0.15
+gouda cheese,45,0.14
+nori,45,0.14
+seaweed,45,0.14
+sugar snap peas,45,0.14
+chicken drumstick,44,0.14
+coconut cream,44,0.14
+collard greens,44,0.14
+sucralose sweetener,44,0.14
+onion salt,43,0.14
+queso fresco,43,0.14
+asiago cheese,42,0.13
+ginger ale,42,0.13
+macadamia nuts,42,0.13
+bagel,41,0.13
+brie cheese,41,0.13
+guacamole,41,0.13
+jicama,41,0.13
+new potato,41,0.13
+pistachios,41,0.13
+pork butt,41,0.13
+steel-cut oats,41,0.13
+whole turkey,41,0.13
+baked beans,40,0.13
+brownie mix,40,0.13
+oat flour,40,0.13
+turkey sausage,40,0.13
+navy beans,39,0.12
+pork ribs,39,0.12
+sparkling water,39,0.12
+edamame,38,0.12
+fennel bulb,38,0.12
+halibut,38,0.12
+lemon-lime soda,38,0.12
+cantaloupe,37,0.12
+granola,37,0.12
+leaf lettuce,37,0.12
+lima beans,37,0.12
+luncheon meat,37,0.12
+salami,37,0.12
+beef tenderloin,36,0.11
+egg substitute,36,0.11
+frozen broccoli,36,0.11
+instant yeast,36,0.11
+pretzels,36,0.11
+salsa verde,36,0.11
+tapioca starch,36,0.11
+imitation crab,35,0.11
+veal,35,0.11
+prunes,34,0.11
+semolina,34,0.11
+pita bread,33,0.1
+sourdough bread,33,0.1
+summer squash,33,0.1
+duck,32,0.1
+pancake,32,0.1
+plantains,32,0.1
+brown lentils,31,0.1
+buckwheat flour,31,0.1
+meatballs,31,0.1
+rutabaga,31,0.1
+spelt,31,0.1
+split peas,31,0.1
+vegetable juice,31,0.1
+vermicelli,31,0.1
+black tea,30,0.09
+brown rice flour,30,0.09
+hot dog bun,30,0.09
+plain bread crumbs,30,0.09
+tart shell,30,0.09
+chicken leg quarter,29,0.09
+corn flakes,29,0.09
+masa harina,29,0.09
+potato flakes,29,0.09
+angel food cake,28,0.09
+bacon grease,28,0.09
+dinner roll,28,0.09
+white potato,28,0.09
+beef round,27,0.09
+green lentils,27,0.09
+yellow potato,27,0.09
+corn muffin,26,0.08
+phyllo dough,26,0.08
+pork belly,26,0.08
+rye bread,26,0.08
+turkey bacon,26,0.08
+bamboo shoots,25,0.08
+honeydew,25,0.08
+hummus,25,0.08
+soybeans,25,0.08
+taco shell,25,0.08
+chocolate cake,24,0.08
+daikon,24,0.08
+english muffin,24,0.08
+frozen berries,24,0.08
+oat bran,24,0.08
+potato chips,24,0.08
+trout,24,0.08
+cornbread mix,23,0.07
+oysters,23,0.07
+pancake mix,23,0.07
+papaya,23,0.07
+powdered milk,23,0.07
+quick oats,23,0.07
+silken tofu,23,0.07
+udon noodles,23,0.07
+catfish,22,0.07
+white rice flour,22,0.07
+kimchi,21,0.07
+mussels,21,0.07
+nectarines,21,0.07
+pecan pie,21,0.07
+sorghum flour,21,0.07
+whole wheat tortilla,21,0.07
+italian dressing,20,0.06
+lamb shoulder,20,0.06
+millet,20,0.06
+rye flour,20,0.06
+seasoning salt,20,0.06
+celery root,19,0.06
+corn flour,19,0.06
+kohlrabi,19,0.06
+naan,19,0.06
+pound cake,19,0.06
+prawns,19,0.06
+soba noodles,19,0.06
+stevia sweetener,19,0.06
+vegan mayonnaise,19,0.06
+agave syrup,18,0.06
+coconut water,18,0.06
+corn on the cob,18,0.06
+flatbread,18,0.06
+gluten-free bread,18,0.06
+oyster mushrooms,18,0.06
+coconut milk beverage,17,0.05
+muenster cheese,17,0.05
+mustard greens,17,0.05
+sandwich bread,17,0.05
+wheat cereal,17,0.05
+arrowroot powder,16,0.05
+frozen spinach,16,0.05
+half and half,16,0.05
+radicchio,16,0.05
+rice milk,16,0.05
+tostada shell,16,0.05
+vital wheat gluten,16,0.05
+chicken liver,15,0.05
+havarti cheese,15,0.05
+light beer,15,0.05
+pork roast,15,0.05
+turnip greens,15,0.05
+watercress,15,0.05
+cassava,14,0.04
+guava,14,0.04
+hot chocolate mix,14,0.04
+lamb shank,14,0.04
+macaroni and cheese,14,0.04
+passion fruit,14,0.04
+safflower oil,14,0.04
+tempeh,14,0.04
+white cornmeal,14,0.04
+bulgur,13,0.04
+canned corn,13,0.04
+endive,13,0.04
+fava beans,13,0.04
+garlic scapes,13,0.04
+haddock,13,0.04
+natto,13,0.04
+oat cereal,13,0.04
+peanut sauce,13,0.04
+savoy cabbage,13,0.04
+sherbet,13,0.04
+sunflower oil,13,0.04
+bone broth,12,0.04
+flavored yogurt,12,0.04
+flounder,12,0.04
+instant oatmeal,12,0.04
+kelp,12,0.04
+apple juice concentrate,11,0.03
+beef shank,11,0.03
+caramel topping,11,0.03
+colby cheese,11,0.03
+kombu,11,0.03
+lamb chop,11,0.03
+thousand island dressing,11,0.03
+walnut oil,11,0.03
+agar,10,0.03
+apple butter,10,0.03
+apricot nectar,10,0.03
+deli roast beef,10,0.03
+duck leg,10,0.03
+hemp seeds,10,0.03
+pork rinds,10,0.03
+sardines,10,0.03
+seitan,10,0.03
+tomato ketchup,10,0.03
+turkey thigh,10,0.03
+waffle,10,0.03
+anchovies,9,0.03
+beef roast,9,0.03
+beet greens,9,0.03
+broccoli rabe,9,0.03
+cashew butter,9,0.03
+cellophane noodles,9,0.03
+croissant,9,0.03
+extra firm tofu,9,0.03
+grape juice,9,0.03
+multigrain bread,9,0.03
+mung beans,9,0.03
+squid,9,0.03
+teff,9,0.03
+tonic water,9,0.03
+canadian bacon,8,0.03
+duck breast,8,0.03
+duck fat,8,0.03
+low sodium soy sauce,8,0.03
+millet flour,8,0.03
+quail,8,0.03
+soft tofu,8,0.03
+white fish fillet,8,0.03
+beef steak,7,0.02
+breakfast cereal,7,0.02
+custard,7,0.02
+focaccia,7,0.02
+lychee,7,0.02
+oat milk,7,0.02
+pheasant,7,0.02
+soybean oil,7,0.02
+tomato powder,7,0.02
+turmeric root,7,0.02
+beef tongue,6,0.02
+coffee liqueur,6,0.02
+ginger powder,6,0.02
+hearts of palm,6,0.02
+ice cream sandwich,6,0.02
+mackerel,6,0.02
+orange soda,6,0.02
+popcorn kernels,6,0.02
+queso blanco,6,0.02
+sole,6,0.02
+sugar cone,6,0.02
+taro root,6,0.02
+turkey wing,6,0.02
+whole egg,6,0.02
+alfalfa sprouts,5,0.02
+almond oil,5,0.02
+arrowroot starch,5,0.02
+biscuit mix,5,0.02
+bran flakes,5,0.02
+fried tofu,5,0.02
+goose,5,0.02
+instant mashed potatoes,5,0.02
+kefir,5,0.02
+octopus,5,0.02
+sorbet,5,0.02
+sunflower seed butter,5,0.02
+sweet and sour sauce,5,0.02
+wheat crackers,5,0.02
+camembert cheese,4,0.01
+flaxseed oil,4,0.01
+frozen yogurt,4,0.01
+ice cream cone,4,0.01
+mixed mushrooms,4,0.01
+mulberries,4,0.01
+palm oil,4,0.01
+pancake syrup,4,0.01
+pastrami,4,0.01
+pastry dough,4,0.01
+pork liver,4,0.01
+sweet roll,4,0.01
+vegetarian sausage,4,0.01
+bologna,3,0.01
+caesar dressing,3,0.01
+cheese pizza,3,0.01
+durum wheat,3,0.01
+edam cheese,3,0.01
+herring,3,0.01
+puffed rice cereal,3,0.01
+reduced fat milk,3,0.01
+spirulina,3,0.01
+sponge cake,3,0.01
+sugar cookies,3,0.01
+turkey drumstick,3,0.01
+wakame,3,0.01
+yucca,3,0.01
+adzuki beans,2,0.01
+barley flour,2,0.01
+beef ribs,2,0.01
+beef tripe,2,0.01
+chicken fat,2,0.01
+chocolate chip cookies,2,0.01
+coconut meat,2,0.01
+dried egg,2,0.01
+emu,2,0.01
+energy drink,2,0.01
+fruit spread,2,0.01
+hard roll,2,0.01
+hazelnut oil,2,0.01
+herb blend,2,0.01
+italian herb blend,2,0.01
+kamut,2,0.01
+lactose-free milk,2,0.01
+minestrone soup,2,0.01
+mortadella,2,0.01
+noodle soup mix,2,0.01
+pumpernickel bread,2,0.01
+spanish rice mix,2,0.01
+surimi,2,0.01
+tangerines,2,0.01
+trail mix,2,0.01
+veal cutlet,2,0.01
+yautia,2,0.01
+beef jerky,1,0.0
+beef kidney,1,0.0
+brazil nuts,1,0.0
+canned tuna,1,0.0
+chocolate topping,1,0.0
+fruit leather,1,0.0
+fruit pie,1,0.0
+fruit preserves,1,0.0
+herbal tea,1,0.0
+honey mustard dressing,1,0.0
+lamb leg,1,0.0
+lentil soup,1,0.0
+lotus root,1,0.0
+mixed beans,1,0.0
+multigrain crackers,1,0.0
+nut mix,1,0.0
+ostrich,1,0.0
+paratha,1,0.0
+pollock,1,0.0
+pork fatback,1,0.0
+pork heart,1,0.0
+rice cakes,1,0.0
+rice crackers,1,0.0
+shelled peas,1,0.0
+veal chop,1,0.0
+vegetable oil spread,1,0.0
+wheat pasta,1,0.0
+whole wheat pasta,1,0.0
+abiyuch,0,0.0
+acerola,0,0.0
+acerola juice,0,0.0
+amaranth grain,0,0.0
+amaranth grain cooked,0,0.0
+amaranth grain dry,0,0.0
+amaranth leaves,0,0.0
+apple juice unsweetened,0,0.0
+applesauce snack,0,0.0
+applesauce sweetened,0,0.0
+applesauce unsweetened,0,0.0
+apples canned in juice or water,0,0.0
+apples canned in syrup,0,0.0
+apples dried,0,0.0
+apples fresh,0,0.0
+apricots canned in juice or water,0,0.0
+apricots canned in syrup,0,0.0
+apricots dried,0,0.0
+apricots fresh,0,0.0
+arrowhead root,0,0.0
+artificial blueberry muffin mix,0,0.0
+artificial vanilla flavor,0,0.0
+asparagus canned,0,0.0
+asparagus frozen,0,0.0
+baby cereal barley dry,0,0.0
+baby cereal mixed grain dry,0,0.0
+baby cereal oat,0,0.0
+baby cereal oatmeal dry,0,0.0
+baby cereal prepared with milk,0,0.0
+baby cereal rice,0,0.0
+baby cereal rice dry,0,0.0
+baby cookies and biscuits,0,0.0
+baby custard and pudding dessert,0,0.0
+baby food fruit puree,0,0.0
+baby food meat puree,0,0.0
+baby food vegetable puree,0,0.0
+baby formula,0,0.0
+baby fruit puree,0,0.0
+baby fruit yogurt dessert,0,0.0
+baby juice,0,0.0
+baby meat puree,0,0.0
+baby mixed dinner,0,0.0
+baby pasta meals,0,0.0
+baby snacks cereal puffs,0,0.0
+baby snacks puffs,0,0.0
+baby vegetable puree,0,0.0
+baby water,0,0.0
+baby yogurt,0,0.0
+baby yogurt with fruit,0,0.0
+bacon bits meatless,0,0.0
+bacon pork,0,0.0
+bacon turkey,0,0.0
+bagel flavored,0,0.0
+bagel plain,0,0.0
+bagel whole wheat,0,0.0
+baking chocolate mexican,0,0.0
+baking chocolate milk,0,0.0
+baking chocolate semisweet,0,0.0
+baking chocolate unsweetened,0,0.0
+balsam pear bitter gourd,0,0.0
+balsam pear leafy greens,0,0.0
+bamboo shoots canned,0,0.0
+banana dried,0,0.0
+banana fresh,0,0.0
+baobab powder,0,0.0
+barley hulled,0,0.0
+barley malt flour,0,0.0
+barley pearled cooked,0,0.0
+barley pearled dry,0,0.0
+basil fresh,0,0.0
+beans adzuki cooked,0,0.0
+beans adzuki dry,0,0.0
+beans baked homemade,0,0.0
+beans baked vegetarian,0,0.0
+beans baked with meat,0,0.0
+beans baked with pork,0,0.0
+beans black canned,0,0.0
+beans black cooked,0,0.0
+beans black dry,0,0.0
+beans cranberry canned,0,0.0
+beans cranberry cooked,0,0.0
+beans cranberry dry,0,0.0
+beans fava fresh,0,0.0
+beans french cooked,0,0.0
+beans french dry,0,0.0
+beans great northern canned,0,0.0
+beans great northern cooked,0,0.0
+beans great northern dry,0,0.0
+beef heart,0,0.0
+beef liver,0,0.0
+beef stew canned,0,0.0
+beef tallow,0,0.0
+bell pepper green,0,0.0
+bell pepper red,0,0.0
+bell pepper yellow,0,0.0
+blueberry muffin,0,0.0
+bran muffin,0,0.0
+breadfruit,0,0.0
+brownies,0,0.0
+cabbage green,0,0.0
+cabbage red,0,0.0
+canned beans,0,0.0
+canned fruit in juice,0,0.0
+canned fruit in syrup,0,0.0
+canned salmon,0,0.0
+cereal bar,0,0.0
+chapati,0,0.0
+chicken giblets,0,0.0
+chicken noodle soup canned,0,0.0
+cocoa drink mix,0,0.0
+cola soda,0,0.0
+coriander leaf,0,0.0
+corn cakes,0,0.0
+crackers with cheese filling,0,0.0
+crackers with peanut butter,0,0.0
+cream coffee liqueur,0,0.0
+decaf coffee,0,0.0
+distilled spirits,0,0.0
+electrolyte drink,0,0.0
+energy bar,0,0.0
+fermented tofu,0,0.0
+flavored water,0,0.0
+flaxseeds,0,0.0
+frankfurter,0,0.0
+french dressing,0,0.0
+french toast,0,0.0
+frozen burrito,0,0.0
+frozen enchilada,0,0.0
+frozen fish sticks,0,0.0
+frozen fruit bar,0,0.0
+frozen nuggets,0,0.0
+frozen pot pie,0,0.0
+frozen taquito,0,0.0
+frozen vegetables mixed,0,0.0
+fruit juice bar,0,0.0
+fruit juice blend,0,0.0
+gelatin dessert mix,0,0.0
+ghee butter blend,0,0.0
+gluten-free pasta,0,0.0
+goat milk,0,0.0
+gooseberries,0,0.0
+goose fat,0,0.0
+graham cookies,0,0.0
+granola bar,0,0.0
+granola cluster,0,0.0
+granulated sweetener,0,0.0
+herbs mixed,0,0.0
+hot chiles dried,0,0.0
+ice cream bar,0,0.0
+infant formula generic,0,0.0
+instant noodles,0,0.0
+instant rice flavored,0,0.0
+lamb kidney,0,0.0
+lamb liver,0,0.0
+lasagna frozen,0,0.0
+leeks trimmed,0,0.0
+lima beans dry,0,0.0
+low fat milk,0,0.0
+mac and cheese box,0,0.0
+malt beverage hard lemonade,0,0.0
+mandarins,0,0.0
+mayonnaise-based spread,0,0.0
+meatless bacon,0,0.0
+meat pizza,0,0.0
+meat sticks mixed,0,0.0
+mixed fruit cocktail,0,0.0
+mousse,0,0.0
+muesli,0,0.0
+mushrooms white,0,0.0
+nut topping in syrup,0,0.0
+oatmeal cookies,0,0.0
+olives canned,0,0.0
+pasta salad,0,0.0
+peanut butter cookies,0,0.0
+pea soup mix,0,0.0
+pepperoni pizza,0,0.0
+pickled vegetables,0,0.0
+pickles dill,0,0.0
+pickles sweet,0,0.0
+pizza crust frozen,0,0.0
+plantain chips,0,0.0
+plantain flour,0,0.0
+plant-based creamer,0,0.0
+pork and beef loaf,0,0.0
+pork kidney,0,0.0
+pork tongue,0,0.0
+potato salad,0,0.0
+poultry seasoning blend,0,0.0
+protein bar,0,0.0
+queso anejo,0,0.0
+queso cotija,0,0.0
+rambutan,0,0.0
+regular beer,0,0.0
+relish dill,0,0.0
+relish sweet,0,0.0
+rice bran oil,0,0.0
+rice cakes flavored,0,0.0
+rice pilaf mix,0,0.0
+rice pudding,0,0.0
+roasted soy nuts,0,0.0
+rye grain,0,0.0
+saccharin sweetener,0,0.0
+seasoned breading mix,0,0.0
+seitan strips,0,0.0
+sheep milk,0,0.0
+shellfish,0,0.0
+smoothie base fruit,0,0.0
+smoothie base yogurt,0,0.0
+snack bar,0,0.0
+split pea soup,0,0.0
+sports drink,0,0.0
+sprouted grain bread,0,0.0
+squab,0,0.0
+stock base,0,0.0
+strawberry topping,0,0.0
+strudel,0,0.0
+taco shell salad bowl,0,0.0
+tapioca pudding,0,0.0
+tofu-based sausage,0,0.0
+tofu dessert,0,0.0
+tofu yogurt,0,0.0
+tomato soup canned,0,0.0
+trail mix with nuts and fruit,0,0.0
+triticale,0,0.0
+turkey deli meat,0,0.0
+veal roast,0,0.0
+vegetable chips,0,0.0
+vegetable soup canned,0,0.0
+vegetarian meatballs,0,0.0
+veggie burger,0,0.0
+veggie deli slices,0,0.0
+veggie hot dog,0,0.0
+wafer cone,0,0.0
+wine cooking,0,0.0
+wine dessert dry,0,0.0
+wine dessert sweet,0,0.0
+wine red,0,0.0
+wine rose,0,0.0
+wine white,0,0.0
+yellow beans,0,0.0
+yogurt parfait,0,0.0

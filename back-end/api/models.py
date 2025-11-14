@@ -7,10 +7,57 @@ from decimal import Decimal
 #calories_per_serving,fat_g,carbs_g,protein_g,price_per_serving_usd,total_price_usd
 
 # Create your models here.
+class RecipeManager(models.Manager):
+    def order_by_ingredient_accessibility(self):
+        """
+        Order recipes by how accessible their ingredients are.
+
+        Uses square root normalization: accessibility_score = avg_frequency * sqrt(curated_count)
+        This penalizes recipes with very few ingredients while still rewarding common ingredients.
+
+        The sqrt penalty means a 1-ingredient recipe needs ingredients 9x more common than a
+        9-ingredient recipe to rank equally (since sqrt(9) = 3, and 3^2 = 9).
+
+        Higher scores = more commonly available ingredients with reasonable complexity.
+        Recipes without curated ingredients get a score of 0 and sort to the bottom.
+
+        Returns:
+            QuerySet of Recipe objects ordered by ingredient accessibility (highest first)
+        """
+        from django.db.models import Count, Avg, FloatField, F, ExpressionWrapper, Case, When, Value
+        from django.db.models.functions import Sqrt, Coalesce
+
+        return self.annotate(
+            curated_count=Count('curated_ingredients'),
+            frequency_avg=Avg('curated_ingredients__curated_ingredient__frequency', output_field=FloatField()),
+            accessibility_score=Case(
+                # If recipe has no curated ingredients, score is 0
+                When(curated_count=0, then=Value(0.0)),
+                # Otherwise, calculate: avg_frequency * sqrt(count)
+                default=ExpressionWrapper(
+                    Coalesce(F('frequency_avg'), Value(0.0)) * Sqrt(F('curated_count')),
+                    output_field=FloatField()
+                ),
+                output_field=FloatField()
+            )
+        ).order_by('-accessibility_score', 'title')
+
 class Recipe(models.Model):
+    objects = RecipeManager()
     title = models.TextField()
     ingredients = models.TextField()
     instructions = models.TextField()
+    deliciousness_score = models.DecimalField(
+        decimal_places=2,
+        max_digits=5,
+        default=0,
+        help_text="LLM-assessed deliciousness score from 0-100"
+    )
+    deliciousness_notes = models.TextField(
+        blank=True,
+        default="",
+        help_text="LLM justification for deliciousness score (5-25 words)"
+    )
     image_url = models.URLField(null=True, blank=True, max_length=400)
     source_url = models.URLField(null=True, blank=True, max_length=400)
     prep_time_min = models.IntegerField(default=0)
@@ -123,10 +170,12 @@ class CuratedIngredient(models.Model):
     """
     name = models.CharField(max_length=200, unique=True, db_index=True)
     is_approved = models.BooleanField(default=False, db_index=True)
+    frequency = models.IntegerField(default=0, db_index=True, help_text="Number of recipes using this ingredient")
+    percentage = models.DecimalField(max_digits=5, decimal_places=2, default=0.0, help_text="Percentage of recipes using this ingredient")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        ordering = ['name']
+        ordering = ['-frequency', 'name']  # Sort by frequency descending, then name
 
     def __str__(self):
         return self.name

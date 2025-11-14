@@ -137,10 +137,11 @@ export class Api {
     return this.fetch(url.toString(), options);
   }
 
-  async listCuratedIngredients({ page = 1, search } = {}, options) {
+  async listCuratedIngredients({ page = 1, search, exclude_inventory } = {}, options) {
     const url = new URL('/api/curated_ingredients/', window.location.href)
     if (page) url.searchParams.set('page', page)
     if (search) url.searchParams.set('search', search)
+    if (exclude_inventory) url.searchParams.set('exclude_inventory', 'true')
     return this.fetch(url.toString(), options);
   }
 
@@ -228,13 +229,17 @@ export class Api {
     })
   }
 
-  async getRecipesFiltered({title, ingredients, searchInventory, searchFavorite, page = 1}) {
+  async getRecipesFiltered({title, ingredients, searchInventory, searchFavorite, curated_ingredients, searchCuratedInventory, curated_ingredients_match_all, page = 1, sort_by }) {
     return this.fetch(`/api/recipes/searchFiltered/?page=${page}`, {
       body: JSON.stringify({
         title,
         ingredients,
         searchInventory,
-        searchFavorite
+        searchFavorite,
+        curated_ingredients,
+        searchCuratedInventory,
+        curated_ingredients_match_all,
+        sort_by,
       })
     })
   }

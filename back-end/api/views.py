@@ -10,7 +10,7 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from django.utils.decorators import method_decorator
 from django.utils.dateparse import parse_datetime
 from django.utils import timezone
-from django.db.models import Exists, OuterRef, Case, When, Value, IntegerField, Q, BooleanField
+from django.db.models import Exists, OuterRef, Case, When, Value, IntegerField, Q, BooleanField, F, FloatField, ExpressionWrapper
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -23,7 +23,7 @@ from decimal import Decimal, InvalidOperation
 from .models import (
     Ingredient, DietaryIngredient, Diet, UserDiet,
     Recipe, CookedRecipe, Meal, FavoriteRecipe, UserInventory, UserCuratedInventory, OnboardingSubmission, RecipeIngredient, HealthDetails, RecipeTag, TaggedRecipe,
-    ChatConversation, ChatMessage, CuratedIngredient
+    ChatConversation, ChatMessage, CuratedIngredient, UserRecipe
 )
 from .serializers import (
     UserSerializer, GroupSerializer, UserRegistrationSerializer,
@@ -301,7 +301,7 @@ class CuratedIngredientList(generics.ListAPIView):
     pagination_class = Paginator
     filter_backends = [SearchFilter, OrderingFilter]
     search_fields = ['name', '^name']
-    ordering = ['name']
+    # Use model default ordering: ['-frequency', 'name'] (most common first)
 
     def get_queryset(self):
         """Return only approved curated ingredients by default"""
@@ -311,6 +311,13 @@ class CuratedIngredientList(generics.ListAPIView):
         show_unapproved = self.request.query_params.get('show_unapproved', 'false').lower() == 'true'
         if not show_unapproved:
             queryset = queryset.filter(is_approved=True)
+
+        # Exclude ingredients already in user's inventory if requested
+        exclude_inventory = self.request.query_params.get('exclude_inventory', 'false').lower() == 'true'
+        if exclude_inventory:
+            # Get curated ingredient IDs that are already in the user's inventory
+            user_inventory_ids = self.request.user.curated_inventory_items.values_list('curated_ingredient_id', flat=True)
+            queryset = queryset.exclude(id__in=user_inventory_ids)
 
         return queryset
 
@@ -533,12 +540,34 @@ class GetRecipesFiltered(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
-        queryset = Recipe.objects.order_by('-created_at')
+        # Get sort_by parameter (default: "accessibility")
+        sort_by = request.data.get('sort_by', 'accessibility')
+
+        # Always start with accessibility annotation (needed for serializer)
+        queryset = Recipe.objects.order_by_ingredient_accessibility()
 
         title = request.data.get('title')
         if title:
             queryset = queryset.filter(title__icontains=title)
 
+        # NEW: Curated ingredient filtering
+        curated_ingredients = request.data.get('curated_ingredients')
+        curated_ingredients_match_all = request.data.get('curated_ingredients_match_all', True)
+        if curated_ingredients:
+            if curated_ingredients_match_all:
+                # AND logic: recipe must have ALL selected ingredients
+                for curated_ingredient_id in curated_ingredients:
+                    queryset = queryset.filter(
+                        curated_ingredients__curated_ingredient_id=curated_ingredient_id
+                    )
+            else:
+                # OR logic: recipe must have ANY of the selected ingredients
+                q_objects = Q()
+                for curated_ingredient_id in curated_ingredients:
+                    q_objects |= Q(curated_ingredients__curated_ingredient_id=curated_ingredient_id)
+                queryset = queryset.filter(q_objects)
+
+        # OLD: Ingredient filtering (kept for backward compatibility)
         ingredients = request.data.get('ingredients')
         if ingredients:
             for ingredient_id in ingredients:
@@ -546,6 +575,15 @@ class GetRecipesFiltered(APIView):
                     ingredients_list__ingredient_id=ingredient_id
                 )
 
+        # NEW: Curated inventory filtering
+        searchCuratedInventory = request.data.get('searchCuratedInventory')
+        if searchCuratedInventory:
+            curated_ingredient_ids = request.user.curated_inventory_items.values_list('curated_ingredient_id', flat=True)
+            queryset = queryset.filter(
+                curated_ingredients__curated_ingredient_id__in=curated_ingredient_ids
+            )
+
+        # OLD: Inventory filtering (kept for backward compatibility)
         searchInventory = request.data.get('searchInventory')
         if searchInventory:
             ingredient_ids = request.user.inventory_items.values_list('ingredient_id')
@@ -556,6 +594,23 @@ class GetRecipesFiltered(APIView):
         searchFavorite = request.data.get('searchFavorite')
         if searchFavorite:
             queryset = queryset.filter(user_favorites__isnull=False)
+
+        # Remove duplicates that can occur from JOIN operations
+        queryset = queryset.distinct()
+
+        # Apply sorting based on sort_by parameter
+        if sort_by == 'deliciousness':
+            # Sort by deliciousness score (highest first)
+            queryset = queryset.order_by('-deliciousness_score')
+        elif sort_by == 'combined':
+            # Sort by combined score (accessibility * deliciousness)
+            queryset = queryset.annotate(
+                combined_score=ExpressionWrapper(
+                    F('accessibility_score') * F('deliciousness_score'),
+                    output_field=FloatField()
+                )
+            ).order_by('-combined_score')
+        # else: keep default accessibility ordering from order_by_ingredient_accessibility()
 
         paginator = Paginator()
         page = paginator.paginate_queryset(queryset, request)

@@ -66,6 +66,47 @@ export default function Recipe(props) {
           </a>
         </h3>
       }
+
+      {/* Score Badges */}
+      <div className="score-badges" style={{ display: 'flex', gap: '12px', marginBottom: '12px', flexWrap: 'wrap' }}>
+        {recipe.accessibility_score !== null && recipe.accessibility_score !== undefined && (
+          <div className="score-badge" style={{
+            backgroundColor: '#4CAF50',
+            color: 'white',
+            padding: '6px 12px',
+            borderRadius: '20px',
+            fontSize: '14px',
+            fontWeight: 'bold'
+          }}>
+            ⭐ Easy to Make: {Math.round(recipe.accessibility_score)}/100
+          </div>
+        )}
+        {recipe.deliciousness_score !== null && recipe.deliciousness_score !== undefined && (
+          <div className="score-badge-wrapper">
+            <div className="score-badge" style={{
+              backgroundColor: '#FF9800',
+              color: 'white',
+              padding: '6px 12px',
+              borderRadius: '20px',
+              fontSize: '14px',
+              fontWeight: 'bold'
+            }}>
+              😋 Deliciousness: {Math.round(recipe.deliciousness_score)}/100
+            </div>
+            {recipe.deliciousness_notes && (
+              <div style={{
+                fontSize: '13px',
+                color: '#666',
+                marginTop: '4px',
+                fontStyle: 'italic'
+              }}>
+                {recipe.deliciousness_notes}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
       <button
                   className="button-blue"
                   onClick={() => navigate(`/sous-chef/${recipe.id}`)}
