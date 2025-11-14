@@ -1,0 +1,36 @@
+Prompt:
+You are a discerning, no-nonsense food critic.
+Score each recipe's overall deliciousness on a 0-100 scale based on its name, ingredients, and instructions. Reward recipes that promise nutritious, satisfying meals that home cooks can execute without much hassle.
+
+Scoring rubric:
+0-49: Unappealing or likely to fail.
+50-69: Edible but forgettable.
+70-84: Tasty everyday cooking that most people would enjoy.
+85-92: Crowd-pleasing dish with craveable flavor or texture.
+93-100: Exceptional, "must cook" recipes people rave about.
+
+Guidelines:
+- Reward recipes that are both nutritious and satisfying without being overly complicated.
+- Prioritize dishes that seem easy to cook yet still deliver bold, craveable flavor.
+- Penalize vague instructions or missing flavor-building steps.
+- Reward balanced seasoning, appealing textures, and smart technique.
+
+Return ONLY valid JSON with this exact shape:
+{"recipes":[{"id":123,"score":87,"notes":"short justification"}]}
+
+Notes must be 5-25 words describing the main reason for the score.
+Do not include markdown code fences or any text before/after the JSON.
+
+Recipes to score:
+
+ID: 9104
+Name: Hot Wheels Pasta
+Ingredients: 2 tablespoons olive oil | 0.5 cup chopped green onions | 1 anchovy fillet | 3 cloves garlic, minced | 2 zucchini - alternating strips of peel removed lengthwise and zucchini sliced | salt and ground black pepper to taste | 2 cups tomato sauce | 0.75 cup chicken stock | 1 pinch white sugar | 1 cup seeded and sliced jalapeno peppers | 1 cup seeded and sliced red Fresno chile peppers | 0.5 cup seeded and sliced yellow mini bell pepper | 0.5 cup seeded and sliced orange mini bell pepper | 2.5 cups rotelle pasta | 2 tablespoons chopped fresh flat-leaf parsley, divided | 2 teaspoons freshly grated Parmigiano-Reggiano cheese
+Instructions: Bring a large pot of salted water to a boil. | Place heavy skillet over medium heat and pour olive oil into hot skillet; add green onions and anchovy fillet. Cook and stir until anchovy breaks down and green onions are tender, 2 to 3 minutes. Add garlic to skillet and cook until translucent, about 1 minute. | Stir zucchini into green onion mixture; cook, stirring occasionally, until zucchini slices just start to become tender, about 2 minutes. Sprinkle with salt and black pepper; cook until zucchini centers start to change color to slightly green, 1 to 2 more minutes. | Pour tomato sauce and chicken stock into skillet. Reduce heat to low; add sugar. Mix jalapeno, Fresno, yellow mini pepper, and orange mini pepper rings into mixture. Bring sauce to a simmer and reduce heat to low. | Pour rotelle pasta into boiling water and cook, stirring often, until pasta is still slightly firm, about 7 minutes. Drain and let pasta stand for 2 minutes. | Bring sauce to a boil; stir in rotelle pasta. Reduce heat to medium. Cook, stirring often, until pasta, zucchini, and peppers are tender, 2 to 3 more minutes. Taste and adjust levels of salt and black pepper. Mix in about 1 1/2 teaspoon parsley...
+
+
+Response:
+(no response)
+
+Error:
+Error code: 429 - {'error': {'message': 'Rate limit exceeded: free-models-per-min. ', 'code': 429, 'metadata': {'headers': {'X-RateLimit-Limit': '16', 'X-RateLimit-Remaining': '0', 'X-RateLimit-Reset': '1763082240000'}, 'provider_name': None}}, 'user_id': 'user_35ILwW9u8l3jbmyACfvElvIVlUm'}

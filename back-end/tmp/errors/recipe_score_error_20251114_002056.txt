@@ -1,0 +1,60 @@
+Prompt:
+You are a discerning, no-nonsense food critic.
+Score each recipe's overall deliciousness on a 0-100 scale based on its name, ingredients, and instructions. Reward recipes that promise nutritious, satisfying meals that home cooks can execute without much hassle.
+
+Scoring rubric:
+0-49: Unappealing or likely to fail.
+50-69: Edible but forgettable.
+70-84: Tasty everyday cooking that most people would enjoy.
+85-92: Crowd-pleasing dish with craveable flavor or texture.
+93-100: Exceptional, "must cook" recipes people rave about.
+
+Guidelines:
+- Reward recipes that are both nutritious and satisfying without being overly complicated.
+- Prioritize dishes that seem easy to cook yet still deliver bold, craveable flavor.
+- Penalize vague instructions or missing flavor-building steps.
+- Reward balanced seasoning, appealing textures, and smart technique.
+
+Return ONLY valid JSON with this exact shape:
+{"recipes":[{"id":123,"score":87,"notes":"short justification"}]}
+
+Notes must be 5-25 words describing the main reason for the score.
+Do not include markdown code fences or any text before/after the JSON.
+
+Recipes to score:
+
+ID: 15401
+Name: Creamy Morel Mushroom Soup
+Ingredients: 0.5 cup butter | 1 tablespoon minced garlic | 1 large onion, diced | 8 ounces fresh morel mushrooms, sliced | 1 tablespoon chicken soup base | 1 tablespoon all-purpose flour | 2 cups water | 2 cups heavy cream | 0.125 teaspoon ground dried thyme | salt to taste | 2 teaspoons ground black pepper
+Instructions: Melt the butter in a large pot over medium heat. Stir in the garlic, onion, and morels; cook, stirring frequently, until the onions have softened and turned translucent, about 5 minutes. Stir in chicken soup base and flour; cook for 1 to 2 minutes. Pour in water and cream; bring to a simmer, and cook 5 minutes. | Puree half of the soup in small batches, filling the blender no more than halfway full each time. Return soup puree to pot. Cook on low 10 to 15 minutes. Season with thyme and salt and pepper before serving.
+
+---
+ID: 12838
+Name: White Pizza Sauce
+Ingredients: 2 tablespoons butter | 1 tablespoon olive oil | 0.25 cup finely chopped onion | 1 large clove garlic, minced | 3 tablespoons all-purpose flour | 1 cup milk, or more as needed | 0.5 cup grated Parmesan cheese | 2 tablespoons minced fresh basil | 0.5 teaspoon chopped fresh oregano | 0.25 teaspoon salt | 0.125 teaspoon ground black pepper
+Instructions: Gather all ingredients. | Heat butter and olive oil in a small saucepan over medium heat; stir in onion and garlic. Whisk in flour until lightly browned and onion is tender, about 2 minutes. | Add 1 cup milk, Parmesan cheese, basil, oregano, salt, and black pepper; cook, whisking continuously, until cheese is melted and sauce has thickened slightly, about 5 minutes. | Add more milk if sauce is too thick. Remove from heat.
+
+---
+ID: 1555
+Name: Low-Carb Yellow Squash Casserole
+Ingredients: 1 tablespoon olive oil | 1 teaspoon butter | 1 small onion, chopped | 2 cloves garlic, minced | 4 cups peeled and cubed yellow squash | 1 teaspoon kosher salt | 0.5 teaspoon freshly ground black pepper | 0.33333334326744 cup finely chopped raw almonds | 1 cup shredded Colby-Monterey Jack cheese, divided | 0.5 cup heavy whipping cream | 2 large eggs | 0.33333334326744 cup coarsely chopped roasted, salted almonds
+Instructions: Preheat the oven to 400 degrees F (200 degrees C). | Heat olive oil and butter in a skillet over medium-high heat; cook and stir onion and garlic in the hot oil-butter mixture until softened, about 3 minutes. Add squash, salt, and pepper; stir to combine. Cover skillet and cook, stirring occasionally, until squash is softened, about 5 minutes. Transfer squash mixture to a large bowl. | Mix raw almonds and 1/2 cup shredded cheese together in a bowl; stir into squash mixture. Whisk cream and eggs together in a measuring cup or small bowl; stir into squash mixture. Pour squash mixture into a 9x13-inch casserole dish; top with remaining shredded cheese and roasted almonds. | Bake in the preheated oven until casserole is golden brown and bubbling, 25 to 30 minutes.
+
+---
+ID: 6489
+Name: Garlic Mashed Potato Casserole
+Ingredients: 3 pounds Yukon Gold potatoes, or more as needed | 0.5 cup hot milk | 0.5 cup cream cheese, softened | 0.5 cup chopped green onions, divided | 3 tablespoons butter | 1 egg, lightly beaten | 3 cloves garlic, crushed and chopped, or to taste | 0.5 teaspoon salt | 0.5 cup shredded Cheddar cheese
+Instructions: Gather the ingredients. | Place potatoes in a large pot and cover with lightly salted water. Bring to a boil. Reduce heat to medium-low and simmer until tender, about 20 minutes. Drain and return to pot. | Preheat the oven to 375 degrees F (190 degrees C). Grease a glass baking dish. Combine milk, cream cheese, ⅓ cup green onions, butter, egg, garlic, and salt in a bowl; add to potatoes. Mash until smooth; transfer to the prepared baking dish. Sprinkle with Cheddar cheese and remaining green onions. | Bake in the preheated oven until lightly browned, about 40 minutes.
+
+---
+ID: 1609
+Name: Mushroom and Spinach Ravioli with Chive Butter Sauce
+Ingredients: 1 teaspoon olive oil | 1.5 tablespoons water, or more if needed | 2 eggs | 2 cups all-purpose flour, or more if needed | 0.25 teaspoon salt | 1 teaspoon olive oil | 1 clove garlic, minced | 0.5 cup chopped onion | 1 (8 ounce) package fresh mushrooms, coarsely chopped | 4 ounces cream cheese, softened | 0.33333334326744 cup grated Parmesan cheese | 0.5 cup mozzarella cheese | 0.5 cup frozen chopped spinach, thawed and drained | 1 tablespoon chopped fresh chives | 1 tablespoon chopped fresh parsley | 0.5 teaspoon ground cayenne pepper | salt and ground black pepper to taste | 1 egg white, beaten | 3 tablespoons butter | 1.5 teaspoons chopped fresh chives
+Instructions: Whisk together 1 teaspoon olive oil, water, and whole eggs in a bowl until evenly blended; set aside. Combine flour and salt in a separate large bowl, and make a well in the center. Pour the egg mixture into the well and stir just until combined. Turn dough out onto a lightly floured surface and knead until smooth, 5 to 10 minutes, adding more flour or water as needed. Wrap dough tightly with plastic wrap, and set aside to rest. | Heat 1 teaspoon olive oil in a skillet over medium heat. Stir in the garlic and onion; cook and stir until the onion begins to soften, about 2 minutes. Add the mushrooms, and continue cooking and stirring until the vegetables are soft and the liquid has evaporated, about 10 minutes. Remove from heat, and allow to cool. | Beat cream cheese in a bowl until smooth. Stir in the cooled mushroom mixture, Parmesan cheese, mozzarella cheese, spinach, 1 tablespoon chives, parsley, and cayenne pepper. Season with salt and pepper. | Roll the pasta dough out to about 1/16 inch thick. Cut 3 to 4-inch circles using a large cookie cutter. Roll each circle out as thin as possible. Working with one circle at a time, brush the pasta lightly with the egg white. Scoop abo...
+
+
+Response:
+(no response)
+
+Error:
+Response did not contain JSON object.

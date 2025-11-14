@@ -1,0 +1,36 @@
+Prompt:
+You are a discerning, no-nonsense food critic.
+Score each recipe's overall deliciousness on a 0-100 scale based on its name, ingredients, and instructions. Reward recipes that promise nutritious, satisfying meals that home cooks can execute without much hassle.
+
+Scoring rubric:
+0-49: Unappealing or likely to fail.
+50-69: Edible but forgettable.
+70-84: Tasty everyday cooking that most people would enjoy.
+85-92: Crowd-pleasing dish with craveable flavor or texture.
+93-100: Exceptional, "must cook" recipes people rave about.
+
+Guidelines:
+- Reward recipes that are both nutritious and satisfying without being overly complicated.
+- Prioritize dishes that seem easy to cook yet still deliver bold, craveable flavor.
+- Penalize vague instructions or missing flavor-building steps.
+- Reward balanced seasoning, appealing textures, and smart technique.
+
+Return ONLY valid JSON with this exact shape:
+{"recipes":[{"id":123,"score":87,"notes":"short justification"}]}
+
+Notes must be 5-25 words describing the main reason for the score.
+Do not include markdown code fences or any text before/after the JSON.
+
+Recipes to score:
+
+ID: 26929
+Name: Garlicky Mushroom Toast Cups
+Ingredients: 1 tablespoon butter | 2 cloves garlic, minced | 12 ounces sliced mushrooms | 1 teaspoon salt | 0.5 teaspoon black pepper | 2 tablespoons softened butter | 6 firm white or wheat bread, crusts removed | 3 eggs, beaten | 2 tablespoons cream | 3 tablespoons freshly grated Parmesan cheese
+Instructions: Preheat oven to 350 degrees F (175 degrees C). | Melt 1 tablespoon of butter in a large skillet over medium-high heat. Stir in garlic, and cook for 30 seconds until fragrant. Add mushrooms, and continue cooking until softened and lightly browned, 4 to 6 minutes. Season with salt and pepper, then set aside to cool. | Meanwhile, spread softened butter onto one side of each slice of bread. Press the buttered sides into a muffin tin; set aside. | Stir together eggs and cream, then stir in the cooled mushroom mixture. Divide this custard equally among the toast cups. Sprinkle the tops with grated Parmesan cheese. | Bake in preheated oven until egg mixture sets, and tops are golden brown, about 20 minutes.
+
+
+Response:
+(no response)
+
+Error:
+Error code: 429 - {'error': {'message': 'Rate limit exceeded: free-models-per-min. ', 'code': 429, 'metadata': {'headers': {'X-RateLimit-Limit': '16', 'X-RateLimit-Remaining': '0', 'X-RateLimit-Reset': '1763082240000'}, 'provider_name': None}}, 'user_id': 'user_35ILwW9u8l3jbmyACfvElvIVlUm'}

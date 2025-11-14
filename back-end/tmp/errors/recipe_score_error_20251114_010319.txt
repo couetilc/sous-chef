@@ -1,0 +1,36 @@
+Prompt:
+You are a discerning, no-nonsense food critic.
+Score each recipe's overall deliciousness on a 0-100 scale based on its name, ingredients, and instructions. Reward recipes that promise nutritious, satisfying meals that home cooks can execute without much hassle.
+
+Scoring rubric:
+0-49: Unappealing or likely to fail.
+50-69: Edible but forgettable.
+70-84: Tasty everyday cooking that most people would enjoy.
+85-92: Crowd-pleasing dish with craveable flavor or texture.
+93-100: Exceptional, "must cook" recipes people rave about.
+
+Guidelines:
+- Reward recipes that are both nutritious and satisfying without being overly complicated.
+- Prioritize dishes that seem easy to cook yet still deliver bold, craveable flavor.
+- Penalize vague instructions or missing flavor-building steps.
+- Reward balanced seasoning, appealing textures, and smart technique.
+
+Return ONLY valid JSON with this exact shape:
+{"recipes":[{"id":123,"score":87,"notes":"short justification"}]}
+
+Notes must be 5-25 words describing the main reason for the score.
+Do not include markdown code fences or any text before/after the JSON.
+
+Recipes to score:
+
+ID: 15318
+Name: Bracciole (Flank Steak Rolls)
+Ingredients: 2 tablespoons olive oil | 0.5 onion, chopped | 1 teaspoon salt | 1 teaspoon ground black pepper | 1 cup chopped fresh parsley | 0.5 cup grated Parmesan cheese | 4 cloves garlic, minced | 1 hard-boiled egg, chopped | 1 pinch salt and ground black pepper | 2 pounds flank steak, pounded until thin | 5 toothpicks, or as needed | 1 (8 ounce) can tomato sauce | 1 tomato, chopped, or more as needed | 1 pinch white sugar
+Instructions: Heat 2 tablespoons olive oil in a large skillet over medium heat. Add onion; cook and stir until tender, about 10 minutes. Season with 1 teaspoon salt and 1 teaspoon pepper. | Combine parsley, Parmesan cheese, garlic, hard-boiled egg, 1 pinch salt, and 1 pinch black pepper in a bowl; drizzle in about 1 tablespoon olive oil, stirring continuously, until a sticky consistency is reached. | Spread parsley filling in a thin layer on flank steak. Roll steak in a jelly-roll style; fasten closed with toothpicks to contain filling. | Add remaining 1 tablespoon olive oil to skillet with onion mixture over medium heat, then add steak roll, turning until browned on all sides, 2 to 3 minutes per side. Add tomato sauce, chopped tomato, and sugar; simmer over very low heat until steak cooked through and sauce slightly reduced, 1 to 1 1/2 hours.
+
+
+Response:
+(no response)
+
+Error:
+Error code: 429 - {'error': {'message': 'Rate limit exceeded: free-models-per-min. ', 'code': 429, 'metadata': {'headers': {'X-RateLimit-Limit': '16', 'X-RateLimit-Remaining': '0', 'X-RateLimit-Reset': '1763082240000'}, 'provider_name': None}}, 'user_id': 'user_35ILwW9u8l3jbmyACfvElvIVlUm'}
