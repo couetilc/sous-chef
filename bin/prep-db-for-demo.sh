@@ -9,5 +9,6 @@ docker compose run --rm backend bash -c "\
 	python manage.py demo_recipes && \
 	python manage.py load_curated_ingredients --auto-approve && \
 	python manage.py load_recipe_curated_ingredients && \
+	python manage.py load_recipe_scores && \
 	echo 'Done!'
 	"

@@ -20,7 +20,7 @@ class Command(BaseCommand):
                 )
             else:
                 # create, optionally set superuser status
-                User.objects.create(username=username, password=password, is_superuser=is_superuser)
+                User.objects.create(username=username, password=password, is_superuser=is_superuser, is_staff=is_superuser)
                 self.stdout.write(
                     f'Created user "{username}".'
                 )
