@@ -53,6 +53,11 @@ class Recipe(models.Model):
         default=0,
         help_text="LLM-assessed deliciousness score from 0-100"
     )
+    deliciousness_notes = models.TextField(
+        blank=True,
+        default="",
+        help_text="LLM justification for deliciousness score (5-25 words)"
+    )
     image_url = models.URLField(null=True, blank=True, max_length=400)
     source_url = models.URLField(null=True, blank=True, max_length=400)
     prep_time_min = models.IntegerField(default=0)
