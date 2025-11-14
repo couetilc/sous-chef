@@ -172,13 +172,74 @@ class PriceRangeFilter(SimpleListFilter):
             qs = qs.filter(price__lte=hi)
         return qs
 
+class DeliciousnessScoreFilter(SimpleListFilter):
+    """Filter recipes by deliciousness score ranges"""
+    title = 'deliciousness score'
+    parameter_name = 'deliciousness_range'
+
+    def lookups(self, request, model_admin):
+        return [
+            ('unscored', 'Unscored (0)'),
+            ('0-49', '0–49 (Unappealing)'),
+            ('50-69', '50–69 (Forgettable)'),
+            ('70-84', '70–84 (Tasty)'),
+            ('85-92', '85–92 (Crowd-pleasing)'),
+            ('93-100', '93–100 (Exceptional)'),
+        ]
+
+    def queryset(self, request, queryset):
+        val = self.value()
+        if not val:
+            return queryset
+
+        if val == 'unscored':
+            return queryset.filter(deliciousness_score=0)
+        elif val == '0-49':
+            return queryset.filter(deliciousness_score__gte=0.01, deliciousness_score__lte=49)
+        elif val == '50-69':
+            return queryset.filter(deliciousness_score__gte=50, deliciousness_score__lte=69)
+        elif val == '70-84':
+            return queryset.filter(deliciousness_score__gte=70, deliciousness_score__lte=84)
+        elif val == '85-92':
+            return queryset.filter(deliciousness_score__gte=85, deliciousness_score__lte=92)
+        elif val == '93-100':
+            return queryset.filter(deliciousness_score__gte=93, deliciousness_score__lte=100)
+
+        return queryset
+
 @admin.register(Recipe)
 class RecipeAdmin(admin.ModelAdmin):
-	list_display = ('title', 'is_private', 'created_at', 'updated_at')
-	search_fields = ('title', 'instructions', 'ingredients')
-	list_filter = ('is_private', 'created_at', RestrictedForUserFilter)
+	list_display = ('title', 'deliciousness_score', 'score_notes_preview', 'is_private', 'created_at', 'updated_at')
+	search_fields = ('title', 'instructions', 'ingredients', 'deliciousness_notes')
+	list_filter = ('is_private', DeliciousnessScoreFilter, 'created_at', RestrictedForUserFilter)
 	inlines = (IngredientInline,)
-	ordering = ('-created_at',)
+	ordering = ('-deliciousness_score', '-created_at')
+	readonly_fields = ('created_at', 'updated_at', 'deliciousness_notes_display')
+
+	def score_notes_preview(self, obj):
+		"""Show first 40 chars of deliciousness notes"""
+		if obj.deliciousness_notes:
+			preview = obj.deliciousness_notes[:40]
+			if len(obj.deliciousness_notes) > 40:
+				preview += '...'
+			return preview
+		return '-'
+	score_notes_preview.short_description = 'Score Notes'
+	score_notes_preview.admin_order_field = 'deliciousness_notes'
+
+	def deliciousness_notes_display(self, obj):
+		"""Display full deliciousness notes in detail view"""
+		if obj.deliciousness_notes:
+			return format_html(
+				'<div style="padding: 10px; background-color: #f8f9fa; border-left: 4px solid #28a745; border-radius: 4px;">'
+				'<strong>Score:</strong> {}<br>'
+				'<strong>Notes:</strong> {}'
+				'</div>',
+				obj.deliciousness_score,
+				obj.deliciousness_notes
+			)
+		return 'No notes available'
+	deliciousness_notes_display.short_description = 'Deliciousness Assessment'
 
 
 @admin.register(Ingredient)

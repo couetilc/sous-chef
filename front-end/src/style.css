@@ -652,7 +652,7 @@ body {
   padding: 0.1em;
 }
 
-.recipes-page .filter-bar {
+.recipes-page .filter-bar, .recipes-page .sort-bar {
   display: flex;
   flex-flow: row wrap;
   gap: .5em;
@@ -957,7 +957,7 @@ body {
 
 /* END CREATE ACCOUNT PAGE */
 
-.button, .button-blue, .button-yellow, .button-toggledOn {
+.button, .button-blue, .button-yellow, .button-gray {
   --button-color: var(--color-auburn);
   --button-shadow: oklch(from var(--button-color) calc(l + .1) c h);
   --button-background: oklch(from var(--button-color) calc(l + 1) c h);
@@ -975,13 +975,12 @@ body {
   --button-color: var(--color-blue);
 }
 
-.button-toggledOn {
-  --button-color: var(--color-blue);
-}
-
 .button-yellow {
   --button-color: var(--color-yellow);
+}
 
+.button-gray {
+  --button-color: var(--color-french-gray);
 }
 
 .text-input, .text-input-blue {

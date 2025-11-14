@@ -10,7 +10,7 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from django.utils.decorators import method_decorator
 from django.utils.dateparse import parse_datetime
 from django.utils import timezone
-from django.db.models import Exists, OuterRef, Case, When, Value, IntegerField, Q, BooleanField
+from django.db.models import Exists, OuterRef, Case, When, Value, IntegerField, Q, BooleanField, F, FloatField, ExpressionWrapper
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -540,7 +540,10 @@ class GetRecipesFiltered(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
-        # Default: order by ingredient accessibility (most accessible first)
+        # Get sort_by parameter (default: "accessibility")
+        sort_by = request.data.get('sort_by', 'accessibility')
+
+        # Always start with accessibility annotation (needed for serializer)
         queryset = Recipe.objects.order_by_ingredient_accessibility()
 
         title = request.data.get('title')
@@ -594,6 +597,20 @@ class GetRecipesFiltered(APIView):
 
         # Remove duplicates that can occur from JOIN operations
         queryset = queryset.distinct()
+
+        # Apply sorting based on sort_by parameter
+        if sort_by == 'deliciousness':
+            # Sort by deliciousness score (highest first)
+            queryset = queryset.order_by('-deliciousness_score')
+        elif sort_by == 'combined':
+            # Sort by combined score (accessibility * deliciousness)
+            queryset = queryset.annotate(
+                combined_score=ExpressionWrapper(
+                    F('accessibility_score') * F('deliciousness_score'),
+                    output_field=FloatField()
+                )
+            ).order_by('-combined_score')
+        # else: keep default accessibility ordering from order_by_ingredient_accessibility()
 
         paginator = Paginator()
         page = paginator.paginate_queryset(queryset, request)
