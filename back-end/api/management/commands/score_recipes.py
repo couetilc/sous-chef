@@ -40,7 +40,7 @@ Recipes to score:
 """.strip()
 
 MAX_CHARS = 1200
-SLEEP_SECONDS = 0.3
+SLEEP_SECONDS = 0.1
 MAX_LLM_RETRIES = 3
 
 
@@ -86,8 +86,7 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument('--limit', type=int, help='Maximum number of recipes to score')
-        parser.add_argument('--batch-size', type=int, default=5, help='Recipes per LLM request (default: 5)')
-        parser.add_argument('--resume-from', type=int, help='Recipe ID to resume after (skips until this ID is seen)')
+        parser.add_argument('--batch-size', type=int, default=10, help='Recipes per LLM request (default: 10)')
         parser.add_argument('--dry-run', action='store_true', help='Run without updating the database')
         parser.add_argument('--only-missing', action='store_true', help='Only score recipes with a zero deliciousness score')
         parser.add_argument('--csv-path', type=str, help='Optional path for the incremental CSV log')
@@ -100,12 +99,16 @@ class Command(BaseCommand):
         batch_size = max(1, options['batch_size'])
         limit = options.get('limit')
         dry_run = options['dry_run']
-        resume_from = options.get('resume_from')
         only_missing = options['only_missing']
 
         queryset = Recipe.objects.order_by_ingredient_accessibility()
         if only_missing:
             queryset = queryset.filter(deliciousness_score=0)
+
+        # Calculate total for progress tracking
+        total_recipes = queryset.count()
+        if limit:
+            total_recipes = min(total_recipes, limit)
 
         csv_path = options.get('csv_path') or self._init_csv()
         csv_file = open(csv_path, 'a', newline='', encoding='utf-8')
@@ -116,7 +119,7 @@ class Command(BaseCommand):
         llm = ChatOpenAI(
             api_key=api_key,
             base_url="https://openrouter.ai/api/v1",
-            model="z-ai/glm-4.5-air:free",
+            model="openai/gpt-oss-120b",
             temperature=0.0,
             default_headers={
                 "HTTP-Referer": os.environ.get("OPENROUTER_SITE_URL", "http://localhost:3000"),
@@ -125,18 +128,16 @@ class Command(BaseCommand):
         )
 
         self.stdout.write(self.style.SUCCESS(f"Logging batch results to: {csv_path}"))
+        self.stdout.write(self.style.SUCCESS(f"Total recipes to score: {total_recipes}"))
 
         processed = 0
         batch: List[Recipe] = []
-        resume_reached = resume_from is None
         total_updates = 0
+        total_requests = 0
+        avg_request_time = 0.0
+        start_time = time.time()
 
         for recipe in queryset.iterator(chunk_size=500):
-            if not resume_reached:
-                if recipe.id == resume_from:
-                    resume_reached = True
-                continue
-
             if limit and processed >= limit:
                 break
 
@@ -145,31 +146,89 @@ class Command(BaseCommand):
 
             if len(batch) == batch_size:
                 batch_copy = list(batch)
+
+                # Time the API request
+                request_start = time.time()
                 results = self._score_with_fallback(batch_copy, llm)
+                request_end = time.time()
+                request_time = request_end - request_start
+
+                # Update rolling average
+                total_requests += 1
+                avg_request_time = ((avg_request_time * (total_requests - 1)) + request_time) / total_requests
+
                 batch_updates = self._handle_results(results, csv_writer, batch_copy)
                 csv_file.flush()
                 if not dry_run and batch_updates:
                     Recipe.objects.bulk_update(batch_updates, ['deliciousness_score'])
                 total_updates += len(batch_updates)
+
+                # Calculate statistics
+                recipes_remaining = total_recipes - processed
+                batches_remaining = recipes_remaining / batch_size
+                estimated_seconds = (batches_remaining * avg_request_time) + (batches_remaining * SLEEP_SECONDS)
+
+                # Format time remaining
+                if estimated_seconds < 60:
+                    eta_str = f"{estimated_seconds:.0f}s"
+                elif estimated_seconds < 3600:
+                    eta_str = f"{estimated_seconds/60:.1f}min"
+                else:
+                    eta_str = f"{estimated_seconds/3600:.1f}hr"
+
+                # Display progress
+                percentage = (processed / total_recipes * 100) if total_recipes > 0 else 0
+                self.stdout.write(
+                    f"Progress: {processed}/{total_recipes} ({percentage:.1f}%) | "
+                    f"Avg request: {avg_request_time:.2f}s | ETA: {eta_str}"
+                )
+
                 batch = []
                 time.sleep(SLEEP_SECONDS)
-
-        if resume_from and not resume_reached:
-            self.stdout.write(self.style.WARNING(
-                f"Resume ID {resume_from} was not found in the current queryset."
-            ))
 
         # Process any remaining recipes
         if batch:
             batch_copy = list(batch)
+
+            # Time the final API request
+            request_start = time.time()
             results = self._score_with_fallback(batch_copy, llm)
+            request_end = time.time()
+            request_time = request_end - request_start
+
+            # Update rolling average
+            total_requests += 1
+            avg_request_time = ((avg_request_time * (total_requests - 1)) + request_time) / total_requests
+
             batch_updates = self._handle_results(results, csv_writer, batch_copy)
             csv_file.flush()
             if not dry_run and batch_updates:
                 Recipe.objects.bulk_update(batch_updates, ['deliciousness_score'])
             total_updates += len(batch_updates)
 
+            # Display final progress
+            percentage = (processed / total_recipes * 100) if total_recipes > 0 else 0
+            self.stdout.write(
+                f"Progress: {processed}/{total_recipes} ({percentage:.1f}%) | "
+                f"Avg request: {avg_request_time:.2f}s"
+            )
+
         csv_file.close()
+
+        # Display final statistics
+        total_elapsed = time.time() - start_time
+        if total_elapsed < 60:
+            elapsed_str = f"{total_elapsed:.1f}s"
+        elif total_elapsed < 3600:
+            elapsed_str = f"{total_elapsed/60:.1f}min"
+        else:
+            elapsed_str = f"{total_elapsed/3600:.2f}hr"
+
+        if total_requests > 0:
+            self.stdout.write(
+                f"\nStatistics: {total_requests} API requests | "
+                f"Avg: {avg_request_time:.2f}s | Total time: {elapsed_str}"
+            )
 
         if total_updates == 0:
             self.stdout.write(self.style.WARNING("No recipes were scored."))
