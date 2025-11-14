@@ -191,7 +191,7 @@ export default function Recipes() {
           className={sortBy === 'accessibility' ? 'button' : 'button-gray'}
           onClick={() => handleSortChange('accessibility')}
         >
-          ⭐ Easy-to-Make (default)
+          ⭐ Cheap & Easy (default)
         </button>
         <button
           type="button"
