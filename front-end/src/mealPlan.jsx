@@ -9,12 +9,12 @@ export default function MealPlanPage(props) {
   return ( 
     <div className="meal-plan-div">
       <div className="meal-plan-text">
-        <h1> Your Meal Plan for week_start to week_end </h1>
+        <h1 style={{ marginTop: '5px'}}> Your Meal Plan for week_start to week_end </h1>
       </div>
       <div className="weekly-plan-div">
         <div> <p> </p></div>
         <div className="daily-plan-div">
-          <p> Monday </p>
+          <p style={{textDecoration: 'underline' }}> Monday </p>
           <div className="meal-plan-meal">
             <p> Breakfast </p>
             <p> Meal Name 1</p>
@@ -29,7 +29,7 @@ export default function MealPlanPage(props) {
           </div>
         </div>
         <div className="daily-plan-div">
-          <p> Tuesday </p>
+          <p style={{textDecoration: 'underline' }}> Tuesday </p>
           <div className="meal-plan-meal">
             <p> Breakfast </p>
             <p> Meal Name 1</p>
@@ -44,7 +44,7 @@ export default function MealPlanPage(props) {
           </div>
         </div>
         <div className="daily-plan-div">
-          <p> Wednesday </p>
+          <p style={{textDecoration: 'underline' }}> Wednesday </p>
           <div className="meal-plan-meal">
             <p> Breakfast </p>
             <p> Meal Name 1</p>
@@ -59,7 +59,7 @@ export default function MealPlanPage(props) {
           </div>
         </div>
         <div className="daily-plan-div">
-          <p> Thursday </p>
+          <p style={{textDecoration: 'underline' }}> Thursday </p>
           <div className="meal-plan-meal">
             <p> Breakfast </p>
             <p> Meal Name 1</p>
@@ -74,7 +74,7 @@ export default function MealPlanPage(props) {
           </div>
         </div>
         <div className="daily-plan-div">
-          <p> Friday </p>
+          <p style={{textDecoration: 'underline' }}> Friday </p>
           <div className="meal-plan-meal">
             <p> Breakfast </p>
             <p> Meal Name 1</p>
@@ -89,7 +89,7 @@ export default function MealPlanPage(props) {
           </div>
         </div>
         <div className="daily-plan-div">
-          <p> Saturday </p>
+          <p style={{textDecoration: 'underline' }}> Saturday </p>
           <div className="meal-plan-meal">
             <p> Breakfast </p>
             <p> Meal Name 1</p>
@@ -104,7 +104,7 @@ export default function MealPlanPage(props) {
           </div>
         </div>
         <div className="daily-plan-div">
-          <p> Sunday </p>
+          <p style={{textDecoration: 'underline' }}> Sunday </p>
           <div className="meal-plan-meal">
             <p> Breakfast </p>
             <p> Meal Name 1</p>
@@ -131,7 +131,7 @@ export default function MealPlanPage(props) {
       <div className="weekly-plan-div">
         <div> <p> </p></div>
         <div className="daily-plan-div">
-          <p> Monday </p>
+          <p style={{textDecoration: 'underline' }}> Monday </p>
           <div className="meal-plan-meal">
             <p> Breakfast </p>
             <p> Meal Name 1</p>
@@ -146,7 +146,7 @@ export default function MealPlanPage(props) {
           </div>
         </div>
         <div className="daily-plan-div">
-          <p> Tuesday </p>
+          <p style={{textDecoration: 'underline' }}> Tuesday </p>
           <div className="meal-plan-meal">
             <p> Breakfast </p>
             <p> Meal Name 1</p>
@@ -161,7 +161,7 @@ export default function MealPlanPage(props) {
           </div>
         </div>
         <div className="daily-plan-div">
-          <p> Wednesday </p>
+          <p style={{textDecoration: 'underline' }}> Wednesday </p>
           <div className="meal-plan-meal">
             <p> Breakfast </p>
             <p> Meal Name 1</p>
@@ -176,7 +176,7 @@ export default function MealPlanPage(props) {
           </div>
         </div>
         <div className="daily-plan-div">
-          <p> Thursday </p>
+          <p style={{textDecoration: 'underline' }}> Thursday </p>
           <div className="meal-plan-meal">
             <p> Breakfast </p>
             <p> Meal Name 1</p>
@@ -191,7 +191,7 @@ export default function MealPlanPage(props) {
           </div>
         </div>
         <div className="daily-plan-div">
-          <p> Friday </p>
+          <p style={{textDecoration: 'underline' }}> Friday </p>
           <div className="meal-plan-meal">
             <p> Breakfast </p>
             <p> Meal Name 1</p>
@@ -206,7 +206,7 @@ export default function MealPlanPage(props) {
           </div>
         </div>
         <div className="daily-plan-div">
-          <p> Saturday </p>
+          <p style={{textDecoration: 'underline' }}> Saturday </p>
           <div className="meal-plan-meal">
             <p> Breakfast </p>
             <p> Meal Name 1</p>

@@ -18,10 +18,19 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 DEBUG = env.get("DJANGO_DEBUG", "False") == "True"
 
-# Application definition
+# email forwarding setup
 
 EMAIL_HOST = 'smtp4dev'
 EMAIL_PORT = 25
+
+CRONJOBS = [
+  # weekly
+  # ('0 6 * * 0', 'weekly_emails'),
+  ('*/5 * * * #', 'weekly_emails'),
+  # daily
+  ('0 6 * * *', 'daily_emails')
+  
+]
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -46,6 +55,8 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+# Application definition
 
 ROOT_URLCONF = 'config.urls'
 
