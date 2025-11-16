@@ -33,6 +33,25 @@ class Meal(Enum):
     Lunch = 2
     Dinner = 3
 
+NUTRITIONIST_TEMPLATE = """
+You are a nutritionist, ready to help customers create nutritious, simple recipes they want to cook. The current customer's name is {username}.
+
+<meal_plan_instructions>
+If a user asks questions about their meal plan, you must use the <tool_name>create_mealplan_tool</tool_name>, <tool_name>edit_mealplan_tool</tool_name>, <tool_name>show_mealplan_tool</tool_name>, and <tool_name>search_recipes_tool</tool_name>.
+When the user asks to fill the meal plan with recipes, use <tool_name>edit_mealplan_tool</tool_name> with the meal slot and title query as input, for all three slots.
+
+The weekly meal plan an object with 3 recipe slots for breakfast, lunch, and dinner.
+The general flow for creating and displaying meal plans is as follows:
+    1. The meal plan object must be created with <tool_name>create_mealplan_tool</tool_name>.
+    2. The meal plan object's breakfast, lunch, and dinner slots start off empty, and they can be filled with a call to <tool_name>edit_mealplan_tool</tool_name> for each.
+    3. The meal plan can also be shown to the user as a formatted string with <tool_name>show_mealplan_tool</tool_name>. It is not necessary for all recipe slots to be filled.
+</meal_plan_instructions>
+
+{conversation_history}
+
+Current message from {username}: {message}
+""".strip()
+
 # ============================================================================
 # Tool Factory Functions (with user context in closure)
 # ============================================================================
@@ -50,6 +69,7 @@ def create_search_recipes_tool():
         min_protein: int = None,
         max_fat: int = None,
         max_carbs: int = None
+    # TODO expand
     ) -> str:
         """Search for recipes in the recipe library.
 
@@ -202,7 +222,7 @@ def create_edit_mealplan_tool(user: User):
 
         incompleteMealPlan = TestIncompleteMealPlan.objects.filter(user=user).first()
         if (incompleteMealPlan == None):
-            return "Could not edit recipe: You should create a meal plan object first with create_mealplan_tool, then try again."
+            return "Could not edit meal plan: You should create a meal plan object first with create_mealplan_tool, then try again."
 
         with transaction.atomic():
             mealPlan = incompleteMealPlan.mealPlan
@@ -233,26 +253,44 @@ def create_show_mealplan_tool(user: User):
         """ Show the current weekly meal plan being created by the user.
 
         Use this tool to show the in-progress meal plan to the user.
-        This tool fails if the meal plan object does not yet exist, or if one of the meal slots has not yet been filled.
+        This tool fails if the meal plan object does not yet exist.
+        If the meal plan's recipes are empty, you should ask the user if they want to fill their meal plan with recipes.
+        When showing the meal plan contents to the user, be sure to include the ingredient ID for debugging purposes.
 
         Returns:                
             A formatted string containing all the recipes in the in-progress meal plan,
-            or an error message if the meal plan is missing or incomplete.
+            or a string stating the meal plan is empty,
+            or an error message if the meal plan object has not been created.
         """
-        return ""
+
+        incompleteMealPlan = TestIncompleteMealPlan.objects.filter(user=user).first()
+        if (incompleteMealPlan == None):
+            return "Could not display meal plan: You should create a meal plan object first with create_mealplan_tool, then try again."
+        mealPlan = incompleteMealPlan.mealPlan
+
+        recipes = [mealPlan.recipeBreakfast, mealPlan.recipeLunch, mealPlan.recipeDinner]
+        results = []
+        for recipe in recipes:
+            if (recipe == None):
+                continue
+            recipe_text = f"""
+Recipe ID: {recipe.id}
+Title: {recipe.title}
+Nutrition (per serving): {recipe.calories_per_serving} calories, {recipe.protein_g}g protein, {recipe.carbs_g}g carbs, {recipe.fat_g}g fat
+---"""
+            results.append(recipe_text.strip())
+
+        if (results.count == 0):
+            return "Tell the user that this meal plan is empty."
+        return "\n\n".join(results)
+
+
     return show_mealplan_tool
 
 # ============================================================================
 # LLM and Prompt Configuration
 # ============================================================================
 
-NUTRITIONIST_TEMPLATE = """
-You are a nutritionist, ready to help customers create nutritious, simple recipes they want to cook. The current customer's name is {username}.
-
-{conversation_history}
-
-Current message from {username}: {message}
-""".strip()
 
 
 def get_nutritionist_llm() -> ChatOpenAI:
@@ -268,6 +306,8 @@ def get_nutritionist_llm() -> ChatOpenAI:
         api_key=api_key,
         base_url="https://openrouter.ai/api/v1",
         model="z-ai/glm-4.5-air:free",
+#       model="openai/gpt-oss-120b",
+#       model="moonshotai/kimi-k2-thinking",
     )
 
 
@@ -326,7 +366,10 @@ class NutritionistAgent:
         return [
             create_search_recipes_tool(),
             create_get_user_inventory_tool(self.user),
-            create_create_mealplan_tool(self.user)
+            create_create_mealplan_tool(self.user),
+            create_edit_mealplan_tool(self.user),
+            create_show_mealplan_tool(self.user),
+
         ]
 
     def chat(
