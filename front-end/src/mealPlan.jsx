@@ -8,7 +8,6 @@ export default function MealPlanPage(props) {
   //use useEffect to read the user's meal plan on page load
   //useEffect()
 
-  /*
   return ( 
     <div className="meal-plan-div">
       <div className="meal-plan-text">
@@ -16,254 +15,13 @@ export default function MealPlanPage(props) {
       </div>
       <div className="weekly-plan-div">
         <div> <p> </p></div>
-        <div className="daily-plan-div">
-          <p style={{textDecoration: 'underline' }}> Monday </p>
-          <div className="meal-plan-meal">
-            <p> Breakfast </p>
-            <p> Meal Name 1</p>
-          </div>
-          <div className="meal-plan-meal">
-            <p> Lunch </p>
-            <p> Meal Name 2</p>
-          </div>
-          <div className="meal-plan-meal">
-            <p> Dinner  </p>
-            <p> Meal Name 3</p>
-          </div>
-        </div>
-        <div className="daily-plan-div">
-          <p style={{textDecoration: 'underline' }}> Tuesday </p>
-          <div className="meal-plan-meal">
-            <p> Breakfast </p>
-            <p> Meal Name 1</p>
-          </div>
-          <div className="meal-plan-meal">
-            <p> Lunch </p>
-            <p> Meal Name 2</p>
-          </div>
-          <div className="meal-plan-meal">
-            <p> Dinner  </p>
-            <p> Meal Name 3</p>
-          </div>
-        </div>
-        <div className="daily-plan-div">
-          <p style={{textDecoration: 'underline' }}> Wednesday </p>
-          <div className="meal-plan-meal">
-            <p> Breakfast </p>
-            <p> Meal Name 1</p>
-          </div>
-          <div className="meal-plan-meal">
-            <p> Lunch </p>
-            <p> Meal Name 2</p>
-          </div>
-          <div className="meal-plan-meal">
-            <p> Dinner  </p>
-            <p> Meal Name 3</p>
-          </div>
-        </div>
-        <div className="daily-plan-div">
-          <p style={{textDecoration: 'underline' }}> Thursday </p>
-          <div className="meal-plan-meal">
-            <p> Breakfast </p>
-            <p> Meal Name 1</p>
-          </div>
-          <div className="meal-plan-meal">
-            <p> Lunch </p>
-            <p> Meal Name 2</p>
-          </div>
-          <div className="meal-plan-meal">
-            <p> Dinner  </p>
-            <p> Meal Name 3</p>
-          </div>
-        </div>
-        <div className="daily-plan-div">
-          <p style={{textDecoration: 'underline' }}> Friday </p>
-          <div className="meal-plan-meal">
-            <p> Breakfast </p>
-            <p> Meal Name 1</p>
-          </div>
-          <div className="meal-plan-meal">
-            <p> Lunch </p>
-            <p> Meal Name 2</p>
-          </div>
-          <div className="meal-plan-meal">
-            <p> Dinner  </p>
-            <p> Meal Name 3</p>
-          </div>
-        </div>
-        <div className="daily-plan-div">
-          <p style={{textDecoration: 'underline' }}> Saturday </p>
-          <div className="meal-plan-meal">
-            <p> Breakfast </p>
-            <p> Meal Name 1</p>
-          </div>
-          <div className="meal-plan-meal">
-            <p> Lunch </p>
-            <p> Meal Name 2</p>
-          </div>
-          <div className="meal-plan-meal">
-            <p> Dinner  </p>
-            <p> Meal Name 3</p>
-          </div>
-        </div>
-        <div className="daily-plan-div">
-          <p style={{textDecoration: 'underline' }}> Sunday </p>
-          <div className="meal-plan-meal">
-            <p> Breakfast </p>
-            <p> Meal Name 1</p>
-          </div>
-          <div className="meal-plan-meal">
-            <p> Lunch </p>
-            <p> Meal Name 2</p>
-          </div>
-          <div className="meal-plan-meal">
-            <p> Dinner  </p>
-            <p> Meal Name 3</p>
-          </div>
-        </div>
-        <div className="meal-plan-nutr">
-          <h1> Nutrition </h1>
-          <p> Calories(kCal): 0/GOAL </p>
-          <p> Protein(g): 0/GOAL </p>
-          <p> Fat(g): 0/GOAL </p>
-        </div>
-      </div>
-      <div className="meal-plan-text">
-        <h1> Next Week's Plan: start_date-end_date </h1>
-      </div>
-      <div className="weekly-plan-div">
-        <div> <p> </p></div>
-        <div className="daily-plan-div">
-          <p style={{textDecoration: 'underline' }}> Monday </p>
-          <div className="meal-plan-meal">
-            <p> Breakfast </p>
-            <p> Meal Name 1</p>
-          </div>
-          <div className="meal-plan-meal">
-            <p> Lunch </p>
-            <p> Meal Name 2</p>
-          </div>
-          <div className="meal-plan-meal">
-            <p> Dinner  </p>
-            <p> Meal Name 3</p>
-          </div>
-        </div>
-        <div className="daily-plan-div">
-          <p style={{textDecoration: 'underline' }}> Tuesday </p>
-          <div className="meal-plan-meal">
-            <p> Breakfast </p>
-            <p> Meal Name 1</p>
-          </div>
-          <div className="meal-plan-meal">
-            <p> Lunch </p>
-            <p> Meal Name 2</p>
-          </div>
-          <div className="meal-plan-meal">
-            <p> Dinner  </p>
-            <p> Meal Name 3</p>
-          </div>
-        </div>
-        <div className="daily-plan-div">
-          <p style={{textDecoration: 'underline' }}> Wednesday </p>
-          <div className="meal-plan-meal">
-            <p> Breakfast </p>
-            <p> Meal Name 1</p>
-          </div>
-          <div className="meal-plan-meal">
-            <p> Lunch </p>
-            <p> Meal Name 2</p>
-          </div>
-          <div className="meal-plan-meal">
-            <p> Dinner  </p>
-            <p> Meal Name 3</p>
-          </div>
-        </div>
-        <div className="daily-plan-div">
-          <p style={{textDecoration: 'underline' }}> Thursday </p>
-          <div className="meal-plan-meal">
-            <p> Breakfast </p>
-            <p> Meal Name 1</p>
-          </div>
-          <div className="meal-plan-meal">
-            <p> Lunch </p>
-            <p> Meal Name 2</p>
-          </div>
-          <div className="meal-plan-meal">
-            <p> Dinner  </p>
-            <p> Meal Name 3</p>
-          </div>
-        </div>
-        <div className="daily-plan-div">
-          <p style={{textDecoration: 'underline' }}> Friday </p>
-          <div className="meal-plan-meal">
-            <p> Breakfast </p>
-            <p> Meal Name 1</p>
-          </div>
-          <div className="meal-plan-meal">
-            <p> Lunch </p>
-            <p> Meal Name 2</p>
-          </div>
-          <div className="meal-plan-meal">
-            <p> Dinner  </p>
-            <p> Meal Name 3</p>
-          </div>
-        </div>
-        <div className="daily-plan-div">
-          <p style={{textDecoration: 'underline' }}> Saturday </p>
-          <div className="meal-plan-meal">
-            <p> Breakfast </p>
-            <p> Meal Name 1</p>
-          </div>
-          <div className="meal-plan-meal">
-            <p> Lunch </p>
-            <p> Meal Name 2</p>
-          </div>
-          <div className="meal-plan-meal">
-            <p> Dinner  </p>
-            <p> Meal Name 3</p>
-          </div>
-        </div>
-        <div className="daily-plan-div">
-          <p> Sunday </p>
-          <div className="meal-plan-meal">
-            <p> Breakfast </p>
-            <p> Meal Name 1</p>
-          </div>
-          <div className="meal-plan-meal">
-            <p> Lunch </p>
-            <p> Meal Name 2</p>
-          </div>
-          <div className="meal-plan-meal">
-            <p> Dinner  </p>
-            <p> Meal Name 3</p>
-          </div>
-        </div>
-        <div className="meal-plan-nutr">
-          <h1> Nutrition </h1>
-          <p> Calories(kCal): 0/GOAL </p>
-          <p> Protein(g): 0/GOAL </p>
-          <p> Fat(g): 0/GOAL </p>
-          <p> Carbohydrates(g): 0/GOAL </p>
-        </div>
-      </div>
-    </div>
-  )
-  */
-  
-  return ( 
-    <div className="meal-plan-div">
-      <div className="meal-plan-text">
-        <h1 style={{ marginTop: '5px'}}> Your Meal Plan for week_start to week_end </h1>
-      </div>
-      <div className="weekly-plan-div">
-        <div> <p> </p></div>
-        <DailyMealComponent dayOfWeek='1' curWeek='1'> </DailyMealComponent>
-        <DailyMealComponent dayOfWeek='2' curWeek='1'> </DailyMealComponent>
-        <DailyMealComponent dayOfWeek='3' curWeek='1'> </DailyMealComponent>
-        <DailyMealComponent dayOfWeek='4' curWeek='1'> </DailyMealComponent>
-        <DailyMealComponent dayOfWeek='5' curWeek='1'> </DailyMealComponent>
-        <DailyMealComponent dayOfWeek='6' curWeek='1'> </DailyMealComponent>
-        <DailyMealComponent dayOfWeek='0' curWeek='1'> </DailyMealComponent>
+        <DailyMealComponent dayOfWeek='1' curWeek='1' day='Monday'> </DailyMealComponent>
+        <DailyMealComponent dayOfWeek='2' curWeek='1' day='Tuesday'> </DailyMealComponent>
+        <DailyMealComponent dayOfWeek='3' curWeek='1' day='Wednesday'> </DailyMealComponent>
+        <DailyMealComponent dayOfWeek='4' curWeek='1' day='Thursday'> </DailyMealComponent>
+        <DailyMealComponent dayOfWeek='5' curWeek='1' day='Friday'> </DailyMealComponent>
+        <DailyMealComponent dayOfWeek='6' curWeek='1' day='Saturday'> </DailyMealComponent>
+        <DailyMealComponent dayOfWeek='0' curWeek='1' day='Sunday'> </DailyMealComponent>
         <div className="meal-plan-nutr">
           <h1> Nutrition </h1>
           <p> Calories(kCal): 0/GOAL </p>
@@ -278,13 +36,13 @@ export default function MealPlanPage(props) {
       </div>
       <div className="weekly-plan-div">
         <div> <p> </p></div>
-        <DailyMealComponent dayOfWeek='1' curWeek='0'> </DailyMealComponent>
-        <DailyMealComponent dayOfWeek='2' curWeek='0'> </DailyMealComponent>
-        <DailyMealComponent dayOfWeek='3' curWeek='0'> </DailyMealComponent>
-        <DailyMealComponent dayOfWeek='4' curWeek='0'> </DailyMealComponent>
-        <DailyMealComponent dayOfWeek='5' curWeek='0'> </DailyMealComponent>
-        <DailyMealComponent dayOfWeek='6' curWeek='0'> </DailyMealComponent>
-        <DailyMealComponent dayOfWeek='0' curWeek='0'> </DailyMealComponent>
+        <DailyMealComponent dayOfWeek='1' curWeek='0' day='Monday'> </DailyMealComponent>
+        <DailyMealComponent dayOfWeek='2' curWeek='0' day='Tuesday'> </DailyMealComponent>
+        <DailyMealComponent dayOfWeek='3' curWeek='0' day='Wednesday'> </DailyMealComponent>
+        <DailyMealComponent dayOfWeek='4' curWeek='0' day='Thursday'> </DailyMealComponent>
+        <DailyMealComponent dayOfWeek='5' curWeek='0' day='Friday'> </DailyMealComponent>
+        <DailyMealComponent dayOfWeek='6' curWeek='0' day='Saturday'> </DailyMealComponent>
+        <DailyMealComponent dayOfWeek='0' curWeek='0' day='Sunday'> </DailyMealComponent>
         <div className="meal-plan-nutr">
           <h1> Nutrition </h1>
           <p> Calories(kCal): 0/GOAL </p>

@@ -6,6 +6,7 @@ import Nutritionist from './nutritionist.png';
 import Nutrition from './nutrition.png'
 import Recipe from './recipe.png';
 import Inventory from './inventory.png';
+import MealPlan from './mealplan.png';
 import { useUser } from './useUser.jsx'
 import { useApi } from './useApi.jsx';
 
@@ -70,6 +71,10 @@ export default function Home(props) {
     return navigate("/nutrition");
   }
 
+  function navToMealPlan() {
+    return navigate("/meal-plan/");
+  }
+
   function navToLogout() {
     return navigate("/logout/");
   }
@@ -128,6 +133,14 @@ export default function Home(props) {
                 className="button"
                 onClick={navToNutrition}>
               Nutrition
+            </button>
+          </div>
+          <div className="img-button-cont">
+            <img src={MealPlan}/>
+            <button
+                className="button"
+                onClick={navToMealPlan}>
+              Meal Plan
             </button>
           </div>
         </div>

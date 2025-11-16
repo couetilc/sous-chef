@@ -23,7 +23,7 @@ from decimal import Decimal, InvalidOperation
 from .models import (
     Ingredient, DietaryIngredient, Diet, UserDiet,
     Recipe, CookedRecipe, Meal, FavoriteRecipe, UserInventory, UserCuratedInventory, OnboardingSubmission, RecipeIngredient, HealthDetails, RecipeTag, TaggedRecipe,
-    ChatConversation, ChatMessage, CuratedIngredient, UserRecipe
+    ChatConversation, ChatMessage, CuratedIngredient, MealPlan, MealPlanEntry, UserRecipe
 )
 from .serializers import (
     UserSerializer, GroupSerializer, UserRegistrationSerializer,
@@ -1176,3 +1176,83 @@ class ClearConversation(APIView):
             {'success': True, 'message': 'Conversation cleared'},
             status=status.HTTP_200_OK
         )
+
+
+class MealPlanListCreateView(APIView):
+    """List user's meal plans or create a new one"""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        meal_plans = MealPlan.objects.filter(user=request.user).prefetch_related('entries__recipe')
+        serializer = MealPlanSerializer(meal_plans, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        week_start = request.data.get('week_start')
+        meal_plan = MealPlan.objects.create(user=request.user, week_start=week_start)
+        serializer = MealPlanSerializer(meal_plan)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+class MealPlanDetailView(APIView):
+    """Retrieve or update a specific meal plan"""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, pk):
+        try:
+            meal_plan = MealPlan.objects.get(id=pk, user=request.user)
+            meal_plan.entries.prefetch_related('recipe')
+        except MealPlan.DoesNotExist:
+            return Response({'error': 'Meal plan not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        serializer = MealPlanSerializer(meal_plan)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class MealPlanEntryCreateView(APIView):
+    """Add a recipe to a meal plan"""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk):
+        try:
+            meal_plan = MealPlan.objects.get(id=pk, user=request.user)
+        except MealPlan.DoesNotExist:
+            return Response({'error': 'Meal plan not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        day_of_week = request.data.get('day_of_week')
+        meal_index = request.data.get('meal_index')
+        recipe_id = request.data.get('recipe_id')
+
+        try:
+            recipe = Recipe.objects.get(id=recipe_id)
+        except Recipe.DoesNotExist:
+            return Response({'error': 'Recipe not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        entry, created = MealPlanEntry.objects.get_or_create(
+            meal_plan=meal_plan,
+            day_of_week=day_of_week,
+            meal_index=meal_index,
+            defaults={'recipe': recipe}
+        )
+
+        if not created:
+            entry.recipe = recipe
+            entry.save()
+
+        serializer = MealPlanEntrySerializer(entry)
+        return Response(serializer.data, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+
+
+class MealPlanEntryDeleteView(APIView):
+    """Remove a recipe from a meal plan"""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def delete(self, request, pk, entry_id):
+        try:
+            meal_plan = MealPlan.objects.get(id=pk, user=request.user)
+            entry = MealPlanEntry.objects.get(id=entry_id, meal_plan=meal_plan)
+        except (MealPlan.DoesNotExist, MealPlanEntry.DoesNotExist):
+            return Response({'error': 'Not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        entry.delete()
+        return Response({'message': 'Entry deleted'}, status=status.HTTP_200_OK)
