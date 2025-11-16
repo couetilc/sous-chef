@@ -478,7 +478,7 @@ class MealPlan(models.Model):
         if self.week_start and self.week_start.weekday() != 0:
             raise ValidationError({'week_start': 'week_start must be a Monday.'})
 
-    @property
+    @property   
     def is_complete(self):
         # Check there are 21 meal entries
         return self.entries.count() == 21
