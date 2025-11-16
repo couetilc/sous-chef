@@ -30,6 +30,7 @@ export default function MealPlanPage(props) {
     try {
       setLoading(true);
       const plans = await api.getMealPlans();
+      console.log('Meal plans fetched:', plans);
       const existingPlan = plans.find(p => p.week_start === startDate.toISOString().split('T')[0]);
       
       if (existingPlan) {
@@ -38,6 +39,7 @@ export default function MealPlanPage(props) {
         const newPlan = await api.createMealPlan({ 
           week_start: startDate.toISOString().split('T')[0] 
         });
+        console.log('New meal plan created:', newPlan);
         setMealPlan(newPlan);
       }
     } catch (error) {
