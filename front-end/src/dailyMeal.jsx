@@ -11,27 +11,7 @@ export default function DailyMealComponent(props) {
     //get current day of the week
     const d = new Date();
     setDayOfWeek(d.getDay());
-    if ( dayOfWeek == 0 ) {
-      setDayText('Sunday');
-    }
-    else if ( dayOfWeek == 1 ) {
-      setDayText('Monday');
-    }
-    else if ( dayOfWeek == 2 ) {
-      setDayText('Tuesday');
-    }
-    else if ( dayOfWeek == 3 ) {
-      setDayText('Wednesday');
-    }
-    else if ( dayOfWeek == 4 ) {
-      setDayText('Thursday');
-    }
-    else if ( dayOfWeek == 5 ) {
-      setDayText('Friday');
-    }
-    else if ( dayOfWeek == 6 ) {
-      setDayText('Saturday');
-    }
+    setDayText(props.day);
     
     // api call to get the user's meal plan information for that day
   }, []);

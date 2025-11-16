@@ -42,7 +42,7 @@ export default function App(props) {
   const history = <PrivatePage><RecipeHistory /></PrivatePage>
   const theme = <PrivatePage><Theme /></PrivatePage>
   const recipesDetail = <PrivatePage><RecipesDetailPage /></PrivatePage>
-  const mealPlan = <PrivatePage><MealPlanPage/></PrivatePage>
+  const mealPlan = <PrivatePage><MealPlanPage /></PrivatePage>
 
   return (
     <Layout>
