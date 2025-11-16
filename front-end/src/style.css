@@ -1332,6 +1332,15 @@ h1 {
   grid-template-rows: 1fr 1fr 1fr 1fr 1fr;
 }
 
+.today-plan-div {
+  padding-left: 3px;
+  padding-right: 3px;
+  border: 5px solid #39fadd;
+  display: grid;
+  align-items: center;
+  grid-template-rows: 1fr 1fr 1fr 1fr 1fr;
+}
+
 .meal-plan-text {
   color: #ff3b30;
   font-size: 1em;
