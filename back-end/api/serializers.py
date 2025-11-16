@@ -29,14 +29,14 @@ class IngredientSerializer(serializers.ModelSerializer):
 
 class CuratedIngredientSerializer(serializers.ModelSerializer):
     """Serializer for curated (staple) ingredients"""
-    capitalized_name = serializers.SerializerMethodField()
+    display_name = serializers.SerializerMethodField()
 
     class Meta:
         model = CuratedIngredient
-        fields = ('id', 'name', 'is_approved', 'created_at', 'capitalized_name')
+        fields = ('id', 'name', 'is_approved', 'frequency', 'percentage', 'created_at', 'display_name')
         read_only_fields = ('id', 'created_at')
 
-    def get_capitalized_name(self, obj):
+    def get_display_name(self, obj):
         if obj.name:
             return ' '.join(word.capitalize() for word in obj.name.split(' '))
         return None
@@ -106,6 +106,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 
 class RecipeSerializer(serializers.ModelSerializer):
     is_favorited = serializers.SerializerMethodField('check_favorited')
+    accessibility_score = serializers.SerializerMethodField('get_accessibility_score')
 
     @property
     def user(self):
@@ -123,10 +124,17 @@ class RecipeSerializer(serializers.ModelSerializer):
         userQuery = userQuery.filter(user=self.user)
         return userQuery.first() != None
 
+    def get_accessibility_score(self, instance):
+        # Return the annotated accessibility_score if it exists
+        return getattr(instance, 'accessibility_score', None)
+
     class Meta:
         model = Recipe
         fields = (
             'id', 'title', 'ingredients', 'instructions',
+            'deliciousness_score',
+            'deliciousness_notes',
+            'accessibility_score',
             'image_url', 'source_url',
             'servings',
             'is_favorited',

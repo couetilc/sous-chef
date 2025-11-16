@@ -168,7 +168,7 @@ def get_nutritionist_llm() -> ChatOpenAI:
     return ChatOpenAI(
         api_key=api_key,
         base_url="https://openrouter.ai/api/v1",
-        model="openrouter/polaris-alpha",
+        model="z-ai/glm-4.5-air:free",
     )
 
 

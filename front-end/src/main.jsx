@@ -17,10 +17,10 @@ import HealthOnboarding from './healthOnboarding.jsx';
 import LogoutPage from './logoutPage';
 import PrivatePage from './privatePage';
 import RecipeHistory from './recipeHistory';
+import MealPlanPage from'./mealPlan';
 import Theme from './theme';
 import Layout from './layout.jsx'
 import RecipesDetailPage from './recipesDetailPage.jsx';
-import MealPlanPage from './mealPlanPage.jsx';
 
 import { BrowserRouter, Routes, Route } from "react-router";
 import { Link } from 'react-router';

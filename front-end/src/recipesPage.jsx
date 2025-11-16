@@ -1,8 +1,8 @@
 import './style.css';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router';
 import { useApi } from './useApi';
-import IngredientsSelectMultiple from './ingredientsSelectMultiple'
+import SelectCuratedIngredients from './selectCuratedIngredients'
 import Recipe from './recipe'
 import { useGET } from './useGET'
 
@@ -11,55 +11,106 @@ import SousChefLogo from './souschef-logo.png';
 export default function Recipes() {
   const { api } = useApi();
   const tags = useGET('getTags')
+  const curatedIngredientsRef = useRef(null)
+  const nameInputRef = useRef(null)
   const [enteredName, setEnteredName] = useState('')
   const [filterInventory, setFilterInventory] = useState(false)
   const [filterFavorites, setFilterFavorites] = useState(false)
+  const [ingredientsMatchAll, setIngredientsMatchAll] = useState(false)
+  const [sortBy, setSortBy] = useState('accessibility')
   const [page, setPage] = useState(1)
   const [recipes, setRecipes ] = useState();
-  const [selectedOptions, setSelectedOptions] = useState([])
+  const [ingredientFilterTrigger, setIngredientFilterTrigger] = useState(0)
   const [ count, setCount ] = useState(0);
   const [servingsMultipliers, setServingsMultipliers] = useState({});
   const [servingsInputs, setServingsInputs] = useState({});
   const [selectedRecipeId, setSelectedRecipeId] = useState(null);
   const navigate = useNavigate();
 
-  const updateList = () => {
+  // Separate state for active filters (what's being searched)
+  const [activeFilters, setActiveFilters] = useState({
+    name: '',
+    inventory: false,
+    favorites: false,
+    ingredientsMatchAll: true,
+    sortBy: 'accessibility',
+  })
+
+  // Execute search with current filter values
+  const executeSearch = useCallback(() => {
     const param = { page }
-    if (enteredName && enteredName !== '') {
-      param.title = enteredName
+    if (activeFilters.name && activeFilters.name !== '') {
+      param.title = activeFilters.name
     }
-    if (filterInventory) {
-      param.searchInventory = 'True'
+    if (activeFilters.inventory) {
+      param.searchCuratedInventory = 'True'
     }
-    if (filterFavorites) {
+    if (activeFilters.favorites) {
       param.searchFavorite = 'True'
     }
-    if (selectedOptions.length !== 0) {
-      const ingredients = selectedOptions.map(option => option.value)
-      param.ingredients = ingredients
+    if (activeFilters.sortBy) {
+      param.sort_by = activeFilters.sortBy
+    }
+    if (curatedIngredientsRef.current) {
+      const curated_ingredients = curatedIngredientsRef.current.getSelectedIds()
+      if (curated_ingredients.length > 0) {
+        param.curated_ingredients = curated_ingredients
+        param.curated_ingredients_match_all = activeFilters.ingredientsMatchAll
+      }
     }
     api.getRecipesFiltered(param).then((result) => {
       setCount(result.count)
       return result
     }).then(setRecipes)
+  }, [api, page, activeFilters])
+
+  // Only auto-update on page change and initial load
+  useEffect(() => {
+    executeSearch()
+  }, [executeSearch])
+
+  const handleSearch = (e) => {
+    e?.preventDefault()
+    // Update active filters with current form values and increment trigger
+    setActiveFilters(prev => ({
+      name: enteredName,
+      inventory: filterInventory,
+      favorites: filterFavorites,
+      ingredientsMatchAll: ingredientsMatchAll,
+      sortBy: sortBy,
+    }))
+    setPage(1) // Reset to page 1 when searching
   }
 
-  useEffect(updateList, [api, enteredName, filterFavorites, filterInventory, selectedOptions, page])
-
-  const onFilterInventory = () => {
-    setFilterInventory(!filterInventory)
-  }
-
-  const onFilterFavorites = () => {
-    setFilterFavorites(!filterFavorites)
+  const handleSortChange = (newSort) => {
+    setSortBy(newSort)
+    // Immediately update active filters and reset to page 1
+    setActiveFilters(prev => ({
+      ...prev,
+      sortBy: newSort,
+    }))
+    setPage(1)
   }
 
   const clearFilters = () => {
     setEnteredName('')
     setFilterInventory(false)
     setFilterFavorites(false)
-    setSelectedOptions([])
-    document.querySelector('input[name="recipeName"]').value = '';
+    setIngredientsMatchAll(false)
+    setSortBy('accessibility')
+    setIngredientFilterTrigger(t => t + 1)
+    if (nameInputRef.current) {
+      nameInputRef.current.value = ''
+    }
+    // Clear and search
+    setActiveFilters(prev => ({
+      name: '',
+      inventory: false,
+      favorites: false,
+      ingredientsMatchAll: true,
+      sortBy: 'accessibility',
+    }))
+    setPage(1)
   }
 
   // Helpers
@@ -75,40 +126,87 @@ export default function Recipes() {
         </div>
       )}
       <div className="filter-bar">
-        <div className="filter-name">
-          <form onSubmit={e => {
-            e.preventDefault()
-            const form = new FormData(e.target)
-            setEnteredName(form.get('recipeName'))
-          }}>
+        <form onSubmit={handleSearch}>
+          <div>
+            <label>Search by Recipe Name:
             <input
+              ref={nameInputRef}
+              className="text-input"
               name="recipeName"
-              placeholder='Search Recipe Name'
-            ></input>
-            <button className="button" type="submit">Search Name</button>
-          </form>
-        </div>
-        <div className="filter-favorite">
-          <button className="button"
-            type="button"
-            onClick={onFilterInventory}
-          >
-            Filter by Inventory ({filterInventory.toString()})
-          </button>
+              placeholder='Search'
+              onChange={(e) => setEnteredName(e.target.value)}
+            />
+            </label>
+          </div>
 
-          <button className="button"
-            type="button"
-            onClick={onFilterFavorites}
-          >
-            Filter by Favorites ({filterFavorites.toString()})
-          </button>
-        </div>
-        <div className="filter-clear">
-          <button className="button" type="button" onClick={clearFilters}>Clear Filters</button>
-        </div>
+          <div>
+            <label>Search by Ingredient:
+            <SelectCuratedIngredients
+              ref={curatedIngredientsRef}
+              key={ingredientFilterTrigger}
+              excludeInventory={false}
+            />
+            </label>
+            <label>
+              <input
+                type="checkbox"
+                checked={ingredientsMatchAll}
+                onChange={(e) => setIngredientsMatchAll(e.target.checked)}
+              />
+              Must use ALL selected ingredients
+            </label>
+          </div>
+
+
+          <div class="filter-checkboxes">
+            <label>
+              <input
+                type="checkbox"
+                checked={filterFavorites}
+                onChange={(e) => setFilterFavorites(e.target.checked)}
+              />
+              Filter by Favorites
+            </label>
+
+            <label>
+              <input
+                type="checkbox"
+                checked={filterInventory}
+                onChange={(e) => setFilterInventory(e.target.checked)}
+              />
+              Filter by Inventory
+            </label>
+          </div>
+
+          <div class="filter-buttons">
+            <button className="button" type="submit">Search</button>
+            <button className="button-blue" type="button" onClick={clearFilters}>Clear Filters</button>
+          </div>
+        </form>
       </div>
-      <div>
-        <IngredientsSelectMultiple selectedOptions={selectedOptions} setSelectedOptions={setSelectedOptions}/>
+      <div className="sort-bar">
+        <label>Sort by:</label>
+        <button
+          type="button"
+          className={sortBy === 'accessibility' ? 'button' : 'button-gray'}
+          onClick={() => handleSortChange('accessibility')}
+        >
+          ⭐ Cheap & Easy (default)
+        </button>
+        <button
+          type="button"
+          className={sortBy === 'deliciousness' ? 'button' : 'button-gray'}
+          onClick={() => handleSortChange('deliciousness')}
+        >
+          😋 Delicious
+        </button>
+        <button
+          type="button"
+          className={sortBy === 'combined' ? 'button' : 'button-gray'}
+          onClick={() => handleSortChange('combined')}
+        >
+          🌟 Delicious & Easy
+        </button>
       </div>
       <div className="paging">
         {recipes?.previous &&
@@ -118,7 +216,7 @@ export default function Recipes() {
       </div>
       <div className="recipes-list">
         {recipes?.results.map(recipe => {
-          return <Recipe tags={tags} recipe={recipe} triggerRefresh={updateList} />
+          return <Recipe key={recipe.id} tags={tags} recipe={recipe} triggerRefresh={executeSearch} />
         })}
       </div>
 
