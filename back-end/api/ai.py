@@ -17,15 +17,21 @@ Usage in views:
 import os
 import logging
 from typing import List, Dict, Any, Optional
+from enum import Enum
 from django.contrib.auth.models import User
+from django.db import transaction
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import PromptTemplate
 from langchain_core.tools import tool
 from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
-from .models import Recipe, UserCuratedInventory
+from .models import Recipe, UserCuratedInventory, TestMealPlan, TestIncompleteMealPlan
 
 logger = logging.getLogger(__name__)
 
+class Meal(Enum):
+    Breakfast = 1
+    Lunch = 2
+    Dinner = 3
 
 # ============================================================================
 # Tool Factory Functions (with user context in closure)
@@ -142,46 +148,99 @@ def create_get_user_inventory_tool(user: User):
 
     return get_user_inventory
 
-def create_create_mealplan_tool():
+def create_create_mealplan_tool(user: User):
     """
-    Create a meal plan tool.
+    Create a create meal plan tool.
     """
     @tool
     def create_mealplan_tool(
 
     ) -> str:
-        """Create a weekly meal plan with 3 recipes per day.
+        """Create a weekly meal plan object which can be filled with recipes
 
-        Use this tool to create a weekly meal plan for the user, containing 21 recipes in total (3 recipes per day).
-        Returns 21 recipes with abbreviated details such as title and nutritional info.
-        Be sure to include the recipe IDs in the response for debugging purposes.
+        Use this tool to create a meal plan object for this conversation if it does not exist already.
+        This tool should be called before any tool calls to modify or show the weekly meal plan are made.
 
         Returns:
-            A formatted string containing recipe details (id, title, nutrition)
+            A string indicating whether or not the meal plan object was created.
         """
-        # Start with base queryset
-        queryset = Recipe.objects.all().order_by('-created_at')
 
-        # Limit to 21 results
-        recipes = queryset[:21]
+        with transaction.atomic():
+            mealPlan = TestMealPlan.objects.create()
+            incompleteMealPlan = TestIncompleteMealPlan.objects.filter(user=user).first()
+            if (incompleteMealPlan != None):
+                incompleteMealPlan.mealPlan.delete()
+                incompleteMealPlan.delete()
+            incompleteMealPlan = TestIncompleteMealPlan.objects.create(
+                user=user,
+                mealPlan=mealPlan
+            )
 
-        if not recipes:
-            return "No recipes found matching the search criteria."
-
-        # Format results
-        results = []
-        for recipe in recipes:
-            recipe_text = f"""
-Recipe ID: {recipe.id}
-Title: {recipe.title}
-Nutrition (per serving): {recipe.calories_per_serving} calories, {recipe.protein_g}g protein, {recipe.carbs_g}g carbs, {recipe.fat_g}g fat
----"""
-            results.append(recipe_text.strip())
-
-        return "\n\n".join(results)
+        return "Successfully created recipe."
 
     return create_mealplan_tool 
 
+def create_edit_mealplan_tool(user: User):
+    """
+    Create an edit meal plan tool.
+    """
+
+    @tool
+    def edit_mealplan_tool(
+        meal: Meal,
+        title: str
+    ) -> str:
+        """Edit one of the current weekly meal plan object's recipes.
+
+        Use this tool to edit one of the three recipe slots of the weekly meal plan. 
+        The tool's first argument corresponds to the meal slot being edited, and a title query to search for recipes to replace it.
+        Choose a recipe title query which is appropriate for the meal being selected. For example, for breakfast an appropriate query might be "pancakes".
+
+        Returns:                
+            A string indicating whether or not the meal plan object was modified.
+        """
+
+        incompleteMealPlan = TestIncompleteMealPlan.objects.filter(user=user).first()
+        if (incompleteMealPlan == None):
+            return "Could not edit recipe: You should create a meal plan object first with create_mealplan_tool, then try again."
+
+        with transaction.atomic():
+            mealPlan = incompleteMealPlan.mealPlan
+            if (meal == Meal.Breakfast):
+                queryset = Recipe.objects.all().order_by('-created_at')
+                queryset.filter(title=title)
+                result = queryset.first()
+                mealPlan.recipeBreakfast = result
+            if (meal == Meal.Lunch):
+                queryset = Recipe.objects.all().order_by('-created_at')
+                queryset.filter(title=title)
+                mealPlan.recipeLunch= queryset.first()
+            if (meal == Meal.Dinner):
+                queryset = Recipe.objects.all().order_by('-created_at')
+                queryset.filter(title=title)
+                mealPlan.recipeDinner= queryset.first()
+
+        return "Successfully edited recipe."
+    return edit_mealplan_tool
+
+def create_show_mealplan_tool(user: User):
+    """
+    Create a show meal plan tool.
+    """
+
+    @tool
+    def show_mealplan_tool() -> str:
+        """ Show the current weekly meal plan being created by the user.
+
+        Use this tool to show the in-progress meal plan to the user.
+        This tool fails if the meal plan object does not yet exist, or if one of the meal slots has not yet been filled.
+
+        Returns:                
+            A formatted string containing all the recipes in the in-progress meal plan,
+            or an error message if the meal plan is missing or incomplete.
+        """
+        return ""
+    return show_mealplan_tool
 
 # ============================================================================
 # LLM and Prompt Configuration
@@ -267,7 +326,7 @@ class NutritionistAgent:
         return [
             create_search_recipes_tool(),
             create_get_user_inventory_tool(self.user),
-            create_create_mealplan_tool()
+            create_create_mealplan_tool(self.user)
         ]
 
     def chat(

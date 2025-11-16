@@ -457,3 +457,21 @@ class ChatMessage(models.Model):
 
     def __str__(self):
         return f"{self.role}: {self.content[:50]}..."
+
+class TestMealPlan(models.Model):
+    recipeBreakfast = models.ForeignKey(Recipe, on_delete=models.CASCADE, related_name='meal_plans_br', blank=True, null=True)
+    recipeLunch = models.ForeignKey(Recipe, on_delete=models.CASCADE, related_name='meal_plans_lu', blank=True, null=True)
+    recipeDinner = models.ForeignKey(Recipe, on_delete=models.CASCADE, related_name='meal_plans_dr', blank=True, null=True)
+
+    def __str__(self):
+        return f"Meal Plan with {self.recipeBreakfast}, {self.recipeLunch}, {self.recipeDinner}"
+
+class TestIncompleteMealPlan(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='incomplete_meal_plans')
+    mealPlan = models.ForeignKey(TestMealPlan, on_delete=models.CASCADE, related_name='incomplete_meal_plans')
+
+    class Meta:
+        unique_together = ['user', 'mealPlan']
+
+    def __str__(self):
+        return f"Incomplete Meal Plan for {self.user}"
