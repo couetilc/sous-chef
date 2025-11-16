@@ -18,7 +18,7 @@ from rest_framework.pagination import PageNumberPagination
 from django.contrib.auth.models import User, Group
 
 logger = logging.getLogger(__name__)
-from .serializers import UserSerializer, GroupSerializer, UserRegistrationSerializer, IngredientSerializer, DietSerializer, CookedRecipeSerializer, MealSerializer, OnboardSerializer, SettingsIngredientSerializer, UserInventorySerializer, UserCuratedInventorySerializer, TagSerializer, UserRecipeSerializer, CuratedIngredientSerializer, MealPlanSerializer
+from .serializers import UserSerializer, GroupSerializer, UserRegistrationSerializer, IngredientSerializer, DietSerializer, CookedRecipeSerializer, MealSerializer, OnboardSerializer, SettingsIngredientSerializer, UserInventorySerializer, UserCuratedInventorySerializer, TagSerializer, UserRecipeSerializer, CuratedIngredientSerializer, MealPlanSerializer, MealPlanEntrySerializer
 from decimal import Decimal, InvalidOperation
 from .models import (
     Ingredient, DietaryIngredient, Diet, UserDiet,

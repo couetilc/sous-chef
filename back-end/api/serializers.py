@@ -234,9 +234,7 @@ class MealPlanEntrySerializer(serializers.ModelSerializer):
 
 class MealPlanSerializer(serializers.ModelSerializer):
     entries = MealPlanEntrySerializer(many=True, read_only=True)
-    is_complete = serializers.ReadOnlyField()
-
+    
     class Meta:
         model = MealPlan
-        fields = ('id', 'week_start', 'entries', 'is_complete', 'created_at')
-        read_only_fields = ('created_at',)
+        fields = ['id', 'week_start', 'entries', 'is_complete', 'created_at']

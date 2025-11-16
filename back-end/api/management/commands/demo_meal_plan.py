@@ -38,9 +38,9 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS(f'Found {len(recipes)} recipes in database'))
 
-        # Calculate Monday of current week (Monday = 0, Sunday = 6)
+        # Calculate Monday of current week
         today = datetime.now().date()
-        days_since_monday = today.weekday()  # Returns 0 for Monday, 6 for Sunday
+        days_since_monday = today.weekday()
         monday = today - timedelta(days=days_since_monday)
 
         # Get or create meal plan for this week
@@ -65,7 +65,7 @@ class Command(BaseCommand):
                 # Cycle through available recipes
                 recipe = recipes[(day * 3 + meal_index - 1) % len(recipes)]
                 
-                entry, created = MealPlanEntry.objects.create(
+                entry = MealPlanEntry.objects.create(
                     meal_plan=meal_plan,
                     day_of_week=day,
                     meal_index=meal_index,
