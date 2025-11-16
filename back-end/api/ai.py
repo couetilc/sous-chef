@@ -142,6 +142,46 @@ def create_get_user_inventory_tool(user: User):
 
     return get_user_inventory
 
+def create_create_mealplan_tool():
+    """
+    Create a meal plan tool.
+    """
+    @tool
+    def create_mealplan_tool(
+
+    ) -> str:
+        """Create a weekly meal plan with 3 recipes per day.
+
+        Use this tool to create a weekly meal plan for the user, containing 21 recipes in total (3 recipes per day).
+        Returns 21 recipes with abbreviated details such as title and nutritional info.
+        Be sure to include the recipe IDs in the response for debugging purposes.
+
+        Returns:
+            A formatted string containing recipe details (id, title, nutrition)
+        """
+        # Start with base queryset
+        queryset = Recipe.objects.all().order_by('-created_at')
+
+        # Limit to 21 results
+        recipes = queryset[:21]
+
+        if not recipes:
+            return "No recipes found matching the search criteria."
+
+        # Format results
+        results = []
+        for recipe in recipes:
+            recipe_text = f"""
+Recipe ID: {recipe.id}
+Title: {recipe.title}
+Nutrition (per serving): {recipe.calories_per_serving} calories, {recipe.protein_g}g protein, {recipe.carbs_g}g carbs, {recipe.fat_g}g fat
+---"""
+            results.append(recipe_text.strip())
+
+        return "\n\n".join(results)
+
+    return create_mealplan_tool 
+
 
 # ============================================================================
 # LLM and Prompt Configuration
@@ -226,7 +266,8 @@ class NutritionistAgent:
         """Create all tools for the agent with proper context."""
         return [
             create_search_recipes_tool(),
-            create_get_user_inventory_tool(self.user)
+            create_get_user_inventory_tool(self.user),
+            create_create_mealplan_tool()
         ]
 
     def chat(
