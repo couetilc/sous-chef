@@ -27,6 +27,7 @@ CRONJOBS = [
   # weekly
   # ('0 6 * * 0', 'weekly_emails'),
   ('*/5 * * * #', 'weekly_emails'),
+  ('*/5 * * * #', 'weekly_grocery_emails'),
   # daily
   ('0 6 * * *', 'daily_emails')
   

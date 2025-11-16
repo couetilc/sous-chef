@@ -17,3 +17,12 @@ def weekly_emails():
   # api call to get every active user's meal plan for next week
   # format it
   # use send_mail to send it
+
+def weekly_grocery_emails():
+  print('sent grocery lists!')
+  # part 1:
+  # iterate over active users {
+  #   api call get diff between NEXT WEEK's meal plan ingredients and inventory ingredients
+  #   format info
+  #   use send mail to send it
+  # }
