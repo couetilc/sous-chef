@@ -362,8 +362,6 @@ export class Api {
     })
   }
 
-  // ...existing code...
-
   async getMealPlans() {
     return this.fetch('/api/meal_plans/')
   }

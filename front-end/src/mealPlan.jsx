@@ -30,7 +30,6 @@ export default function MealPlanPage(props) {
     try {
       setLoading(true);
       const plans = await api.getMealPlans();
-      console.log('Meal plans fetched:', plans);
       const existingPlan = plans.find(p => p.week_start === startDate.toISOString().split('T')[0]);
       
       if (existingPlan) {
@@ -39,7 +38,6 @@ export default function MealPlanPage(props) {
         const newPlan = await api.createMealPlan({ 
           week_start: startDate.toISOString().split('T')[0] 
         });
-        console.log('New meal plan created:', newPlan);
         setMealPlan(newPlan);
       }
     } catch (error) {
@@ -49,35 +47,22 @@ export default function MealPlanPage(props) {
     }
   }
 
-  async function handleRemoveRecipe(entryId) {
-    try {
-      await api.deleteMealPlanEntry({ 
-        meal_plan_id: mealPlan.id, 
-        entry_id: entryId 
-      });
-      const updated = await api.getMealPlan({ id: mealPlan.id });
-      setMealPlan(updated);
-    } catch (error) {
-      console.error('Error removing recipe:', error);
-    }
-  }
-
   if (loading) return <div>Loading meal plan...</div>;
 
   return ( 
     <div className="meal-plan-div">
       <div className="meal-plan-text">
-        <h1 style={{ marginTop: '5px'}}> Your Meal Plan for {weekStart} to {weekEnd} </h1>
+        <h1 style={{ marginTop: '10px'}}> Your Meal Plan for {weekStart} to {weekEnd} </h1>
       </div>
       <div className="weekly-plan-div">
         <div> <p> </p></div>
-        <DailyMealComponent dayOfWeek='1' curWeek='1' day='Monday' mealPlan={mealPlan} onRemove={handleRemoveRecipe}> </DailyMealComponent>
-        <DailyMealComponent dayOfWeek='2' curWeek='1' day='Tuesday' mealPlan={mealPlan} onRemove={handleRemoveRecipe}> </DailyMealComponent>
-        <DailyMealComponent dayOfWeek='3' curWeek='1' day='Wednesday' mealPlan={mealPlan} onRemove={handleRemoveRecipe}> </DailyMealComponent>
-        <DailyMealComponent dayOfWeek='4' curWeek='1' day='Thursday' mealPlan={mealPlan} onRemove={handleRemoveRecipe}> </DailyMealComponent>
-        <DailyMealComponent dayOfWeek='5' curWeek='1' day='Friday' mealPlan={mealPlan} onRemove={handleRemoveRecipe}> </DailyMealComponent>
-        <DailyMealComponent dayOfWeek='6' curWeek='1' day='Saturday' mealPlan={mealPlan} onRemove={handleRemoveRecipe}> </DailyMealComponent>
-        <DailyMealComponent dayOfWeek='0' curWeek='1' day='Sunday' mealPlan={mealPlan} onRemove={handleRemoveRecipe}> </DailyMealComponent>
+        <DailyMealComponent dayOfWeek='1' curWeek='1' day='Monday' mealPlan={mealPlan}> </DailyMealComponent>
+        <DailyMealComponent dayOfWeek='2' curWeek='1' day='Tuesday' mealPlan={mealPlan}> </DailyMealComponent>
+        <DailyMealComponent dayOfWeek='3' curWeek='1' day='Wednesday' mealPlan={mealPlan}> </DailyMealComponent>
+        <DailyMealComponent dayOfWeek='4' curWeek='1' day='Thursday' mealPlan={mealPlan}> </DailyMealComponent>
+        <DailyMealComponent dayOfWeek='5' curWeek='1' day='Friday' mealPlan={mealPlan}> </DailyMealComponent>
+        <DailyMealComponent dayOfWeek='6' curWeek='1' day='Saturday' mealPlan={mealPlan}> </DailyMealComponent>
+        <DailyMealComponent dayOfWeek='0' curWeek='1' day='Sunday' mealPlan={mealPlan}> </DailyMealComponent>
         <div className="meal-plan-nutr">
           <h1> Nutrition </h1>
           <p> Calories(kCal): 0/GOAL </p>
