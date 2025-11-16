@@ -56,8 +56,7 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING(f'Meal plan already exists for week {monday}'))
             return
 
-        # Add meals to the plan (3 meals per day for 7 days = 21 entries)
-        # Days: 0=Monday, 1=Tuesday, ..., 6=Sunday
+        # Add meals to the plan
         entry_count = 0
 
         for day in range(7):
