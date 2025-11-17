@@ -3,12 +3,63 @@ import { useApi } from './useApi.jsx';
 import DailyMealComponent from './dailyMeal.jsx';
 import './style.css';
 
+function WeekMealGrid({ days, mealPlan, curWeek }) {
+  const rows = [
+    { label: "Breakfast", type: 1 },
+    { label: "Lunch", type: 2 },
+    { label: "Dinner", type: 3 },
+  ];
+
+  return (
+    <div className="week-grid">
+
+      {/* Empty top left cell */}
+      <div className="meal-label-col"></div>
+      {days.map(day => (
+        <div key={day + "-header"} className="day-header">
+          {day}
+        </div>
+      ))}
+
+      {/* Breakfast, Lunch, Dinner rows */}
+      {rows.map(row => (
+        <React.Fragment key={row.label}>
+          <div className="meal-label-col">{row.label}</div>
+
+          {days.map((day, i) => (
+            <DailyMealComponent
+              key={day + "-" + row.label}
+              dayOfWeek={i === 6 ? "0" : (i + 1).toString()}
+              mealType={row.type}
+              mealPlan={mealPlan}
+              curWeek={curWeek}
+            />
+          ))}
+        </React.Fragment>
+      ))}
+
+      <NutritionSummary />
+    </div>
+  );
+}
+
+function NutritionSummary() {
+  return (
+    <div className="nutrition-card">
+      <h2>Nutrition</h2>
+      <p>Calories (kCal): 0 / GOAL</p>
+      <p>Protein (g): 0 / GOAL</p>
+      <p>Fat (g): 0 / GOAL</p>
+      <p>Carbs (g): 0 / GOAL</p>
+    </div>
+  );
+}
+
 export default function MealPlanPage() {
   const { api } = useApi();
   const [mealPlan, setMealPlan] = useState(null);
   const [weekStart, setWeekStart] = useState('');
   const [weekEnd, setWeekEnd] = useState('');
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const today = new Date();
@@ -28,7 +79,6 @@ export default function MealPlanPage() {
 
   async function fetchOrCreateMealPlan(startDate) {
     try {
-      setLoading(true);
       const plans = await api.getMealPlans();
       const iso = startDate.toISOString().split('T')[0];
       const found = plans.find(p => p.week_start === iso);
@@ -36,93 +86,33 @@ export default function MealPlanPage() {
       setMealPlan(found || await api.createMealPlan({ week_start: iso }));
     } catch (err) {
       console.error('Error:', err);
-    } finally {
-      setLoading(false);
     }
   }
-
-  if (loading) return <div className="loading">Loading meal plan...</div>;
 
   const days = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
 
   return (
     <div className="meal-plan-container">
 
+      {/* Current Week */}
       <h1 className="section-title">
         Meal Plan: {weekStart} - {weekEnd}
       </h1>
 
-      <div className="week-grid">
-        <div className="meal-label-col"></div>
-        {days.map(day => (
-          <div key={day} className="day-header">{day}</div>
-        ))}
+      <WeekMealGrid
+        days={days}
+        mealPlan={mealPlan}
+        curWeek="1"
+      />
 
-        {/* Breakfast row */}
-        <div className="meal-label-col">Breakfast</div>
-        {days.map((day, i) => (
-          <DailyMealComponent
-            key={day + "-b"}
-            dayOfWeek={i === 6 ? '0' : (i + 1).toString()}
-            mealType={1}
-            mealPlan={mealPlan}
-          />
-        ))}
+      {/* Next Week */}
+      <h1 className="section-title">Next Week’s Plan</h1>
 
-        {/* Lunch row */}
-        <div className="meal-label-col">Lunch</div>
-        {days.map((day, i) => (
-          <DailyMealComponent
-            key={day + "-l"}
-            dayOfWeek={i === 6 ? '0' : (i + 1).toString()}
-            mealType={2}
-            mealPlan={mealPlan}
-          />
-        ))}
-
-        {/* Dinner row */}
-        <div className="meal-label-col">Dinner</div>
-        {days.map((day, i) => (
-          <DailyMealComponent
-            key={day + "-d"}
-            dayOfWeek={i === 6 ? '0' : (i + 1).toString()}
-            mealType={3}
-            mealPlan={mealPlan}
-          />
-        ))}
-
-        <NutritionSummary />
-      </div>
-
-      <h1 className="section-title">
-        Next Week’s Plan
-      </h1>
-
-      <div className="week-grid">
-        {days.map((day, i) => (
-          <DailyMealComponent
-            key={day + "-next"}
-            dayOfWeek={i === 6 ? '0' : (i + 1).toString()}
-            curWeek="0"
-            day={day}
-          />
-        ))}
-
-        <NutritionSummary />
-      </div>
-
-    </div>
-  );
-}
-
-function NutritionSummary() {
-  return (
-    <div className="nutrition-card">
-      <h2>Nutrition</h2>
-      <p>Calories (kCal): 0 / GOAL</p>
-      <p>Protein (g): 0 / GOAL</p>
-      <p>Fat (g): 0 / GOAL</p>
-      <p>Carbs (g): 0 / GOAL</p>
+      <WeekMealGrid
+        days={days}
+        mealPlan={null}
+        curWeek="0"
+      />
     </div>
   );
 }
