@@ -1,6 +1,7 @@
 import './style.css';
 import { useNavigate, useParams } from 'react-router';
 import { useState, useEffect, useRef } from 'react';
+import ReactMarkdown from 'react-markdown';
 
 import SousChefLogo from './souschef-logo2.png';
 import { useApi } from './useApi';
@@ -137,7 +138,6 @@ export default function SousChef() {
           <h1 style={{ margin: 0, letterSpacing: 1 }}>AI SOUS CHEF</h1>
 
           <div style={{ marginTop: 10 }}>
-            
             {id && (
               <div style={{ fontSize: 13, color: '#777', marginTop: 2 }}>
                 Cooking recipe ID: {id}
@@ -317,7 +317,19 @@ export default function SousChef() {
                       className="message-content"
                       style={{ fontSize: 14, marginBottom: 2 }}
                     >
-                      {msg.content}
+                      {isAssistant ? (
+                        <ReactMarkdown
+                          components={{
+                            p: ({ node, ...props }) => (
+                              <p style={{ margin: 0 }} {...props} />
+                            ),
+                          }}
+                        >
+                          {msg.content}
+                        </ReactMarkdown>
+                      ) : (
+                        msg.content
+                      )}
                     </div>
                     <div
                       className="message-time"
