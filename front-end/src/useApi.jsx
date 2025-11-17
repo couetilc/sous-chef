@@ -42,7 +42,7 @@ export class Api {
           this.csrfToken = response.csrfToken;
           this.ready_state = this.READY_STATES.YES;
         } else {
-        console.log('token not ready')
+          console.log('token not ready')
           this.ready_state = this.READY_STATES.NO;
         }
       } catch (error) {
@@ -344,6 +344,7 @@ export class Api {
     })
   }
 
+  // Nutritionist chat
   async getConversation() {
     return this.fetch(`/api/nutritionist/conversation/`, {
       method: 'GET',
@@ -384,7 +385,24 @@ export class Api {
 
   async deleteMealPlanEntry({ meal_plan_id, entry_id }) {
     return this.fetch(`/api/meal_plans/${meal_plan_id}/entries/${entry_id}/`, {
-      method: 'DELETE'
+      method: 'DELETE',
+    })
+  }
+  async getSousChefConversation() {
+    return this.fetch(`/api/souschef/conversation/`, {
+      method: 'GET',
+    })
+  }
+
+  async sousChefChat({ message }) {
+    return this.fetch(`/api/souschef/conversation/`, {
+      body: JSON.stringify({ message }),
+    })
+  }
+
+  async clearSousChefConversation() {
+    return this.fetch(`/api/souschef/conversation/clear/`, {
+      body: JSON.stringify({}),
     })
   }
 }
@@ -394,9 +412,9 @@ export function ApiProvider(props) {
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-  console.log('ready effect triggered')
+    console.log('ready effect triggered')
     if (!api.isReady()) {
-    console.log('becoming ready')
+      console.log('becoming ready')
       api.becomeReady().then(() => { setIsReady(true) });
     }
   })
@@ -405,8 +423,8 @@ export function ApiProvider(props) {
     return { api, isReady };
   }, [isReady, api]);
 
-	return (
-		<ApiContext value={context}>
+  return (
+    <ApiContext value={context}>
       {props.children}
     </ApiContext>
   )

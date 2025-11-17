@@ -784,7 +784,164 @@ class NutritionistAgent:
         # Return final response and metadata
         return {
             'content': response.content,
-            'tool_calls': all_tool_calls_data if all_tool_calls_data else None
+            'tool_calls': all_tool_calls_data,
+        }
+
+
+SOUSCHEF_TEMPLATE = """
+You are SousChef, a friendly step-by-step cooking assistant. The current user's username is {username}.
+
+{conversation_history}
+
+Current message from {username}: {message}
+""".strip()
+
+
+def get_souschef_llm() -> ChatOpenAI:
+    """Get the LLM configured for the SousChef assistant."""
+
+    api_key = os.environ.get("OPEN_ROUTER_API_KEY")
+    if not api_key:
+        raise ValueError(
+            "OPEN_ROUTER_API_KEY environment variable is not set. "
+            "Please configure this API key to use the SousChef AI feature."
+        )
+
+    return ChatOpenAI(
+        api_key=api_key,
+        base_url="https://openrouter.ai/api/v1",
+        model="openrouter/sherlock-think-alpha",
+    )
+
+
+def get_souschef_prompt() -> PromptTemplate:
+    """Get the SousChef prompt template."""
+    return PromptTemplate(
+        template=SOUSCHEF_TEMPLATE,
+        input_variables=["username", "conversation_history", "message"],
+    )
+
+
+class SousChefAgent:
+    """
+    High-level API for the SousChef AI assistant.
+
+    Very similar to NutritionistAgent, but with a cooking-focused prompt.
+    """
+
+    def __init__(self, user: User):
+        self.user = user
+        self.llm = get_souschef_llm()
+        self.prompt = get_souschef_prompt()
+
+        # Reuse the same tools for now (recipe search + user inventory)
+        self.tools = self._create_tools()
+        self.tool_map = {tool.name: tool for tool in self.tools}
+        self.llm_with_tools = self.llm.bind_tools(self.tools)
+        self.chain = self.prompt | self.llm_with_tools
+
+    def _create_tools(self) -> List:
+        return [
+            create_search_recipes_tool(),
+            create_get_user_inventory_tool(self.user),
+        ]
+
+    def chat(
+        self,
+        message: str,
+        conversation_history: str = "",
+        max_iterations: int = 10,
+    ) -> Dict[str, Any]:
+        from django.utils import timezone
+
+        username = self.user.username
+
+        try:
+            response = self.chain.invoke(
+                {
+                    "username": username,
+                    "conversation_history": conversation_history,
+                    "message": message,
+                }
+            )
+        except Exception as e:
+            logger.error(f"SousChef LLM API error for user {username}: {e}", exc_info=True)
+            raise
+
+        messages = [
+            HumanMessage(
+                content=f"Username: {username}\n\n{conversation_history}\n\nCurrent message: {message}"
+            )
+        ]
+
+        all_tool_calls_data = []
+        iteration_count = 0
+
+        while hasattr(response, "tool_calls") and response.tool_calls and iteration_count < max_iterations:
+            iteration_count += 1
+            messages.append(response)
+
+            for tool_call in response.tool_calls:
+                tool_name = tool_call["name"]
+                tool_args = tool_call["args"]
+                call_timestamp = timezone.now().isoformat()
+
+                if tool_name in self.tool_map:
+                    tool = self.tool_map[tool_name]
+                    try:
+                        tool_result = tool.invoke(tool_args)
+                    except Exception as e:
+                        logger.error(
+                            f"SousChef tool execution error ({tool_name}) for user {username}: {e}",
+                            exc_info=True,
+                        )
+                        tool_result = f"Error executing tool: {str(e)}"
+
+                    messages.append(
+                        ToolMessage(
+                            content=tool_result,
+                            tool_call_id=tool_call.get("id", "unknown"),
+                        )
+                    )
+
+                    all_tool_calls_data.append(
+                        {
+                            "tool_name": tool_name,
+                            "parameters": tool_args,
+                            "result": tool_result,
+                            "timestamp": call_timestamp,
+                        }
+                    )
+                else:
+                    error_msg = f"Error: Unknown tool '{tool_name}'"
+                    logger.warning(f"SousChef unknown tool requested ({tool_name}) for user {username}")
+                    messages.append(
+                        ToolMessage(
+                            content=error_msg,
+                            tool_call_id=tool_call.get("id", "unknown"),
+                        )
+                    )
+                    all_tool_calls_data.append(
+                        {
+                            "tool_name": tool_name,
+                            "parameters": tool_args,
+                            "result": error_msg,
+                            "timestamp": call_timestamp,
+                        }
+                    )
+
+            try:
+                response = self.llm_with_tools.invoke(messages)
+            except Exception as e:
+                logger.error(
+                    f"SousChef LLM API error during tool loop for user {username}: {e}",
+                    exc_info=True,
+                )
+                raise
+
+        return {
+            "content": response.content,
+            "tool_calls": all_tool_calls_data,
         }
 
 # ============================================================================

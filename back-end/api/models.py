@@ -426,8 +426,19 @@ class TaggedRecipe(models.Model):
 
 
 class ChatConversation(models.Model):
-    """AI nutritionist chat conversation for a user"""
+    """AI chat conversation for a user (nutritionist, souschef, etc.)"""
+    CHANNEL_CHOICES = [
+        ('nutritionist', 'Nutritionist'),
+        ('souschef', 'SousChef'),
+    ]
+
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='chat_conversations')
+    channel = models.CharField(
+        max_length=32,
+        choices=CHANNEL_CHOICES,
+        default='nutritionist',
+        db_index=True,
+    )
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -437,7 +448,8 @@ class ChatConversation(models.Model):
 
     def __str__(self):
         status = 'active' if self.is_active else 'inactive'
-        return f"{self.user.username}'s chat ({status}) - {self.created_at.strftime('%Y-%m-%d %H:%M')}"
+        return f"{self.user.username}'s {self.channel} chat ({status}) - {self.created_at.strftime('%Y-%m-%d %H:%M')}"
+
 
 
 class ChatMessage(models.Model):
