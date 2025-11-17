@@ -18,7 +18,7 @@ from rest_framework.pagination import PageNumberPagination
 from django.contrib.auth.models import User, Group
 
 logger = logging.getLogger(__name__)
-from .serializers import UserSerializer, GroupSerializer, UserRegistrationSerializer, IngredientSerializer, DietSerializer, CookedRecipeSerializer, MealSerializer, OnboardSerializer, SettingsIngredientSerializer, UserInventorySerializer, UserCuratedInventorySerializer, TagSerializer, UserRecipeSerializer, CuratedIngredientSerializer
+from .serializers import UserSerializer, GroupSerializer, UserRegistrationSerializer, IngredientSerializer, DietSerializer, CookedRecipeSerializer, MealSerializer, OnboardSerializer, SettingsIngredientSerializer, UserInventorySerializer, UserCuratedInventorySerializer, TagSerializer, UserRecipeSerializer, CuratedIngredientSerializer, MealPlanSerializer, MealPlanEntrySerializer
 from decimal import Decimal, InvalidOperation
 from .models import (
     Ingredient, DietaryIngredient, Diet, UserDiet,
@@ -1256,3 +1256,27 @@ class MealPlanEntryDeleteView(APIView):
 
         entry.delete()
         return Response({'message': 'Entry deleted'}, status=status.HTTP_200_OK)
+
+# AI Sous Chef endpoint. WIP.
+class SousChefInterpret(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        message = request.data.get('message')
+        recipe = request.data.get('recipe')
+        curr_step_index = request.data.get('current_step_index', 0)
+
+        # 1. Predict intent
+        recipe_step = recipe[curr_step_index]
+        #intent = classify_intent(message, recipe_step)
+
+        # 2. Handle the intent
+        #result = handle_intent(intent, recipe, curr_step_index)
+
+        # Integrate commented code when with Branton's AI Sous Chef model later.
+
+        return Response({
+            "intent": intent.value,
+            "new_step_index": result['step_index'],
+            "assistant_message": result['message']
+        })
