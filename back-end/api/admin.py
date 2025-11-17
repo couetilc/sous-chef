@@ -5,7 +5,12 @@ from django.urls import reverse
 from django.utils.html import format_html
 from decimal import Decimal
 
-from api.models import Recipe, Ingredient, DietaryIngredient, RecipeIngredient, ScrapedInventory, ScrapedRecipe, ScrapedIngredient, ScrapedNutritionalInfo, CookedRecipe, Meal, ChatConversation, ChatMessage, CuratedIngredient, RecipeCuratedIngredient
+from api.models import (
+    Recipe, Ingredient, DietaryIngredient, RecipeIngredient, ScrapedInventory,
+    ScrapedRecipe, ScrapedIngredient, ScrapedNutritionalInfo, CookedRecipe, Meal,
+    ChatConversation, ChatMessage, CuratedIngredient, RecipeCuratedIngredient,
+    InProgressRecipe, InProgressRecipeIngredient
+)
 
 
 class IngredientInline(admin.TabularInline):
@@ -268,7 +273,7 @@ class RecipeIngredientAdmin(admin.ModelAdmin):
 
 @admin.register(CuratedIngredient)
 class CuratedIngredientAdmin(admin.ModelAdmin):
-	list_display = ('name', 'is_approved', 'created_at')
+	list_display = ('name', 'is_approved', 'frequency', 'percentage', 'created_at')
 	search_fields = ('name',)
 	list_filter = ('is_approved', 'created_at')
 	ordering = ('name',)
@@ -537,3 +542,155 @@ class ChatMessageAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         """Prevent message deletion through admin (for data integrity)"""
         return False
+
+
+# In-Progress Recipe Admin
+
+class InProgressRecipeIngredientInline(admin.TabularInline):
+    """Show in-progress recipe ingredients inline on the InProgressRecipe admin page."""
+    model = InProgressRecipeIngredient
+    extra = 0
+    fields = ('curated_ingredient', 'quantity', 'unit', 'created_at')
+    readonly_fields = ('created_at',)
+    autocomplete_fields = ['curated_ingredient']
+
+
+class StatusFilter(SimpleListFilter):
+    """Filter in-progress recipes by status"""
+    title = 'status'
+    parameter_name = 'status'
+
+    def lookups(self, request, model_admin):
+        return [
+            ('draft', 'Draft'),
+            ('pending_confirmation', 'Pending Confirmation'),
+            ('discarded', 'Discarded'),
+        ]
+
+    def queryset(self, request, queryset):
+        if self.value():
+            return queryset.filter(status=self.value())
+        return queryset
+
+
+@admin.register(InProgressRecipe)
+class InProgressRecipeAdmin(admin.ModelAdmin):
+    list_display = ('title_display', 'user', 'status', 'ingredient_count', 'has_instructions', 'created_at', 'updated_at')
+    search_fields = ('title', 'user__username', 'user__email', 'instructions')
+    list_filter = (StatusFilter, 'created_at', 'updated_at', 'user')
+    readonly_fields = ('created_at', 'updated_at', 'ingredient_list_display', 'instructions_display', 'metadata_display')
+    inlines = (InProgressRecipeIngredientInline,)
+    ordering = ('-updated_at',)
+
+    fieldsets = (
+        ('Basic Information', {
+            'fields': ('user', 'title', 'status')
+        }),
+        ('Recipe Details', {
+            'fields': ('ingredient_list_display', 'instructions_display', 'metadata_display')
+        }),
+        ('Time Information', {
+            'fields': ('prep_time_min', 'cook_time_min', 'total_time_min', 'servings')
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+
+    def title_display(self, obj):
+        """Display title or 'Untitled Recipe' with link"""
+        title = obj.title if obj.title else 'Untitled Recipe'
+        return title
+    title_display.short_description = 'Title'
+    title_display.admin_order_field = 'title'
+
+    def ingredient_count(self, obj):
+        """Display number of ingredients"""
+        count = obj.ingredients.count()
+        if count == 0:
+            return format_html('<span style="color: #999;">0 ingredients</span>')
+        return f"{count} ingredient{'s' if count != 1 else ''}"
+    ingredient_count.short_description = 'Ingredients'
+
+    def has_instructions(self, obj):
+        """Show if recipe has instructions"""
+        if obj.instructions and obj.instructions.strip():
+            step_count = len([s for s in obj.instructions.split('|') if s.strip()])
+            return f"✓ ({step_count} steps)"
+        return '✗'
+    has_instructions.short_description = 'Instructions'
+
+    def ingredient_list_display(self, obj):
+        """Display all ingredients in a formatted list"""
+        ingredients = obj.ingredients.select_related('curated_ingredient').all()
+        if not ingredients:
+            return format_html('<p style="color: #999;"><em>No ingredients added yet</em></p>')
+
+        html = '<ul style="margin: 0; padding-left: 20px;">'
+        for ing in ingredients:
+            html += f'<li><strong>{ing.quantity} {ing.unit}</strong> {ing.curated_ingredient.name}</li>'
+        html += '</ul>'
+        return format_html(html)
+    ingredient_list_display.short_description = 'Ingredients'
+
+    def instructions_display(self, obj):
+        """Display instructions as numbered steps"""
+        if not obj.instructions or not obj.instructions.strip():
+            return format_html('<p style="color: #999;"><em>No instructions added yet</em></p>')
+
+        steps = [s.strip() for s in obj.instructions.split('|') if s.strip()]
+        html = '<ol style="margin: 0; padding-left: 20px;">'
+        for step in steps:
+            html += f'<li>{step}</li>'
+        html += '</ol>'
+        return format_html(html)
+    instructions_display.short_description = 'Instructions'
+
+    def metadata_display(self, obj):
+        """Display recipe metadata in a formatted box"""
+        html = '<div style="padding: 10px; background-color: #f8f9fa; border-left: 4px solid #007bff; border-radius: 4px;">'
+
+        if obj.prep_time_min > 0:
+            html += f'<strong>Prep Time:</strong> {obj.prep_time_min} minutes<br>'
+
+        if obj.cook_time_min > 0:
+            html += f'<strong>Cook Time:</strong> {obj.cook_time_min} minutes<br>'
+
+        if obj.total_time_min > 0:
+            html += f'<strong>Total Time:</strong> {obj.total_time_min} minutes<br>'
+
+        if obj.servings > 0:
+            html += f'<strong>Servings:</strong> {obj.servings}<br>'
+
+        if obj.prep_time_min == 0 and obj.cook_time_min == 0 and obj.total_time_min == 0 and obj.servings == 0:
+            html += '<span style="color: #999;"><em>No metadata set yet</em></span>'
+
+        html += '</div>'
+        return format_html(html)
+    metadata_display.short_description = 'Recipe Metadata'
+
+
+@admin.register(InProgressRecipeIngredient)
+class InProgressRecipeIngredientAdmin(admin.ModelAdmin):
+    list_display = ('recipe_title', 'curated_ingredient', 'quantity', 'unit', 'created_at')
+    search_fields = ('recipe__title', 'recipe__user__username', 'curated_ingredient__name')
+    list_filter = ('curated_ingredient', 'created_at', 'recipe__user')
+    readonly_fields = ('recipe', 'curated_ingredient', 'quantity', 'unit', 'created_at')
+    ordering = ('recipe', 'created_at')
+
+    def recipe_title(self, obj):
+        """Display recipe title with link"""
+        title = obj.recipe.title if obj.recipe.title else 'Untitled Recipe'
+        url = reverse('admin:api_inprogressrecipe_change', args=[obj.recipe.pk])
+        return format_html('<a href="{}">{}</a> ({})', url, title, obj.recipe.user.username)
+    recipe_title.short_description = 'Recipe'
+    recipe_title.admin_order_field = 'recipe__title'
+
+    def has_add_permission(self, request):
+        """Prevent manual ingredient creation through admin"""
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        """Allow deletion for cleanup purposes"""
+        return True
