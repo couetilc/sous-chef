@@ -393,10 +393,12 @@ class ChatMessageInline(admin.TabularInline):
     content_preview.short_description = 'Content'
 
     def has_tool_calls(self, obj):
-        """Show if message has associated tool calls"""
-        if obj.tool_calls:
-            return '✓'
-        return '✗'
+        """Show the number of tool calls executed during this message"""
+        if obj.tool_calls and isinstance(obj.tool_calls, list):
+            count = len(obj.tool_calls)
+            if count > 0:
+                return f'{count}'
+        return '0'
     has_tool_calls.short_description = 'Tools'
 
     def has_add_permission(self, request, obj=None):
@@ -481,10 +483,12 @@ class ChatMessageAdmin(admin.ModelAdmin):
     content_preview.short_description = 'Content Preview'
 
     def has_tool_calls(self, obj):
-        """Show if message has associated tool calls"""
-        if obj.tool_calls:
-            return '✓'
-        return '✗'
+        """Show the number of tool calls executed during this message"""
+        if obj.tool_calls and isinstance(obj.tool_calls, list):
+            count = len(obj.tool_calls)
+            if count > 0:
+                return f'{count} tool{"s" if count != 1 else ""}'
+        return '0 tools'
     has_tool_calls.short_description = 'Tool Calls'
     has_tool_calls.admin_order_field = 'tool_calls'
 

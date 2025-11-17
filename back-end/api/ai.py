@@ -673,6 +673,9 @@ class NutritionistAgent:
 
         username = self.user.username
 
+        # Log incoming user message
+        logger.info(f"User message from {username}: {message[:100]}{'...' if len(message) > 100 else ''}")
+
         try:
             # Get initial LLM response
             response = self.chain.invoke({
@@ -683,6 +686,12 @@ class NutritionistAgent:
         except Exception as e:
             logger.error(f"LLM API error for user {username}: {e}", exc_info=True)
             raise
+
+        # Log initial LLM response
+        if hasattr(response, 'tool_calls') and response.tool_calls:
+            logger.info(f"LLM response for {username}: Calling {len(response.tool_calls)} tool(s)")
+        else:
+            logger.info(f"LLM response for {username}: Text-only response (no tool calls)")
 
         # Build message history for tool calling loop
         messages = [
@@ -706,14 +715,22 @@ class NutritionistAgent:
                 tool_args = tool_call['args']
                 call_timestamp = timezone.now().isoformat()
 
+                # Log tool call details
+                logger.info(f"  → Tool call: {tool_name}")
+                logger.info(f"    Parameters: {tool_args}")
+
                 # Execute the tool
                 if tool_name in self.tool_map:
                     tool = self.tool_map[tool_name]
                     try:
                         tool_result = tool.invoke(tool_args)
+                        # Log successful tool result
+                        result_preview = str(tool_result)[:200] + ('...' if len(str(tool_result)) > 200 else '')
+                        logger.info(f"    ✓ Tool result: {result_preview}")
                     except Exception as e:
                         logger.error(f"Tool execution error ({tool_name}) for user {username}: {e}", exc_info=True)
                         tool_result = f"Error executing tool: {str(e)}"
+                        logger.info(f"    ✗ Tool error: {tool_result}")
 
                     # Add tool result to message history
                     messages.append(ToolMessage(
@@ -732,6 +749,7 @@ class NutritionistAgent:
                     # Unknown tool
                     error_msg = f"Error: Unknown tool '{tool_name}'"
                     logger.warning(f"Unknown tool requested ({tool_name}) for user {username}")
+                    logger.info(f"    ✗ Unknown tool: {tool_name}")
                     messages.append(ToolMessage(
                         content=error_msg,
                         tool_call_id=tool_call.get('id', 'unknown')
@@ -756,6 +774,12 @@ class NutritionistAgent:
                 f"Tool call iteration limit ({max_iterations}) reached for user {username}. "
                 f"LLM still had pending tool calls. Consider increasing max_iterations if this happens frequently."
             )
+
+        # Log final response
+        final_content_preview = response.content[:150] + ('...' if len(response.content) > 150 else '')
+        logger.info(f"Final response for {username}: {final_content_preview}")
+        if all_tool_calls_data:
+            logger.info(f"Total tool calls executed: {len(all_tool_calls_data)}")
 
         # Return final response and metadata
         return {
