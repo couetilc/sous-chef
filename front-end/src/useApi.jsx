@@ -363,6 +363,31 @@ export class Api {
     })
   }
 
+  async getMealPlans() {
+    return this.fetch('/api/meal_plans/')
+  }
+
+  async createMealPlan({ week_start }) {
+    return this.fetch('/api/meal_plans/', {
+      body: JSON.stringify({ week_start })
+    })
+  }
+
+  async getMealPlan({ id }) {
+    return this.fetch(`/api/meal_plans/${id}/`)
+  }
+
+  async addMealPlanEntry({ meal_plan_id, day_of_week, meal_index, recipe_id }) {
+    return this.fetch(`/api/meal_plans/${meal_plan_id}/entries/`, {
+      body: JSON.stringify({ day_of_week, meal_index, recipe_id })
+    })
+  }
+
+  async deleteMealPlanEntry({ meal_plan_id, entry_id }) {
+    return this.fetch(`/api/meal_plans/${meal_plan_id}/entries/${entry_id}/`, {
+      method: 'DELETE',
+    })
+  }
   async getSousChefConversation() {
     return this.fetch(`/api/souschef/conversation/`, {
       method: 'GET',
