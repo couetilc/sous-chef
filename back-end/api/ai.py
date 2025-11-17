@@ -573,7 +573,7 @@ def get_nutritionist_llm() -> ChatOpenAI:
     return ChatOpenAI(
         api_key=api_key,
         base_url="https://openrouter.ai/api/v1",
-        model="z-ai/glm-4.5-air:free",
+        model="openrouter/sherlock-think-alpha",
     )
 
 
@@ -648,7 +648,7 @@ class NutritionistAgent:
         self,
         message: str,
         conversation_history: str = "",
-        max_iterations: int = 10
+        max_iterations: int = 50
     ) -> Dict[str, Any]:
         """
         Process a user message and return the agent's response.
@@ -659,7 +659,7 @@ class NutritionistAgent:
         Args:
             message: The user's message
             conversation_history: Formatted string of previous conversation
-            max_iterations: Maximum tool calling iterations (safety limit)
+            max_iterations: Maximum tool calling iterations (default: 50, safety limit)
 
         Returns:
             Dictionary containing:
@@ -750,6 +750,13 @@ class NutritionistAgent:
                 logger.error(f"LLM API error during tool loop for user {username}: {e}", exc_info=True)
                 raise
 
+        # Check if loop exited due to iteration limit
+        if iteration_count >= max_iterations and hasattr(response, 'tool_calls') and response.tool_calls:
+            logger.warning(
+                f"Tool call iteration limit ({max_iterations}) reached for user {username}. "
+                f"LLM still had pending tool calls. Consider increasing max_iterations if this happens frequently."
+            )
+
         # Return final response and metadata
         return {
             'content': response.content,
@@ -768,7 +775,7 @@ def classify_user_intent(message: str, recipe_step: str) -> Intent:
     Args:
         message: The user's message
         recipe_step: The current step of the recipe being followed"""
-    
+
     prompt = f"""
     USER MESSAGE: "{message}"
     CURRENT RECIPE STEP: "{recipe_step}"
@@ -834,4 +841,4 @@ def clarify_step(step: str) -> str:
     """
 
     # return ask_llm(prompt)
-    # This is a placeholder implementation. 
+    # This is a placeholder implementation.
