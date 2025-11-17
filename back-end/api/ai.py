@@ -23,6 +23,7 @@ from langchain_core.prompts import PromptTemplate
 from langchain_core.tools import tool
 from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
 from .models import Recipe, UserCuratedInventory
+from .intents import Intent
 
 logger = logging.getLogger(__name__)
 
@@ -340,3 +341,83 @@ class NutritionistAgent:
             'content': response.content,
             'tool_calls': all_tool_calls_data if all_tool_calls_data else None
         }
+
+# ============================================================================
+# User Intent (AI SOUS CHEF) *WIP*
+# ============================================================================
+
+
+def classify_user_intent(message: str, recipe_step: str) -> Intent:
+    """
+    Classify the user's intent based on their message and current recipe step.
+
+    Args:
+        message: The user's message
+        recipe_step: The current step of the recipe being followed"""
+    
+    prompt = f"""
+    USER MESSAGE: "{message}"
+    CURRENT RECIPE STEP: "{recipe_step}"
+    CLASSIFY THE USER'S INTENT INTO ONE OF THE FOLLOWING CATEGORIES:
+    {", ".join([intent.value for intent in Intent])}.
+
+    RETURN ONLY THE INTENT VALUE.
+    """
+    #response = ask_llm(prompt)
+    #return Intent(response.strip())
+    # This is a placeholder implementation. Will need to call an LLM to classify.
+
+def handle_user_intent(intent: Intent, recipe, current_step_index):
+    """
+    Handle the user's intent and return the appropriate recipe step or action.
+
+    Args:
+        intent: The classified user intent
+        recipe: The recipe object being followed
+        current_step_index: The index of the current recipe step
+    """
+    if intent == Intent.NEXT_STEP:
+        new_index = min(current_step_index + 1, len(recipe.steps) - 1)
+        return {
+            "step_index": new_index,
+            "message": f"Moving to the next step {new_index + 1}."
+        }
+    if intent == Intent.PREVIOUS_STEP:
+        new_index = max(current_step_index - 1, 0)
+        return {
+            "step_index": new_index,
+            "message": f"Returning to the previous step {new_index + 1}."
+        }
+    if intent == Intent.RESTART_RECIPE:
+        return {
+            "step_index": 0,
+            "message": "Restarting the recipe from the beginning."
+        }
+    if intent == Intent.CLARIFY:
+        explanation = clarify_step(recipe.steps[current_step_index])
+        return {
+            "step_index": current_step_index,
+            "message": explanation
+        }
+    if intent == Intent.REPAIR:
+        return {
+            "step_index": current_step_index,
+            "message": "I noticed confusion. Let's go over the current step again carefully."
+        }
+
+def clarify_step(step: str) -> str:
+    """
+    Provide a clarification for the given recipe step.
+
+    Args:
+        step: The recipe step to clarify
+    """
+    prompt = f"""
+    The user wants clarification on the following recipe step:
+    "{step}"
+
+    Explain it in SIMPLE cooking-friendly language.
+    """
+
+    # return ask_llm(prompt)
+    # This is a placeholder implementation. 
