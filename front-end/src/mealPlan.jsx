@@ -11,6 +11,7 @@ export default function MealPlanPage(props) {
   const [weekEnd, setWeekEnd] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Calculate current week
   useEffect(() => {
     const today = new Date();
     const dayOfWeek = today.getDay();
@@ -26,6 +27,7 @@ export default function MealPlanPage(props) {
     fetchOrCreateMealPlan(start);
   }, []);
 
+  // Fetch meal plan from api
   async function fetchOrCreateMealPlan(startDate) {
     try {
       setLoading(true);
