@@ -35,7 +35,7 @@ def create_mock_agent_chat(mock_agent_class, response_content, tool_calls_data=N
 class TestNutritionistChatEndpoint:
     """Test nutritionist chat endpoint /api/nutritionist/conversation/"""
 
-    @patch('api.ai.NutritionistAgent')
+    @patch('api.views.NutritionistAgent')
     def test_authentication_required(self, mock_agent_class, api_client):
         """Test that unauthenticated requests are rejected"""
         data = {'message': 'Hello'}
@@ -44,7 +44,7 @@ class TestNutritionistChatEndpoint:
         assert response.status_code == status.HTTP_403_FORBIDDEN
         mock_agent_class.assert_not_called()
 
-    @patch('api.ai.NutritionistAgent')
+    @patch('api.views.NutritionistAgent')
     def test_first_message_creates_conversation(self, mock_agent_class, authenticated_client, test_user):
         """Test that first message creates a new conversation"""
         # Mock agent response (no tool calls)
@@ -80,7 +80,7 @@ class TestNutritionistChatEndpoint:
         assert messages[1].role == 'assistant'
         assert messages[1].content == "Hello! I'm here to help with nutrition."
 
-    @patch('api.ai.NutritionistAgent')
+    @patch('api.views.NutritionistAgent')
     def test_subsequent_messages_add_to_conversation(self, mock_agent_class, authenticated_client, test_user):
         """Test that subsequent messages are added to existing conversation"""
         # Mock agent with different responses for each call
@@ -125,7 +125,7 @@ class TestNutritionistChatEndpoint:
         # Verify only one conversation exists
         assert ChatConversation.objects.filter(user=test_user).count() == 1
 
-    @patch('api.ai.NutritionistAgent')
+    @patch('api.views.NutritionistAgent')
     def test_response_includes_full_history_with_timestamps(self, mock_agent_class, authenticated_client, test_user):
         """Test that response includes all messages with timestamps"""
         create_mock_agent_chat(mock_agent_class, "I can help with that!", None)
@@ -145,7 +145,7 @@ class TestNutritionistChatEndpoint:
             assert 'created_at' in message
             assert message['role'] in ['user', 'assistant']
 
-    @patch('api.ai.NutritionistAgent')
+    @patch('api.views.NutritionistAgent')
     def test_llm_receives_full_conversation_context(self, mock_agent_class, authenticated_client, test_user):
         """Test that LLM receives full conversation history in context"""
         mock_agent_instance = MagicMock()
@@ -171,7 +171,7 @@ class TestNutritionistChatEndpoint:
         # The conversation_history should include the first exchange
         assert 'First message' in second_call_kwargs['conversation_history']
 
-    @patch('api.ai.NutritionistAgent')
+    @patch('api.views.NutritionistAgent')
     def test_messages_ordered_chronologically(self, mock_agent_class, authenticated_client, test_user):
         """Test that messages are returned in chronological order (oldest first)"""
         mock_agent_instance = MagicMock()
@@ -200,7 +200,7 @@ class TestNutritionistChatEndpoint:
             next_time = messages[i + 1]['created_at']
             assert current_time <= next_time
 
-    @patch('api.ai.NutritionistAgent')
+    @patch('api.views.NutritionistAgent')
     def test_multiple_users_have_separate_conversations(self, mock_agent_class, api_client, test_user, second_user):
         """Test that different users have isolated conversations"""
         create_mock_agent_chat(mock_agent_class, "Response", None)
@@ -228,7 +228,7 @@ class TestNutritionistChatEndpoint:
         assert ChatConversation.objects.filter(user=test_user).count() == 1
         assert ChatConversation.objects.filter(user=second_user).count() == 1
 
-    @patch('api.ai.NutritionistAgent')
+    @patch('api.views.NutritionistAgent')
     def test_missing_message_parameter_returns_error(self, mock_agent_class, authenticated_client):
         """Test that request without message parameter returns an error"""
         response = authenticated_client.post('/api/nutritionist/conversation/', {})
@@ -237,7 +237,7 @@ class TestNutritionistChatEndpoint:
         assert 'error' in response.data or 'message' in response.data
         mock_agent_class.assert_not_called()
 
-    @patch('api.ai.NutritionistAgent')
+    @patch('api.views.NutritionistAgent')
     def test_empty_message_returns_error(self, mock_agent_class, authenticated_client):
         """Test that request with empty message returns an error"""
         response = authenticated_client.post('/api/nutritionist/conversation/', {'message': ''})
@@ -264,7 +264,7 @@ class TestGetConversationEndpoint:
         assert response.data['id'] is None
         assert response.data['messages'] == []
 
-    @patch('api.ai.NutritionistAgent')
+    @patch('api.views.NutritionistAgent')
     def test_get_conversation_with_messages(self, mock_agent_class, authenticated_client, test_user):
         """Test that GET returns existing conversation with all messages"""
         create_mock_agent_chat(mock_agent_class, "Hello! How can I help?", None)
@@ -282,7 +282,7 @@ class TestGetConversationEndpoint:
         assert response.data['messages'][0]['content'] == 'Hi there'
         assert response.data['messages'][1]['role'] == 'assistant'
 
-    @patch('api.ai.NutritionistAgent')
+    @patch('api.views.NutritionistAgent')
     def test_get_only_returns_active_conversation(self, mock_agent_class, authenticated_client, test_user):
         """Test that GET only returns active conversation, not inactive ones"""
         create_mock_agent_chat(mock_agent_class, "Response", None)
@@ -313,7 +313,7 @@ class TestClearConversationEndpoint:
         response = api_client.post('/api/nutritionist/conversation/clear/', {})
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    @patch('api.ai.NutritionistAgent')
+    @patch('api.views.NutritionistAgent')
     def test_clear_marks_conversation_inactive(self, mock_agent_class, authenticated_client, test_user):
         """Test that clear endpoint marks conversation as inactive"""
         create_mock_agent_chat(mock_agent_class, "Response", None)
@@ -335,7 +335,7 @@ class TestClearConversationEndpoint:
         conversation.refresh_from_db()
         assert conversation.is_active is False
 
-    @patch('api.ai.NutritionistAgent')
+    @patch('api.views.NutritionistAgent')
     def test_new_message_after_clear_creates_new_conversation(self, mock_agent_class, authenticated_client, test_user):
         """Test that messages after clear create a new conversation"""
         create_mock_agent_chat(mock_agent_class, "Response", None)
@@ -379,7 +379,7 @@ class TestToolCallingFunctionality:
 
     
 
-    @patch('api.ai.NutritionistAgent')
+    @patch('api.views.NutritionistAgent')
     def test_single_tool_call_one_round(self, mock_agent_class, authenticated_client, test_user):
         """Test that a message triggering a single tool call executes and returns properly"""
         # Mock agent to return a response with tool calls
@@ -420,7 +420,7 @@ class TestToolCallingFunctionality:
 
     
     
-    @patch('api.ai.NutritionistAgent')
+    @patch('api.views.NutritionistAgent')
     def test_multiple_rounds_of_tool_calls(self, mock_agent_class, authenticated_client, test_user):
         """Test that multiple rounds of tool calls are handled correctly (most important test!)"""
         # Mock agent to return response with multiple tool calls
@@ -474,7 +474,7 @@ class TestToolCallingFunctionality:
 
     
     
-    @patch('api.ai.NutritionistAgent')
+    @patch('api.views.NutritionistAgent')
     def test_max_iterations_safety_limit(self, mock_agent_class, authenticated_client, test_user):
         """Test that tool calling loop stops at max_iterations to prevent infinite loops"""
         # Mock agent to return response with 10 tool calls (the max_iterations limit)
@@ -515,7 +515,7 @@ class TestToolCallingFunctionality:
 
     
     
-    @patch('api.ai.NutritionistAgent')
+    @patch('api.views.NutritionistAgent')
     def test_multiple_tool_calls_in_one_round(self, mock_agent_class, authenticated_client, test_user):
         """Test that multiple tool calls in a single LLM response are handled"""
         # Mock agent to return response with multiple tool calls
@@ -555,7 +555,7 @@ class TestToolCallingFunctionality:
         assert assistant_message['tool_calls'][1]['parameters']['title_query'] == 'salad'
         assert assistant_message['tool_calls'][1]['parameters']['max_fat'] == 10
 
-    @patch('api.ai.NutritionistAgent')
+    @patch('api.views.NutritionistAgent')
     def test_message_with_no_tool_calls(self, mock_agent_class, authenticated_client, test_user):
         """Test that messages without tool calls work correctly (text response only)"""
         create_mock_agent_chat(
@@ -578,7 +578,7 @@ class TestToolCallingFunctionality:
 
     
     
-    @patch('api.ai.NutritionistAgent')
+    @patch('api.views.NutritionistAgent')
     def test_tool_returns_no_results(self, mock_agent_class, authenticated_client, test_user):
         """Test that tool returning no results is handled gracefully"""
         # Mock agent to return response with tool call that has "no results"
@@ -612,7 +612,7 @@ class TestToolCallingFunctionality:
 
     
     
-    @patch('api.ai.NutritionistAgent')
+    @patch('api.views.NutritionistAgent')
     def test_conversation_context_preserved_with_tool_calls(self, mock_agent_class, authenticated_client, test_user):
         """Test that conversation history is preserved across messages with tool calls"""
         mock_agent_instance = MagicMock()
