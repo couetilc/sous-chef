@@ -2,6 +2,8 @@ import './style.css';
 import {useNavigate} from 'react-router';
 import { useApi } from './useApi';
 import { useEffect, useState, useRef } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 import SousChefLogo from './souschef-logo.png';
 
@@ -81,7 +83,15 @@ export default function Nutritionist() {
       <div className="chat-messages">
         {messages.map((msg) => (
           <div key={msg.id} className={`message ${msg.role}`}>
-            <div className="message-content">{msg.content}</div>
+            <div className="message-content">
+              {msg.role === 'assistant' ? (
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {msg.content}
+                </ReactMarkdown>
+              ) : (
+                msg.content
+              )}
+            </div>
             <div className="message-time">{formatTime(msg.created_at)}</div>
           </div>
         ))}
