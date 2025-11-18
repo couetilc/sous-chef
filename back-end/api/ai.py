@@ -37,10 +37,12 @@ NUTRITIONIST_TEMPLATE = """
 You are a nutritionist, ready to help customers create nutritious, simple recipes they want to cook. The current customer's name is {username}.
 
 <meal_plan_instructions>
+The meal plan an object with 3 recipe slots for breakfast, lunch, and dinner. There are 3 meals total for the entire week.
+
 If a user asks questions about their meal plan, you must use the <tool_name>create_mealplan_tool</tool_name>, <tool_name>edit_mealplan_tool</tool_name>, <tool_name>show_mealplan_tool</tool_name>, and <tool_name>search_recipes_tool</tool_name>.
 When the user asks to fill the meal plan with recipes, use <tool_name>edit_mealplan_tool</tool_name> with the meal slot and title query as input, for all three slots.
+When showing the user their meal plan, keep the response condense; do not include ingredients or instructions.
 
-The weekly meal plan an object with 3 recipe slots for breakfast, lunch, and dinner.
 The general flow for creating and displaying meal plans is as follows:
     1. The meal plan object must be created with <tool_name>create_mealplan_tool</tool_name>.
     2. The meal plan object's breakfast, lunch, and dinner slots start off empty, and they can be filled with a call to <tool_name>edit_mealplan_tool</tool_name> for each.
@@ -176,10 +178,10 @@ def create_create_mealplan_tool(user: User):
     def create_mealplan_tool(
 
     ) -> str:
-        """Create a weekly meal plan object which can be filled with recipes
+        """Create a meal plan object which can be filled with recipes
 
         Use this tool to create a meal plan object for this conversation if it does not exist already.
-        This tool should be called before any tool calls to modify or show the weekly meal plan are made.
+        This tool should be called before any tool calls to modify or show the meal plan are made.
 
         Returns:
             A string indicating whether or not the meal plan object was created.
@@ -208,12 +210,12 @@ def create_edit_mealplan_tool(user: User):
     @tool
     def edit_mealplan_tool(
         meal: Meal,
-        title: str
+        titleQuery: str
     ) -> str:
-        """Edit one of the current weekly meal plan object's recipes.
+        """Edit one of the current meal plan object's recipes.
 
-        Use this tool to edit one of the three recipe slots of the weekly meal plan. 
-        The tool's first argument corresponds to the meal slot being edited, and a title query to search for recipes to replace it.
+        Use this tool to edit one of the three recipe slots of the meal plan. 
+        The tool's first argument corresponds to the meal slot being edited, and the second argument is a title query to search the database for recipes to replace it.
         Choose a recipe title query which is appropriate for the meal being selected. For example, for breakfast an appropriate query might be "pancakes".
 
         Returns:                
@@ -228,16 +230,16 @@ def create_edit_mealplan_tool(user: User):
             mealPlan = incompleteMealPlan.mealPlan
             if (meal == Meal.Breakfast):
                 queryset = Recipe.objects.all().order_by('-created_at')
-                queryset.filter(title=title)
+                queryset.filter(title=titleQuery)
                 result = queryset.first()
                 mealPlan.recipeBreakfast = result
             if (meal == Meal.Lunch):
                 queryset = Recipe.objects.all().order_by('-created_at')
-                queryset.filter(title=title)
+                queryset.filter(title=titleQuery)
                 mealPlan.recipeLunch= queryset.first()
             if (meal == Meal.Dinner):
                 queryset = Recipe.objects.all().order_by('-created_at')
-                queryset.filter(title=title)
+                queryset.filter(title=titleQuery)
                 mealPlan.recipeDinner= queryset.first()
 
         return "Successfully edited recipe."
@@ -250,7 +252,7 @@ def create_show_mealplan_tool(user: User):
 
     @tool
     def show_mealplan_tool() -> str:
-        """ Show the current weekly meal plan being created by the user.
+        """ Show the current meal plan being created by the user.
 
         Use this tool to show the in-progress meal plan to the user.
         This tool fails if the meal plan object does not yet exist.
@@ -277,6 +279,8 @@ def create_show_mealplan_tool(user: User):
 Recipe ID: {recipe.id}
 Title: {recipe.title}
 Nutrition (per serving): {recipe.calories_per_serving} calories, {recipe.protein_g}g protein, {recipe.carbs_g}g carbs, {recipe.fat_g}g fat
+Ingredients: {recipe.ingredients}
+Instructions: {recipe.instructions}
 ---"""
             results.append(recipe_text.strip())
 
@@ -305,9 +309,9 @@ def get_nutritionist_llm() -> ChatOpenAI:
     return ChatOpenAI(
         api_key=api_key,
         base_url="https://openrouter.ai/api/v1",
-        model="z-ai/glm-4.5-air:free",
+#       model="z-ai/glm-4.5-air:free",
 #       model="openai/gpt-oss-120b",
-#       model="moonshotai/kimi-k2-thinking",
+        model="moonshotai/kimi-k2-thinking",
     )
 
 
@@ -376,7 +380,7 @@ class NutritionistAgent:
         self,
         message: str,
         conversation_history: str = "",
-        max_iterations: int = 10
+        max_iterations: int = 20
     ) -> Dict[str, Any]:
         """
         Process a user message and return the agent's response.
@@ -471,6 +475,7 @@ class NutritionistAgent:
                         'timestamp': call_timestamp
                     })
 
+            if (iteration_count == max_iterations): logger.warning(f"Max iterations exceeded while generating respoonse.")
             # Get next response from LLM with tool results
             try:
                 response = self.llm_with_tools.invoke(messages)
