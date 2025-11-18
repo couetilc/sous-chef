@@ -33,6 +33,7 @@ from .serializers import (
 )
 from .utils.recommended import compute_recommendations
 from zoneinfo import ZoneInfo
+from .ai import NutritionistAgent, SousChefAgent
 
 class Paginator(PageNumberPagination):
     page_size = 100
@@ -942,9 +943,6 @@ class GetUserRecipes(APIView):
         userRecipe = UserRecipe.objects.filter(user=request.user).all()
         serialized = UserRecipeSerializer(userRecipe, many=True)
 
-
-        if not userRecipe:
-            return Response({'error': 'No user recipe found'}, status=status.HTTP_404_NOT_FOUND)
         return Response(serialized.data, status=status.HTTP_200_OK)
 
 class UpdateUserRecipe(APIView):
@@ -1059,6 +1057,7 @@ class NutritionistChat(APIView):
         # Get active conversation with messages prefetched to avoid N+1 query
         conversation = ChatConversation.objects.filter(
             user=user,
+            channel='nutritionist',
             is_active=True
         ).prefetch_related('messages').first()
 
@@ -1090,6 +1089,7 @@ class NutritionistChat(APIView):
                 # Get or create active conversation (prevents race condition)
                 conversation, created = ChatConversation.objects.get_or_create(
                     user=user,
+                    channel='nutritionist',
                     is_active=True
                 )
 
@@ -1114,9 +1114,6 @@ class NutritionistChat(APIView):
                     content=message
                 )
 
-                # Use the NutritionistAgent for clean, encapsulated AI interaction
-                from .ai import NutritionistAgent
-
                 try:
                     agent = NutritionistAgent(user=user)
                     result = agent.chat(
@@ -1135,7 +1132,7 @@ class NutritionistChat(APIView):
                     logger.error(f"AI agent error for user {user.username}: {e}", exc_info=True)
                     result = {
                         'content': "I'm sorry, I'm having trouble processing your request right now. Please try again in a moment.",
-                        'tool_calls': None
+                        'tool_calls': []
                     }
 
                 # Save assistant response with tool call data
@@ -1169,6 +1166,7 @@ class ClearConversation(APIView):
         # Mark current active conversation as inactive
         ChatConversation.objects.filter(
             user=request.user,
+            channel='nutritionist',
             is_active=True
         ).update(is_active=False)
 
@@ -1280,3 +1278,110 @@ class SousChefInterpret(APIView):
             "new_step_index": result['step_index'],
             "assistant_message": result['message']
         })
+class SousChefChat(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        """Get the current active SousChef conversation with all messages"""
+        user = request.user
+
+        conversation = ChatConversation.objects.filter(
+            user=user,
+            channel='souschef',
+            is_active=True,
+        ).prefetch_related('messages').first()
+
+        if not conversation:
+            return Response({'id': None, 'messages': []}, status=status.HTTP_200_OK)
+
+        serializer = ChatConversationSerializer(conversation)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        message = request.data.get('message')
+        if not message or not message.strip():
+            return Response(
+                {'error': 'Message parameter is required and cannot be empty'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        user = request.user
+
+        try:
+            with transaction.atomic():
+                conversation, created = ChatConversation.objects.get_or_create(
+                    user=user,
+                    channel='souschef',
+                    is_active=True,
+                )
+
+                previous_messages = ChatMessage.objects.filter(
+                    conversation=conversation
+                ).order_by('created_at')
+
+                conversation_history = ""
+                if previous_messages.exists():
+                    history_lines = []
+                    for msg in previous_messages:
+                        role_label = "User" if msg.role == "user" else "Assistant"
+                        history_lines.append(f"{role_label}: {msg.content}")
+                    conversation_history = "Previous conversation:\n" + "\n".join(history_lines)
+
+                ChatMessage.objects.create(
+                    conversation=conversation,
+                    role='user',
+                    content=message,
+                )
+
+                try:
+                    agent = SousChefAgent(user=user)
+                    result = agent.chat(
+                        message=message,
+                        conversation_history=conversation_history,
+                    )
+                except ValueError as e:
+                    logger.error(f"SousChef config error for user {user.username}: {e}")
+                    return Response(
+                        {'error': 'AI service is not properly configured. Please contact support.'},
+                        status=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    )
+                except Exception as e:
+                    logger.error(f"SousChef agent error for user {user.username}: {e}", exc_info=True)
+                    result = {
+                        'content': "I'm sorry, I'm having trouble processing your request right now. Please try again in a moment.",
+                        'tool_calls': [],
+                    }
+
+                ChatMessage.objects.create(
+                    conversation=conversation,
+                    role='assistant',
+                    content=result['content'],
+                    tool_calls=result['tool_calls'],
+                )
+
+                conversation = ChatConversation.objects.prefetch_related('messages').get(id=conversation.id)
+                serializer = ChatConversationSerializer(conversation)
+                return Response(serializer.data, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            logger.error(f"Unexpected error in SousChef chat for user {user.username}: {e}", exc_info=True)
+            return Response(
+                {'error': 'An unexpected error occurred. Please try again.'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+
+class ClearSousChefConversation(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        ChatConversation.objects.filter(
+            user=request.user,
+            channel='souschef',
+            is_active=True,
+        ).update(is_active=False)
+
+        return Response(
+            {'success': True, 'message': 'SousChef conversation cleared'},
+            status=status.HTTP_200_OK,
+        )
