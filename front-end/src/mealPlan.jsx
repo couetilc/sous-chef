@@ -38,19 +38,62 @@ function WeekMealGrid({ days, mealPlan, curWeek }) {
         </React.Fragment>
       ))}
 
-      <NutritionSummary />
+      <NutritionSummary mealPlan={mealPlan} curWeek={curWeek} />
     </div>
   );
 }
 
-function NutritionSummary() {
+function NutritionSummary({ mealPlan, curWeek }) {
+  // Nutrition goals
+  const GOALS = {
+    calories: 2747,
+    protein: 123,
+    fat: 80,
+    carbs: 300,
+  };
+
+  if (!mealPlan || !mealPlan.entries) {
+    return (
+      <div className="nutrition-card">
+        <h2>Nutrition</h2>
+        <p>Calories (kCal): 0 / {GOALS.calories}</p>
+        <p>Protein (g): 0 / {GOALS.protein}</p>
+        <p>Fat (g): 0 / {GOALS.fat}</p>
+        <p>Carbs (g): 0 / {GOALS.carbs}</p>
+      </div>
+    );
+  }
+
+  // Get today's day index
+  const today = new Date();
+  let dow = today.getDay();
+  const todayKey = dow.toString();
+
+  const todayMeals = mealPlan.entries.filter(e => e.day_of_week == todayKey);
+
+  console.log("Today's meals:", todayMeals);
+
+  // Add today's meals to calc nutrition
+  const totals = todayMeals.reduce(
+    (acc, meal) => {
+      const recipe = meal.recipe;
+      acc.calories += recipe.calories_per_serving;
+      acc.protein += recipe.protein_g;
+      acc.fat += recipe.fat_g;
+      acc.carbs += recipe.carbs_g;
+
+      return acc;
+    },
+    { calories: 0, protein: 0, fat: 0, carbs: 0 }
+  );
+
   return (
     <div className="nutrition-card">
       <h2>Nutrition</h2>
-      <p>Calories (kCal): 0 / GOAL</p>
-      <p>Protein (g): 0 / GOAL</p>
-      <p>Fat (g): 0 / GOAL</p>
-      <p>Carbs (g): 0 / GOAL</p>
+      <p>Calories (kCal): {totals.calories} / {GOALS.calories}</p>
+      <p>Protein (g): {totals.protein} / {GOALS.protein}</p>
+      <p>Fat (g): {totals.fat} / {GOALS.fat}</p>
+      <p>Carbs (g): {totals.carbs} / {GOALS.carbs}</p>
     </div>
   );
 }
