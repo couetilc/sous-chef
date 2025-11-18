@@ -1278,6 +1278,7 @@ class SousChefInterpret(APIView):
             "new_step_index": result['step_index'],
             "assistant_message": result['message']
         })
+
 class SousChefChat(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
@@ -1305,16 +1306,47 @@ class SousChefChat(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        # Optional recipe_id for context
+        recipe_id = request.data.get('recipe_id')
+        recipe_context = ""
+
+        if recipe_id is not None:
+            try:
+                recipe = Recipe.objects.get(id=recipe_id)
+
+                # Build a plain-text context block for the LLM
+                ingredients_str = str(recipe.ingredients)
+                instructions_str = str(recipe.instructions)
+
+                recipe_context = (
+                    f"CURRENT RECIPE CONTEXT\n"
+                    f"======================\n"
+                    f"Recipe ID: {recipe.id}\n"
+                    f"Title: {recipe.title}\n"
+                    f"Servings: {recipe.servings}\n"
+                    f"Prep time: {recipe.prep_time_min} minutes\n"
+                    f"Cook time: {recipe.cook_time_min} minutes\n\n"
+                    f"Ingredients (raw field):\n{ingredients_str}\n\n"
+                    f"Instructions (raw field):\n{instructions_str}\n"
+                )
+            except Recipe.DoesNotExist:
+                logger.warning(
+                    f"SousChefChat: recipe_id={recipe_id} not found for user {request.user.username}"
+                )
+                # leave recipe_context as empty string
+
         user = request.user
 
         try:
             with transaction.atomic():
+                # get or create active conversation
                 conversation, created = ChatConversation.objects.get_or_create(
                     user=user,
                     channel='souschef',
                     is_active=True,
                 )
 
+                # previous messages
                 previous_messages = ChatMessage.objects.filter(
                     conversation=conversation
                 ).order_by('created_at')
@@ -1327,6 +1359,7 @@ class SousChefChat(APIView):
                         history_lines.append(f"{role_label}: {msg.content}")
                     conversation_history = "Previous conversation:\n" + "\n".join(history_lines)
 
+                # save user message
                 ChatMessage.objects.create(
                     conversation=conversation,
                     role='user',
@@ -1338,6 +1371,7 @@ class SousChefChat(APIView):
                     result = agent.chat(
                         message=message,
                         conversation_history=conversation_history,
+                        recipe_context=recipe_context,
                     )
                 except ValueError as e:
                     logger.error(f"SousChef config error for user {user.username}: {e}")
@@ -1349,9 +1383,10 @@ class SousChefChat(APIView):
                     logger.error(f"SousChef agent error for user {user.username}: {e}", exc_info=True)
                     result = {
                         'content': "I'm sorry, I'm having trouble processing your request right now. Please try again in a moment.",
-                        'tool_calls': [],
+                        'tool_calls': None,
                     }
 
+                # save assistant response
                 ChatMessage.objects.create(
                     conversation=conversation,
                     role='assistant',
@@ -1359,6 +1394,7 @@ class SousChefChat(APIView):
                     tool_calls=result['tool_calls'],
                 )
 
+                # reload with messages prefetched for serialization
                 conversation = ChatConversation.objects.prefetch_related('messages').get(id=conversation.id)
                 serializer = ChatConversationSerializer(conversation)
                 return Response(serializer.data, status=status.HTTP_200_OK)
