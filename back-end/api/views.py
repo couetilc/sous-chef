@@ -11,6 +11,7 @@ from django.utils.decorators import method_decorator
 from django.utils.dateparse import parse_datetime
 from django.utils import timezone
 from django.db.models import Exists, OuterRef, Case, When, Value, IntegerField, Q, BooleanField, F, FloatField, ExpressionWrapper
+from django.contrib.postgres.search import SearchQuery, SearchRank
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -547,8 +548,24 @@ class GetRecipesFiltered(APIView):
         # Always start with accessibility annotation (needed for serializer)
         queryset = Recipe.objects.order_by_ingredient_accessibility()
 
+        # Full-text search support (searches title, ingredients, instructions)
+        search_query = request.data.get('search_query')
+        if search_query and search_query.strip():
+            # Use PostgreSQL full-text search
+            query = SearchQuery(search_query, config='english')
+            queryset = queryset.annotate(
+                search_rank=SearchRank('search_vector', query)
+            ).filter(
+                search_vector=query
+            )
+            # If search is active and sort_by is relevance, use search ranking
+            if sort_by == 'relevance':
+                queryset = queryset.order_by('-search_rank', 'title')
+
+        # Legacy title search (kept for backward compatibility)
         title = request.data.get('title')
-        if title:
+        if title and not search_query:
+            # Only use title__icontains if search_query is not provided
             queryset = queryset.filter(title__icontains=title)
 
         # NEW: Curated ingredient filtering
@@ -972,7 +989,7 @@ class TagList(APIView):
     permission_classes = [permissions.IsAuthenticated]
     def get(self, request):
         queryset = RecipeTag.objects.order_by('name').filter(user=request.user)
-        serialized = RecipeTagSerializer(queryset, many = True)
+        serialized = TagSerializer(queryset, many = True)
         return Response(
             serialized.data,
             status.HTTP_200_OK
@@ -1202,7 +1219,7 @@ class MealPlanDetailView(APIView):
             meal_plan.entries.prefetch_related('recipe')
         except MealPlan.DoesNotExist:
             return Response({'error': 'Meal plan not found'}, status=status.HTTP_404_NOT_FOUND)
-        
+
         serializer = MealPlanSerializer(meal_plan)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
