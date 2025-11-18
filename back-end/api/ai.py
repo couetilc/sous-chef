@@ -47,19 +47,21 @@ def create_search_recipes_tool():
     """
     @tool
     def search_recipes_tool(
-        title_query: str = "",
+        search_query: str = "",
         max_calories: int = None,
         min_protein: int = None,
         max_fat: int = None,
         max_carbs: int = None
     ) -> str:
-        """Search for recipes in the recipe library.
+        """Search for recipes in the recipe library using full-text search.
 
-        Use this tool to find recipes based on title keywords and nutritional criteria.
+        Use this tool to find recipes by searching across recipe titles, ingredients, and instructions.
+        Supports natural language queries and returns results ranked by relevance.
         Returns up to 5 recipes with complete details including ingredients and instructions.
 
         Args:
-            title_query: Keywords to search in recipe titles (e.g., "chicken pasta", "salad")
+            search_query: Search query to find recipes (searches title, ingredients, instructions)
+                         Examples: "pasta with chicken", "chocolate dessert", "vegan protein"
             max_calories: Maximum calories per serving (optional)
             min_protein: Minimum protein in grams (optional)
             max_fat: Maximum fat in grams (optional)
@@ -68,12 +70,11 @@ def create_search_recipes_tool():
         Returns:
             A formatted string containing recipe details (id, title, nutrition, ingredients, instructions)
         """
-        # Start with base queryset
-        queryset = Recipe.objects.all().order_by('-created_at')
-
-        # Apply filters
-        if title_query and title_query.strip():
-            queryset = queryset.filter(title__icontains=title_query.strip())
+        # Use full-text search if query provided, otherwise get all recipes
+        if search_query and search_query.strip():
+            queryset = Recipe.objects.search_full_text(search_query.strip())
+        else:
+            queryset = Recipe.objects.all().order_by('-created_at')
 
         if max_calories is not None:
             queryset = queryset.filter(calories_per_serving__lte=max_calories)

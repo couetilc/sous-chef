@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
+from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank, SearchVectorField
 from decimal import Decimal
 import datetime
 
@@ -43,6 +44,32 @@ class RecipeManager(models.Manager):
             )
         ).order_by('-accessibility_score', 'title')
 
+    def search_full_text(self, query_text):
+        """
+        Perform full-text search across recipe title, ingredients, and instructions.
+
+        Uses PostgreSQL full-text search with relevance ranking. Title matches are weighted
+        highest, followed by ingredients, then instructions.
+
+        Args:
+            query_text: Search query string (supports multiple words, phrases with quotes)
+
+        Returns:
+            QuerySet of Recipe objects annotated with 'search_rank' and ordered by relevance
+        """
+        if not query_text or not query_text.strip():
+            return self.none()
+
+        # Create search query with proper configuration for English language
+        search_query = SearchQuery(query_text, config='english')
+
+        # Use the pre-computed search_vector field with relevance ranking
+        return self.annotate(
+            search_rank=SearchRank('search_vector', search_query)
+        ).filter(
+            search_vector=search_query
+        ).order_by('-search_rank', 'title')
+
 class Recipe(models.Model):
     objects = RecipeManager()
     title = models.TextField()
@@ -75,8 +102,30 @@ class Recipe(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    # Full-text search vector field (populated by database trigger)
+    search_vector = SearchVectorField(null=True, editable=False)
+
     def __str__(self):
         return self.title
+
+    def update_search_vector(self):
+        """
+        Update the search_vector field with weighted content from title, ingredients, and instructions.
+
+        Weight priorities:
+        - Title: 'A' (highest - 1.0)
+        - Ingredients: 'B' (high - 0.4)
+        - Instructions: 'C' (medium - 0.2)
+
+        This method is provided for manual updates, but the search_vector is primarily
+        maintained by a database trigger for performance.
+        """
+        self.search_vector = (
+            SearchVector('title', weight='A', config='english') +
+            SearchVector('ingredients', weight='B', config='english') +
+            SearchVector('instructions', weight='C', config='english')
+        )
+        self.save(update_fields=['search_vector'])
 
 class UserRecipe(models.Model):
   user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_recipes')
