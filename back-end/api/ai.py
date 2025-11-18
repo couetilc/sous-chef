@@ -15,6 +15,7 @@ Usage in views:
 """
 
 import os
+import json
 import logging
 from typing import List, Dict, Any, Optional
 from django.contrib.auth.models import User
@@ -68,7 +69,7 @@ def create_search_recipes_tool():
             max_carbs: Maximum carbohydrates in grams (optional)
 
         Returns:
-            A formatted string containing recipe details (id, title, nutrition, ingredients, instructions)
+            A formatted string containing recipe details (id, title, nutrition, ingredients, instructions, link)
         """
         # Use full-text search if query provided, otherwise get all recipes
         if search_query and search_query.strip():
@@ -98,8 +99,8 @@ def create_search_recipes_tool():
         results = []
         for recipe in recipes:
             recipe_text = f"""
-Recipe ID: {recipe.id}
 Title: {recipe.title}
+Link: [{recipe.title}](/recipes/{recipe.id}/)
 Nutrition (per serving): {recipe.calories_per_serving} calories, {recipe.protein_g}g protein, {recipe.carbs_g}g carbs, {recipe.fat_g}g fat
 Servings: {recipe.servings}
 Ingredients: {recipe.ingredients}
@@ -549,16 +550,32 @@ def create_set_recipe_metadata_tool(user: User):
 # ============================================================================
 
 NUTRITIONIST_TEMPLATE = """
-You are a nutritionist, ready to help customers create nutritious, simple recipes they want to cook. You can search for existing recipes, check their pantry inventory, and collaboratively build new custom recipes with them. The current customer's name is {username}.
+# System Prompt
 
-When creating recipes:
+You are a nutritionist, ready to help customers create nutritious, simple recipes they want to cook. You can search for existing recipes, check their pantry inventory, and collaboratively build new custom recipes with them.
+
+The current customer's name is {username}.
+
+## Requirements
+
+### When creating recipes:
 - Search for ingredients using search_ingredient before adding them
 - Build recipes step by step with create_recipe, add_ingredient, update_instructions, and set_recipe_metadata
 - Be conversational and guide users through the recipe creation process
 
+### When mentioning a recipe by name:
+- You **MUST** include the recipe's markdown link in the message.
+- You **MUST NOT** write the recipe ID outside a markdown link.
+- At the end of your message, you **MUST** link to recipes from the search recipes tool call.
+- Remember to share the links for **each** recipe.
+
+## Conversation History
+
 {conversation_history}
 
-Current message from {username}: {message}
+## Current message from {username}
+
+{message}
 """.strip()
 
 
@@ -574,7 +591,7 @@ def get_nutritionist_llm() -> ChatOpenAI:
     return ChatOpenAI(
         api_key=api_key,
         base_url="https://openrouter.ai/api/v1",
-        model="openrouter/sherlock-think-alpha",
+        model="moonshotai/kimi-k2-thinking",
     )
 
 
@@ -717,8 +734,7 @@ class NutritionistAgent:
                 call_timestamp = timezone.now().isoformat()
 
                 # Log tool call details
-                logger.info(f"  → Tool call: {tool_name}")
-                logger.info(f"    Parameters: {tool_args}")
+                logger.info(f"  → Tool call: {json.dumps(tool_call)}")
 
                 # Execute the tool
                 if tool_name in self.tool_map:
@@ -726,8 +742,7 @@ class NutritionistAgent:
                     try:
                         tool_result = tool.invoke(tool_args)
                         # Log successful tool result
-                        result_preview = str(tool_result)[:200] + ('...' if len(str(tool_result)) > 200 else '')
-                        logger.info(f"    ✓ Tool result: {result_preview}")
+                        logger.info(f"    ✓ Tool result: {str(tool_result)}")
                     except Exception as e:
                         logger.error(f"Tool execution error ({tool_name}) for user {username}: {e}", exc_info=True)
                         tool_result = f"Error executing tool: {str(e)}"
@@ -744,7 +759,8 @@ class NutritionistAgent:
                         'tool_name': tool_name,
                         'parameters': tool_args,
                         'result': tool_result,
-                        'timestamp': call_timestamp
+                        'timestamp': call_timestamp,
+                        'tool_call': tool_call,
                     })
                 else:
                     # Unknown tool
@@ -759,7 +775,8 @@ class NutritionistAgent:
                         'tool_name': tool_name,
                         'parameters': tool_args,
                         'result': error_msg,
-                        'timestamp': call_timestamp
+                        'timestamp': call_timestamp,
+                        'tool_call': tool_call,
                     })
 
             # Get next response from LLM with tool results
