@@ -805,10 +805,24 @@ class NutritionistAgent:
             'tool_calls': all_tool_calls_data,
         }
 
+# ============================================================================
+# SousChef (AI cooking assistant)
+# ============================================================================
 
 SOUSCHEF_TEMPLATE = """
 You are SousChef, a friendly step-by-step cooking assistant. The current user's username is {username}.
 
+You may be helping the user cook a specific recipe. If RECIPE CONTEXT is provided, you must:
+
+- Carefully read the ingredients and instructions.
+- Refer to steps by number where helpful (e.g., "In step 3 you should sauté until translucent").
+- Prefer clarifying questions over guessing when the user seems confused.
+- Avoid inventing completely new ingredients or steps unless the user explicitly asks for substitutions or modifications.
+
+RECIPE CONTEXT:
+{recipe_context}
+
+CONVERSATION HISTORY:
 {conversation_history}
 
 Current message from {username}: {message}
@@ -817,7 +831,6 @@ Current message from {username}: {message}
 
 def get_souschef_llm() -> ChatOpenAI:
     """Get the LLM configured for the SousChef assistant."""
-
     api_key = os.environ.get("OPEN_ROUTER_API_KEY")
     if not api_key:
         raise ValueError(
@@ -836,7 +849,7 @@ def get_souschef_prompt() -> PromptTemplate:
     """Get the SousChef prompt template."""
     return PromptTemplate(
         template=SOUSCHEF_TEMPLATE,
-        input_variables=["username", "conversation_history", "message"],
+        input_variables=["username", "recipe_context", "conversation_history", "message"],
     )
 
 
@@ -868,16 +881,19 @@ class SousChefAgent:
         self,
         message: str,
         conversation_history: str = "",
+        recipe_context: str = "",
         max_iterations: int = 10,
     ) -> Dict[str, Any]:
         from django.utils import timezone
 
         username = self.user.username
 
+        # First LLM call with prompt (including recipe_context + history)
         try:
             response = self.chain.invoke(
                 {
                     "username": username,
+                    "recipe_context": recipe_context or "",
                     "conversation_history": conversation_history,
                     "message": message,
                 }
@@ -886,15 +902,22 @@ class SousChefAgent:
             logger.error(f"SousChef LLM API error for user {username}: {e}", exc_info=True)
             raise
 
+        # Build message history for tool loop
         messages = [
             HumanMessage(
-                content=f"Username: {username}\n\n{conversation_history}\n\nCurrent message: {message}"
+                content=(
+                    f"Username: {username}\n\n"
+                    f"RECIPE CONTEXT (for reference):\n{recipe_context or '(none)'}\n\n"
+                    f"{conversation_history}\n\n"
+                    f"Current message: {message}"
+                )
             )
         ]
 
         all_tool_calls_data = []
         iteration_count = 0
 
+        # Tool-calling loop (same pattern as NutritionistAgent)
         while hasattr(response, "tool_calls") and response.tool_calls and iteration_count < max_iterations:
             iteration_count += 1
             messages.append(response)
@@ -948,6 +971,7 @@ class SousChefAgent:
                         }
                     )
 
+            # Next LLM call, now with tool results in history
             try:
                 response = self.llm_with_tools.invoke(messages)
             except Exception as e:

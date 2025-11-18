@@ -363,6 +363,7 @@ export class Api {
     })
   }
 
+  // Meal plans
   async getMealPlans() {
     return this.fetch('/api/meal_plans/')
   }
@@ -388,15 +389,17 @@ export class Api {
       method: 'DELETE',
     })
   }
+
+  // SousChef AI chat
   async getSousChefConversation() {
     return this.fetch(`/api/souschef/conversation/`, {
       method: 'GET',
     })
   }
 
-  async sousChefChat({ message }) {
+  async sousChefChat({ message, recipe_id }) {
     return this.fetch(`/api/souschef/conversation/`, {
-      body: JSON.stringify({ message }),
+      body: JSON.stringify({ message, recipe_id }),
     })
   }
 

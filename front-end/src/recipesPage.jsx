@@ -1,6 +1,5 @@
 import './style.css';
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router';
 import { useApi } from './useApi';
 import SelectCuratedIngredients from './selectCuratedIngredients'
 import Recipe from './recipe'
@@ -24,8 +23,6 @@ export default function Recipes() {
   const [ count, setCount ] = useState(0);
   const [servingsMultipliers, setServingsMultipliers] = useState({});
   const [servingsInputs, setServingsInputs] = useState({});
-  const [selectedRecipeId, setSelectedRecipeId] = useState(null);
-  const navigate = useNavigate();
 
   // Separate state for active filters (what's being searched)
   const [activeFilters, setActiveFilters] = useState({
@@ -119,12 +116,7 @@ export default function Recipes() {
     <div className="recipes-page">
       <h1>Recipe Page</h1>
       <h2>Displaying {count} recipes</h2>
-      {/* Ready to Cook CTA appears at top of page when a recipe is selected */}
-      {selectedRecipeId && (
-        <div style={{ marginTop: 8, textAlign: 'center' }}>
-          <button className="button-blue" onClick={() => navigate('/sous-chef')}>Ready to Cook?</button>
-        </div>
-      )}
+
       <div className="filter-bar">
         <form onSubmit={handleSearch}>
           <div>
@@ -158,7 +150,7 @@ export default function Recipes() {
           </div>
 
 
-          <div class="filter-checkboxes">
+          <div className="filter-checkboxes">
             <label>
               <input
                 type="checkbox"
@@ -178,7 +170,7 @@ export default function Recipes() {
             </label>
           </div>
 
-          <div class="filter-buttons">
+          <div className="filter-buttons">
             <button className="button" type="submit">Search</button>
             <button className="button-blue" type="button" onClick={clearFilters}>Clear Filters</button>
           </div>
@@ -216,16 +208,16 @@ export default function Recipes() {
       </div>
       <div className="recipes-list">
         {recipes?.results.map(recipe => {
-          return <Recipe key={recipe.id} tags={tags} recipe={recipe} triggerRefresh={executeSearch} />
+          return (
+            <Recipe
+              key={recipe.id}
+              tags={tags}
+              recipe={recipe}
+              triggerRefresh={executeSearch}
+            />
+          )
         })}
       </div>
-
-      {/* Ready to Cook CTA appears after a recipe is selected */}
-      {selectedRecipeId && (
-        <div style={{ marginTop: 16 }}>
-          <button className="button-blue" onClick={() => navigate('/sous-chef')}>Ready to Cook?</button>
-        </div>
-      )}
     </div>
   )
 }
