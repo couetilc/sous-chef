@@ -65,21 +65,15 @@ class Command(BaseCommand):
             for meal_index in range(1, 4):
                 # Cycle through available recipes
                 recipe = recipes[(day * 3 + meal_index - 1) % len(recipes)]
-                self.stdout.write(f'Adding {recipe.title} to day {day}, meal {meal_index}')
                 
                 entry = MealPlanEntry.objects.create(
                     meal_plan=meal_plan,
                     day_of_week=day,
                     meal_index=meal_index,
-                    recipe=recipe
+                    recipe=recipe,
+                    servings=3.0
                 )
                 entry_count += 1
 
         self.stdout.write(self.style.SUCCESS(f'Added {entry_count} meal plan entries'))
         self.stdout.write(self.style.SUCCESS(f'Meal plan is {"complete" if meal_plan.is_complete else "incomplete"}'))
-
-        # Print all entries for the created meal plan
-        self.stdout.write(self.style.SUCCESS('Verifying created meal plan entries:'))
-        entries = MealPlanEntry.objects.filter(meal_plan=meal_plan).order_by('day_of_week', 'meal_index')
-        for entry in entries:
-            self.stdout.write(f"Day {entry.day_of_week}, Meal {entry.meal_index}: {entry.recipe.title}")

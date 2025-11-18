@@ -1220,6 +1220,7 @@ class MealPlanEntryCreateView(APIView):
         day_of_week = request.data.get('day_of_week')
         meal_index = request.data.get('meal_index')
         recipe_id = request.data.get('recipe_id')
+        servings = request.data.get('servings', 1)
 
         try:
             recipe = Recipe.objects.get(id=recipe_id)
@@ -1230,11 +1231,12 @@ class MealPlanEntryCreateView(APIView):
             meal_plan=meal_plan,
             day_of_week=day_of_week,
             meal_index=meal_index,
-            defaults={'recipe': recipe}
+            defaults={'recipe': recipe, 'servings': servings}
         )
 
         if not created:
             entry.recipe = recipe
+            entry.servings = servings
             entry.save()
 
         serializer = MealPlanEntrySerializer(entry)
