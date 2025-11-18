@@ -27,6 +27,7 @@ CRONJOBS = [
   # weekly
   # ('0 6 * * 0', 'weekly_emails'),
   ('*/5 * * * #', 'weekly_emails'),
+  ('*/5 * * * #', 'weekly_grocery_emails'),
   # daily
   ('0 6 * * *', 'daily_emails')
   
@@ -134,6 +135,43 @@ MEDIA_ROOT = env.get("DJANGO_MEDIA_ROOT", '/var/www/media/')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 100000
+
+# Logging configuration
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'ai_nutritionist': {
+            'format': '[AI NUTRITIONIST] {message}',
+            'style': '{',
+        },
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+        'ai_console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'ai_nutritionist',
+        },
+    },
+    'loggers': {
+        'api.ai': {
+            'handlers': ['ai_console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
+    },
+}
 
 REST_FRAMEWORK = {
 'DEFAULT_RENDERER_CLASSES': ['rest_framework.renderers.JSONRenderer'],

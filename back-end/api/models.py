@@ -1,7 +1,9 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
+from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank, SearchVectorField
 from decimal import Decimal
+import datetime
 
 #title,url,image,ingredients,steps,prep_time_min,cook_time_min,total_time_min,servings,
 #calories_per_serving,fat_g,carbs_g,protein_g,price_per_serving_usd,total_price_usd
@@ -42,6 +44,32 @@ class RecipeManager(models.Manager):
             )
         ).order_by('-accessibility_score', 'title')
 
+    def search_full_text(self, query_text):
+        """
+        Perform full-text search across recipe title, ingredients, and instructions.
+
+        Uses PostgreSQL full-text search with relevance ranking. Title matches are weighted
+        highest, followed by ingredients, then instructions.
+
+        Args:
+            query_text: Search query string (supports multiple words, phrases with quotes)
+
+        Returns:
+            QuerySet of Recipe objects annotated with 'search_rank' and ordered by relevance
+        """
+        if not query_text or not query_text.strip():
+            return self.none()
+
+        # Create search query with proper configuration for English language
+        search_query = SearchQuery(query_text, config='english')
+
+        # Use the pre-computed search_vector field with relevance ranking
+        return self.annotate(
+            search_rank=SearchRank('search_vector', search_query)
+        ).filter(
+            search_vector=search_query
+        ).order_by('-search_rank', 'title')
+
 class Recipe(models.Model):
     objects = RecipeManager()
     title = models.TextField()
@@ -74,8 +102,30 @@ class Recipe(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    # Full-text search vector field (populated by database trigger)
+    search_vector = SearchVectorField(null=True, editable=False)
+
     def __str__(self):
         return self.title
+
+    def update_search_vector(self):
+        """
+        Update the search_vector field with weighted content from title, ingredients, and instructions.
+
+        Weight priorities:
+        - Title: 'A' (highest - 1.0)
+        - Ingredients: 'B' (high - 0.4)
+        - Instructions: 'C' (medium - 0.2)
+
+        This method is provided for manual updates, but the search_vector is primarily
+        maintained by a database trigger for performance.
+        """
+        self.search_vector = (
+            SearchVector('title', weight='A', config='english') +
+            SearchVector('ingredients', weight='B', config='english') +
+            SearchVector('instructions', weight='C', config='english')
+        )
+        self.save(update_fields=['search_vector'])
 
 class UserRecipe(models.Model):
   user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_recipes')
@@ -425,8 +475,19 @@ class TaggedRecipe(models.Model):
 
 
 class ChatConversation(models.Model):
-    """AI nutritionist chat conversation for a user"""
+    """AI chat conversation for a user (nutritionist, souschef, etc.)"""
+    CHANNEL_CHOICES = [
+        ('nutritionist', 'Nutritionist'),
+        ('souschef', 'SousChef'),
+    ]
+
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='chat_conversations')
+    channel = models.CharField(
+        max_length=32,
+        choices=CHANNEL_CHOICES,
+        default='nutritionist',
+        db_index=True,
+    )
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -436,7 +497,8 @@ class ChatConversation(models.Model):
 
     def __str__(self):
         status = 'active' if self.is_active else 'inactive'
-        return f"{self.user.username}'s chat ({status}) - {self.created_at.strftime('%Y-%m-%d %H:%M')}"
+        return f"{self.user.username}'s {self.channel} chat ({status}) - {self.created_at.strftime('%Y-%m-%d %H:%M')}"
+
 
 
 class ChatMessage(models.Model):
@@ -475,3 +537,118 @@ class TestIncompleteMealPlan(models.Model):
 
     def __str__(self):
         return f"Incomplete Meal Plan for {self.user}"
+
+class MealPlan(models.Model):
+    """User assigned meal plan for a specific week"""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='meal_plans')
+    week_start = models.DateField(help_text="Monday at beginning of meal plan week")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        unique_together = ['user', 'week_start']
+
+    def __str__(self):
+        return f"{self.user.username}'s meal plan starting on ({self.week_start.isoformat()})"
+
+    def clean(self):
+        # Check that week_start is a Monday
+        if self.week_start and self.week_start.weekday() != 0:
+            raise ValidationError({'week_start': 'week_start must be a Monday.'})
+
+    @property   
+    def is_complete(self):
+        # Check there are 21 meal entries
+        return self.entries.count() == 21
+
+    def get_recipes_for_day(self, day_index):
+        return [
+            e.recipe for e in self.entries.filter(day_of_week=day_index).order_by('meal_index')
+        ]
+
+
+class MealPlanEntry(models.Model):
+    """A single recipe entry in a meal plan"""
+    DAY_CHOICES = [(i, d) for i, d in enumerate(
+        ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+    )]
+    MEAL_CHOICES = [(1, 'Meal 1'), (2, 'Meal 2'), (3, 'Meal 3')]
+
+    meal_plan = models.ForeignKey(MealPlan, on_delete=models.CASCADE, related_name='entries')
+    day_of_week = models.IntegerField(choices=DAY_CHOICES)
+    meal_index = models.IntegerField(choices=MEAL_CHOICES, help_text='1, 2, or 3 for meals per day')
+    recipe = models.ForeignKey('Recipe', on_delete=models.CASCADE, related_name='in_meal_plans')
+    servings = models.DecimalField(max_digits=6, decimal_places=2, default=Decimal('1.0'))
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['meal_plan', 'day_of_week', 'meal_index']
+        unique_together = ['meal_plan', 'day_of_week', 'meal_index']
+
+    def __str__(self):
+        day = dict(self.DAY_CHOICES).get(self.day_of_week, str(self.day_of_week))
+        return f"{self.meal_plan} - {day} meal {self.meal_index}: {self.recipe.title}"
+
+
+class InProgressRecipe(models.Model):
+    """
+    Draft recipe being collaboratively created with AI nutritionist.
+    Mirrors Recipe model fields for easy promotion to Recipe.
+    Only one active (non-discarded) recipe per user at a time.
+    """
+    STATUS_CHOICES = [
+        ('draft', 'Draft'),
+        ('pending_confirmation', 'Pending Confirmation'),
+        ('discarded', 'Discarded'),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='in_progress_recipes')
+    title = models.TextField(blank=True, default='')
+    instructions = models.TextField(blank=True, default='', help_text='Pipe-separated instruction steps')
+    prep_time_min = models.IntegerField(default=0)
+    cook_time_min = models.IntegerField(default=0)
+    total_time_min = models.IntegerField(default=0)
+    servings = models.IntegerField(default=0)
+    status = models.CharField(max_length=25, choices=STATUS_CHOICES, default='draft')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-updated_at']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user'],
+                condition=~models.Q(status='discarded'),
+                name='unique_active_recipe_per_user'
+            )
+        ]
+
+    def __str__(self):
+        title_display = self.title if self.title else 'Untitled Recipe'
+        return f"{self.user.username}'s {title_display} ({self.status})"
+
+
+class InProgressRecipeIngredient(models.Model):
+    """
+    Links InProgressRecipe to CuratedIngredient with quantity.
+    Ingredients are ordered by created_at (insertion order).
+    """
+    recipe = models.ForeignKey(
+        InProgressRecipe,
+        on_delete=models.CASCADE,
+        related_name='ingredients'
+    )
+    curated_ingredient = models.ForeignKey(
+        CuratedIngredient,
+        on_delete=models.CASCADE,
+        related_name='in_progress_recipe_uses'
+    )
+    quantity = models.DecimalField(max_digits=10, decimal_places=2)
+    unit = models.CharField(max_length=50)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f"{self.quantity} {self.unit} {self.curated_ingredient.name} for {self.recipe}"

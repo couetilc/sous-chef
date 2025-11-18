@@ -3,7 +3,7 @@ from django.contrib import admin
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
-from .models import Ingredient, Diet, CookedRecipe, Meal, Recipe, FavoriteRecipe, OnboardingSubmission, UserInventory, UserCuratedInventory, RecipeTag, UserRecipe, ChatConversation, ChatMessage, CuratedIngredient, RecipeCuratedIngredient
+from .models import Ingredient, Diet, CookedRecipe, Meal, Recipe, FavoriteRecipe, OnboardingSubmission, UserInventory, UserCuratedInventory, RecipeTag, UserRecipe, ChatConversation, ChatMessage, CuratedIngredient, RecipeCuratedIngredient, MealPlan, MealPlanEntry
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -225,3 +225,24 @@ class ChatConversationSerializer(serializers.ModelSerializer):
         model = ChatConversation
         fields = ('id', 'messages')
         read_only_fields = ('id',)
+
+
+class MealPlanEntrySerializer(serializers.ModelSerializer):
+    recipe = RecipeSerializer(read_only=True)
+    day_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = MealPlanEntry
+        fields = ('id', 'day_of_week', 'day_name', 'meal_index', 'recipe', 'servings')
+
+    def get_day_name(self, obj):
+        days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+        return days[obj.day_of_week]
+
+
+class MealPlanSerializer(serializers.ModelSerializer):
+    entries = MealPlanEntrySerializer(many=True, read_only=True)
+    
+    class Meta:
+        model = MealPlan
+        fields = ['id', 'week_start', 'entries', 'is_complete', 'created_at']
