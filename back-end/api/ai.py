@@ -591,7 +591,7 @@ def get_nutritionist_llm() -> ChatOpenAI:
     return ChatOpenAI(
         api_key=api_key,
         base_url="https://openrouter.ai/api/v1",
-        model="moonshotai/kimi-k2-thinking",
+        model=os.getenv("AI_NUTRITIONIST_MODEL", "openai/gpt-oss-20b:free")
     )
 
 
