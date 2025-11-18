@@ -991,7 +991,7 @@ class TagList(APIView):
     permission_classes = [permissions.IsAuthenticated]
     def get(self, request):
         queryset = RecipeTag.objects.order_by('name').filter(user=request.user)
-        serialized = RecipeTagSerializer(queryset, many = True)
+        serialized = TagSerializer(queryset, many = True)
         return Response(
             serialized.data,
             status.HTTP_200_OK
@@ -1221,7 +1221,7 @@ class MealPlanDetailView(APIView):
             meal_plan.entries.prefetch_related('recipe')
         except MealPlan.DoesNotExist:
             return Response({'error': 'Meal plan not found'}, status=status.HTTP_404_NOT_FOUND)
-        
+
         serializer = MealPlanSerializer(meal_plan)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
