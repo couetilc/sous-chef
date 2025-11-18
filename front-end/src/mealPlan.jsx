@@ -77,10 +77,10 @@ function NutritionSummary({ mealPlan, curWeek }) {
   const totals = todayMeals.reduce(
     (acc, meal) => {
       const recipe = meal.recipe;
-      acc.calories += recipe.calories_per_serving;
-      acc.protein += recipe.protein_g;
-      acc.fat += recipe.fat_g;
-      acc.carbs += recipe.carbs_g;
+      acc.calories += recipe.calories_per_serving * meal.servings;
+      acc.protein += recipe.protein_g * meal.servings;
+      acc.fat += recipe.fat_g * meal.servings;
+      acc.carbs += recipe.carbs_g * meal.servings;
 
       return acc;
     },

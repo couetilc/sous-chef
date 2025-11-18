@@ -512,6 +512,7 @@ class MealPlanEntry(models.Model):
     day_of_week = models.IntegerField(choices=DAY_CHOICES)
     meal_index = models.IntegerField(choices=MEAL_CHOICES, help_text='1, 2, or 3 for meals per day')
     recipe = models.ForeignKey('Recipe', on_delete=models.CASCADE, related_name='in_meal_plans')
+    servings = models.DecimalField(max_digits=6, decimal_places=2, default=Decimal('1.0'))
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
