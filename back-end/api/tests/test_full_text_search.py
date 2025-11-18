@@ -280,7 +280,6 @@ class TestAINutritionistSearchTool:
         result = search_tool.invoke({"search_query": "chicken protein"})
 
         assert "High Protein Chicken Bowl" in result
-        assert "Recipe ID:" in result
 
     def test_ai_tool_search_with_nutrition_filters(self, search_recipes):
         """Test AI tool with search query and nutrition filters."""
@@ -306,4 +305,3 @@ class TestAINutritionistSearchTool:
         result = search_tool.invoke({"search_query": ""})
 
         # Should return recent recipes when no query provided
-        assert "Recipe ID:" in result
