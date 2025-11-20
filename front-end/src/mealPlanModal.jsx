@@ -18,7 +18,7 @@ export default function MealPlanModal({ meal, onClose }) {
           <img className="modal-image" src={recipe.image_url} alt={recipe.title} />
         )}
 
-        <p><strong>Cooking Time:</strong> {recipe.total_time_min || 0} min</p>
+        <p><strong>Prep/Cook Time:</strong> {recipe.total_time_min || 0} min</p>
 
         <h3>Nutrition (per serving)</h3>
         <ul>
