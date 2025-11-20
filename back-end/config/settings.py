@@ -24,12 +24,13 @@ EMAIL_HOST = 'smtp4dev'
 EMAIL_PORT = 25
 
 CRONJOBS = [
+  # daily
+  # ('0 6 * * *', 'cron.daily_emails')
   # weekly
   # ('0 6 * * 0', 'weekly_emails'),
-  ('*/5 * * * #', 'cron.weekly_emails'),
-  ('*/5 * * * #', 'cron.weekly_grocery_emails'),
-  # daily
-  ('0 6 * * *', 'cron.daily_emails')
+  ('*/5 * * * *', 'cron.weekly_emails'),
+  ('*/5 * * * *', 'cron.weekly_grocery_emails'),
+  ('*/5 * * * *', 'cron.daily_emails')
   
 ]
 
