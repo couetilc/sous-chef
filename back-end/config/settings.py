@@ -40,7 +40,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'django-crontab',
+    'django_crontab',
     'rest_framework',
     'drf_spectacular',
     'corsheaders',

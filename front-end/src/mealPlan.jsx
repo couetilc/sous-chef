@@ -134,50 +134,6 @@ export default function MealPlanPage() {
 
   const days = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
 
-<<<<<<< HEAD
-  return ( 
-    <div className="meal-plan-div">
-      <div className="meal-plan-text">
-        <h1 style={{ marginTop: '10px'}}> Your Meal Plan for {weekStart} to {weekEnd} </h1>
-      </div>
-      <div className="weekly-plan-div">
-        <div> <p> </p></div>
-        <DailyMealComponent dayOfWeek='1' curWeek='1' day='Monday' mealPlan={mealPlan}> </DailyMealComponent>
-        <DailyMealComponent dayOfWeek='2' curWeek='1' day='Tuesday' mealPlan={mealPlan}> </DailyMealComponent>
-        <DailyMealComponent dayOfWeek='3' curWeek='1' day='Wednesday' mealPlan={mealPlan}> </DailyMealComponent>
-        <DailyMealComponent dayOfWeek='4' curWeek='1' day='Thursday' mealPlan={mealPlan}> </DailyMealComponent>
-        <DailyMealComponent dayOfWeek='5' curWeek='1' day='Friday' mealPlan={mealPlan}> </DailyMealComponent>
-        <DailyMealComponent dayOfWeek='6' curWeek='1' day='Saturday' mealPlan={mealPlan}> </DailyMealComponent>
-        <DailyMealComponent dayOfWeek='0' curWeek='1' day='Sunday' mealPlan={mealPlan}> </DailyMealComponent>
-        <div className="meal-plan-nutr">
-          <h1> Today's Nutrition </h1>
-          <p> Calories(kCal): 0/GOAL </p>
-          <p> Protein(g): 0/GOAL </p>
-          <p> Fat(g): 0/GOAL </p>
-          <p> Carbohydrates(g): 0/GOAL </p>
-        </div>
-      </div>
-      <div className="meal-plan-text">
-        <h1> Next Week's Plan: start_date-end_date </h1>
-      </div>
-      <div className="weekly-plan-div">
-        <div> <p> </p></div>
-        <DailyMealComponent dayOfWeek='1' curWeek='0' day='Monday'> </DailyMealComponent>
-        <DailyMealComponent dayOfWeek='2' curWeek='0' day='Tuesday'> </DailyMealComponent>
-        <DailyMealComponent dayOfWeek='3' curWeek='0' day='Wednesday'> </DailyMealComponent>
-        <DailyMealComponent dayOfWeek='4' curWeek='0' day='Thursday'> </DailyMealComponent>
-        <DailyMealComponent dayOfWeek='5' curWeek='0' day='Friday'> </DailyMealComponent>
-        <DailyMealComponent dayOfWeek='6' curWeek='0' day='Saturday'> </DailyMealComponent>
-        <DailyMealComponent dayOfWeek='0' curWeek='0' day='Sunday'> </DailyMealComponent>
-        <div className="meal-plan-nutr">
-          <h1> Today's Nutrition </h1>
-          <p> Calories(kCal): 0/GOAL </p>
-          <p> Protein(g): 0/GOAL </p>
-          <p> Fat(g): 0/GOAL </p>
-          <p> Carbohydrates(g): 0/GOAL </p>
-        </div>
-      </div>
-=======
   return (
     <div className="meal-plan-container">
 
@@ -200,7 +156,6 @@ export default function MealPlanPage() {
         mealPlan={null}
         curWeek="0"
       />
->>>>>>> 2cd21b30d9954cf6a879ec9093049629a9e003f2
     </div>
   );
 }
