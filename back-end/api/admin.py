@@ -445,7 +445,7 @@ class ChatConversationAdmin(admin.ModelAdmin):
                 html += '<div style="margin-top: 10px; padding: 8px; background: #f0f8ff; border-radius: 4px; font-size: 0.85em;">'
                 for i, tool_call in enumerate(msg.tool_calls):
                     tool_name = tool_call.get('tool_name', 'Unknown')
-                    parameters = tool_call.get('parameters', {})
+                    parameters = tool_call.get('tool_call', tool_call.get('parameters', {}))
                     # Escape curly braces for format_html by doubling them
                     params_json = json.dumps(parameters).replace('{', '{{').replace('}', '}}')
                     html += f'<strong>Tool:</strong> {tool_name}<br>'

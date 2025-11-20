@@ -26,10 +26,10 @@ EMAIL_PORT = 25
 CRONJOBS = [
   # weekly
   # ('0 6 * * 0', 'weekly_emails'),
-  ('*/5 * * * #', 'weekly_emails'),
-  ('*/5 * * * #', 'weekly_grocery_emails'),
+  ('*/5 * * * #', 'cron.weekly_emails'),
+  ('*/5 * * * #', 'cron.weekly_grocery_emails'),
   # daily
-  ('0 6 * * *', 'daily_emails')
+  ('0 6 * * *', 'cron.daily_emails')
   
 ]
 
@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django-crontab',
     'rest_framework',
     'drf_spectacular',
     'corsheaders',

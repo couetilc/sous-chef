@@ -11,6 +11,7 @@ from django.utils.decorators import method_decorator
 from django.utils.dateparse import parse_datetime
 from django.utils import timezone
 from django.db.models import Exists, OuterRef, Case, When, Value, IntegerField, Q, BooleanField, F, FloatField, ExpressionWrapper
+from django.contrib.postgres.search import SearchQuery, SearchRank
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -33,6 +34,7 @@ from .serializers import (
 )
 from .utils.recommended import compute_recommendations
 from zoneinfo import ZoneInfo
+from .ai import NutritionistAgent, SousChefAgent
 
 class Paginator(PageNumberPagination):
     page_size = 100
@@ -546,8 +548,24 @@ class GetRecipesFiltered(APIView):
         # Always start with accessibility annotation (needed for serializer)
         queryset = Recipe.objects.order_by_ingredient_accessibility()
 
+        # Full-text search support (searches title, ingredients, instructions)
+        search_query = request.data.get('search_query')
+        if search_query and search_query.strip():
+            # Use PostgreSQL full-text search
+            query = SearchQuery(search_query, config='english')
+            queryset = queryset.annotate(
+                search_rank=SearchRank('search_vector', query)
+            ).filter(
+                search_vector=query
+            )
+            # If search is active and sort_by is relevance, use search ranking
+            if sort_by == 'relevance':
+                queryset = queryset.order_by('-search_rank', 'title')
+
+        # Legacy title search (kept for backward compatibility)
         title = request.data.get('title')
-        if title:
+        if title and not search_query:
+            # Only use title__icontains if search_query is not provided
             queryset = queryset.filter(title__icontains=title)
 
         # NEW: Curated ingredient filtering
@@ -942,9 +960,6 @@ class GetUserRecipes(APIView):
         userRecipe = UserRecipe.objects.filter(user=request.user).all()
         serialized = UserRecipeSerializer(userRecipe, many=True)
 
-
-        if not userRecipe:
-            return Response({'error': 'No user recipe found'}, status=status.HTTP_404_NOT_FOUND)
         return Response(serialized.data, status=status.HTTP_200_OK)
 
 class UpdateUserRecipe(APIView):
@@ -974,7 +989,7 @@ class TagList(APIView):
     permission_classes = [permissions.IsAuthenticated]
     def get(self, request):
         queryset = RecipeTag.objects.order_by('name').filter(user=request.user)
-        serialized = RecipeTagSerializer(queryset, many = True)
+        serialized = TagSerializer(queryset, many = True)
         return Response(
             serialized.data,
             status.HTTP_200_OK
@@ -1059,6 +1074,7 @@ class NutritionistChat(APIView):
         # Get active conversation with messages prefetched to avoid N+1 query
         conversation = ChatConversation.objects.filter(
             user=user,
+            channel='nutritionist',
             is_active=True
         ).prefetch_related('messages').first()
 
@@ -1090,6 +1106,7 @@ class NutritionistChat(APIView):
                 # Get or create active conversation (prevents race condition)
                 conversation, created = ChatConversation.objects.get_or_create(
                     user=user,
+                    channel='nutritionist',
                     is_active=True
                 )
 
@@ -1114,9 +1131,6 @@ class NutritionistChat(APIView):
                     content=message
                 )
 
-                # Use the NutritionistAgent for clean, encapsulated AI interaction
-                from .ai import NutritionistAgent
-
                 try:
                     agent = NutritionistAgent(user=user)
                     result = agent.chat(
@@ -1135,7 +1149,7 @@ class NutritionistChat(APIView):
                     logger.error(f"AI agent error for user {user.username}: {e}", exc_info=True)
                     result = {
                         'content': "I'm sorry, I'm having trouble processing your request right now. Please try again in a moment.",
-                        'tool_calls': None
+                        'tool_calls': []
                     }
 
                 # Save assistant response with tool call data
@@ -1169,6 +1183,7 @@ class ClearConversation(APIView):
         # Mark current active conversation as inactive
         ChatConversation.objects.filter(
             user=request.user,
+            channel='nutritionist',
             is_active=True
         ).update(is_active=False)
 
@@ -1204,7 +1219,7 @@ class MealPlanDetailView(APIView):
             meal_plan.entries.prefetch_related('recipe')
         except MealPlan.DoesNotExist:
             return Response({'error': 'Meal plan not found'}, status=status.HTTP_404_NOT_FOUND)
-        
+
         serializer = MealPlanSerializer(meal_plan)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -1222,6 +1237,7 @@ class MealPlanEntryCreateView(APIView):
         day_of_week = request.data.get('day_of_week')
         meal_index = request.data.get('meal_index')
         recipe_id = request.data.get('recipe_id')
+        servings = request.data.get('servings', 1)
 
         try:
             recipe = Recipe.objects.get(id=recipe_id)
@@ -1232,11 +1248,12 @@ class MealPlanEntryCreateView(APIView):
             meal_plan=meal_plan,
             day_of_week=day_of_week,
             meal_index=meal_index,
-            defaults={'recipe': recipe}
+            defaults={'recipe': recipe, 'servings': servings}
         )
 
         if not created:
             entry.recipe = recipe
+            entry.servings = servings
             entry.save()
 
         serializer = MealPlanEntrySerializer(entry)
@@ -1280,3 +1297,146 @@ class SousChefInterpret(APIView):
             "new_step_index": result['step_index'],
             "assistant_message": result['message']
         })
+
+class SousChefChat(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        """Get the current active SousChef conversation with all messages"""
+        user = request.user
+
+        conversation = ChatConversation.objects.filter(
+            user=user,
+            channel='souschef',
+            is_active=True,
+        ).prefetch_related('messages').first()
+
+        if not conversation:
+            return Response({'id': None, 'messages': []}, status=status.HTTP_200_OK)
+
+        serializer = ChatConversationSerializer(conversation)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        message = request.data.get('message')
+        if not message or not message.strip():
+            return Response(
+                {'error': 'Message parameter is required and cannot be empty'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Optional recipe_id for context
+        recipe_id = request.data.get('recipe_id')
+        recipe_context = ""
+
+        if recipe_id is not None:
+            try:
+                recipe = Recipe.objects.get(id=recipe_id)
+
+                # Build a plain-text context block for the LLM
+                ingredients_str = str(recipe.ingredients)
+                instructions_str = str(recipe.instructions)
+
+                recipe_context = (
+                    f"CURRENT RECIPE CONTEXT\n"
+                    f"======================\n"
+                    f"Recipe ID: {recipe.id}\n"
+                    f"Title: {recipe.title}\n"
+                    f"Servings: {recipe.servings}\n"
+                    f"Prep time: {recipe.prep_time_min} minutes\n"
+                    f"Cook time: {recipe.cook_time_min} minutes\n\n"
+                    f"Ingredients (raw field):\n{ingredients_str}\n\n"
+                    f"Instructions (raw field):\n{instructions_str}\n"
+                )
+            except Recipe.DoesNotExist:
+                logger.warning(
+                    f"SousChefChat: recipe_id={recipe_id} not found for user {request.user.username}"
+                )
+                # leave recipe_context as empty string
+
+        user = request.user
+
+        try:
+            with transaction.atomic():
+                # get or create active conversation
+                conversation, created = ChatConversation.objects.get_or_create(
+                    user=user,
+                    channel='souschef',
+                    is_active=True,
+                )
+
+                # previous messages
+                previous_messages = ChatMessage.objects.filter(
+                    conversation=conversation
+                ).order_by('created_at')
+
+                conversation_history = ""
+                if previous_messages.exists():
+                    history_lines = []
+                    for msg in previous_messages:
+                        role_label = "User" if msg.role == "user" else "Assistant"
+                        history_lines.append(f"{role_label}: {msg.content}")
+                    conversation_history = "Previous conversation:\n" + "\n".join(history_lines)
+
+                # save user message
+                ChatMessage.objects.create(
+                    conversation=conversation,
+                    role='user',
+                    content=message,
+                )
+
+                try:
+                    agent = SousChefAgent(user=user)
+                    result = agent.chat(
+                        message=message,
+                        conversation_history=conversation_history,
+                        recipe_context=recipe_context,
+                    )
+                except ValueError as e:
+                    logger.error(f"SousChef config error for user {user.username}: {e}")
+                    return Response(
+                        {'error': 'AI service is not properly configured. Please contact support.'},
+                        status=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    )
+                except Exception as e:
+                    logger.error(f"SousChef agent error for user {user.username}: {e}", exc_info=True)
+                    result = {
+                        'content': "I'm sorry, I'm having trouble processing your request right now. Please try again in a moment.",
+                        'tool_calls': None,
+                    }
+
+                # save assistant response
+                ChatMessage.objects.create(
+                    conversation=conversation,
+                    role='assistant',
+                    content=result['content'],
+                    tool_calls=result['tool_calls'],
+                )
+
+                # reload with messages prefetched for serialization
+                conversation = ChatConversation.objects.prefetch_related('messages').get(id=conversation.id)
+                serializer = ChatConversationSerializer(conversation)
+                return Response(serializer.data, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            logger.error(f"Unexpected error in SousChef chat for user {user.username}: {e}", exc_info=True)
+            return Response(
+                {'error': 'An unexpected error occurred. Please try again.'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+
+class ClearSousChefConversation(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        ChatConversation.objects.filter(
+            user=request.user,
+            channel='souschef',
+            is_active=True,
+        ).update(is_active=False)
+
+        return Response(
+            {'success': True, 'message': 'SousChef conversation cleared'},
+            status=status.HTTP_200_OK,
+        )

@@ -233,7 +233,7 @@ class MealPlanEntrySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = MealPlanEntry
-        fields = ('id', 'day_of_week', 'day_name', 'meal_index', 'recipe')
+        fields = ('id', 'day_of_week', 'day_name', 'meal_index', 'recipe', 'servings')
 
     def get_day_name(self, obj):
         days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']

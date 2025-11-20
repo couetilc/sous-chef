@@ -15,6 +15,7 @@ Usage in views:
 """
 
 import os
+import json
 import logging
 from typing import List, Dict, Any, Optional
 from django.contrib.auth.models import User
@@ -47,33 +48,34 @@ def create_search_recipes_tool():
     """
     @tool
     def search_recipes_tool(
-        title_query: str = "",
+        search_query: str = "",
         max_calories: int = None,
         min_protein: int = None,
         max_fat: int = None,
         max_carbs: int = None
     ) -> str:
-        """Search for recipes in the recipe library.
+        """Search for recipes in the recipe library using full-text search.
 
-        Use this tool to find recipes based on title keywords and nutritional criteria.
+        Use this tool to find recipes by searching across recipe titles, ingredients, and instructions.
+        Supports natural language queries and returns results ranked by relevance.
         Returns up to 5 recipes with complete details including ingredients and instructions.
 
         Args:
-            title_query: Keywords to search in recipe titles (e.g., "chicken pasta", "salad")
+            search_query: Search query to find recipes (searches title, ingredients, instructions)
+                         Examples: "pasta with chicken", "chocolate dessert", "vegan protein"
             max_calories: Maximum calories per serving (optional)
             min_protein: Minimum protein in grams (optional)
             max_fat: Maximum fat in grams (optional)
             max_carbs: Maximum carbohydrates in grams (optional)
 
         Returns:
-            A formatted string containing recipe details (id, title, nutrition, ingredients, instructions)
+            A formatted string containing recipe details (id, title, nutrition, ingredients, instructions, link)
         """
-        # Start with base queryset
-        queryset = Recipe.objects.all().order_by('-created_at')
-
-        # Apply filters
-        if title_query and title_query.strip():
-            queryset = queryset.filter(title__icontains=title_query.strip())
+        # Use full-text search if query provided, otherwise get all recipes
+        if search_query and search_query.strip():
+            queryset = Recipe.objects.search_full_text(search_query.strip())
+        else:
+            queryset = Recipe.objects.all().order_by('-created_at')
 
         if max_calories is not None:
             queryset = queryset.filter(calories_per_serving__lte=max_calories)
@@ -97,8 +99,8 @@ def create_search_recipes_tool():
         results = []
         for recipe in recipes:
             recipe_text = f"""
-Recipe ID: {recipe.id}
 Title: {recipe.title}
+Link: [{recipe.title}](/recipes/{recipe.id}/)
 Nutrition (per serving): {recipe.calories_per_serving} calories, {recipe.protein_g}g protein, {recipe.carbs_g}g carbs, {recipe.fat_g}g fat
 Servings: {recipe.servings}
 Ingredients: {recipe.ingredients}
@@ -548,16 +550,32 @@ def create_set_recipe_metadata_tool(user: User):
 # ============================================================================
 
 NUTRITIONIST_TEMPLATE = """
-You are a nutritionist, ready to help customers create nutritious, simple recipes they want to cook. You can search for existing recipes, check their pantry inventory, and collaboratively build new custom recipes with them. The current customer's name is {username}.
+# System Prompt
 
-When creating recipes:
+You are a nutritionist, ready to help customers create nutritious, simple recipes they want to cook. You can search for existing recipes, check their pantry inventory, and collaboratively build new custom recipes with them.
+
+The current customer's name is {username}.
+
+## Requirements
+
+### When creating recipes:
 - Search for ingredients using search_ingredient before adding them
 - Build recipes step by step with create_recipe, add_ingredient, update_instructions, and set_recipe_metadata
 - Be conversational and guide users through the recipe creation process
 
+### When mentioning a recipe by name:
+- You **MUST** include the recipe's markdown link in the message.
+- You **MUST NOT** write the recipe ID outside a markdown link.
+- At the end of your message, you **MUST** link to recipes from the search recipes tool call.
+- Remember to share the links for **each** recipe.
+
+## Conversation History
+
 {conversation_history}
 
-Current message from {username}: {message}
+## Current message from {username}
+
+{message}
 """.strip()
 
 
@@ -573,7 +591,7 @@ def get_nutritionist_llm() -> ChatOpenAI:
     return ChatOpenAI(
         api_key=api_key,
         base_url="https://openrouter.ai/api/v1",
-        model="openrouter/sherlock-think-alpha",
+        model=os.getenv("AI_NUTRITIONIST_MODEL", "openai/gpt-oss-20b:free")
     )
 
 
@@ -716,8 +734,7 @@ class NutritionistAgent:
                 call_timestamp = timezone.now().isoformat()
 
                 # Log tool call details
-                logger.info(f"  → Tool call: {tool_name}")
-                logger.info(f"    Parameters: {tool_args}")
+                logger.info(f"  → Tool call: {json.dumps(tool_call)}")
 
                 # Execute the tool
                 if tool_name in self.tool_map:
@@ -725,8 +742,7 @@ class NutritionistAgent:
                     try:
                         tool_result = tool.invoke(tool_args)
                         # Log successful tool result
-                        result_preview = str(tool_result)[:200] + ('...' if len(str(tool_result)) > 200 else '')
-                        logger.info(f"    ✓ Tool result: {result_preview}")
+                        logger.info(f"    ✓ Tool result: {str(tool_result)}")
                     except Exception as e:
                         logger.error(f"Tool execution error ({tool_name}) for user {username}: {e}", exc_info=True)
                         tool_result = f"Error executing tool: {str(e)}"
@@ -743,7 +759,8 @@ class NutritionistAgent:
                         'tool_name': tool_name,
                         'parameters': tool_args,
                         'result': tool_result,
-                        'timestamp': call_timestamp
+                        'timestamp': call_timestamp,
+                        'tool_call': tool_call,
                     })
                 else:
                     # Unknown tool
@@ -758,7 +775,8 @@ class NutritionistAgent:
                         'tool_name': tool_name,
                         'parameters': tool_args,
                         'result': error_msg,
-                        'timestamp': call_timestamp
+                        'timestamp': call_timestamp,
+                        'tool_call': tool_call,
                     })
 
             # Get next response from LLM with tool results
@@ -784,7 +802,188 @@ class NutritionistAgent:
         # Return final response and metadata
         return {
             'content': response.content,
-            'tool_calls': all_tool_calls_data if all_tool_calls_data else None
+            'tool_calls': all_tool_calls_data,
+        }
+
+# ============================================================================
+# SousChef (AI cooking assistant)
+# ============================================================================
+
+SOUSCHEF_TEMPLATE = """
+You are SousChef, a friendly step-by-step cooking assistant. The current user's username is {username}.
+
+You may be helping the user cook a specific recipe. If RECIPE CONTEXT is provided, you must:
+
+- Carefully read the ingredients and instructions.
+- Refer to steps by number where helpful (e.g., "In step 3 you should sauté until translucent").
+- Prefer clarifying questions over guessing when the user seems confused.
+- Avoid inventing completely new ingredients or steps unless the user explicitly asks for substitutions or modifications.
+
+RECIPE CONTEXT:
+{recipe_context}
+
+CONVERSATION HISTORY:
+{conversation_history}
+
+Current message from {username}: {message}
+""".strip()
+
+
+def get_souschef_llm() -> ChatOpenAI:
+    """Get the LLM configured for the SousChef assistant."""
+    api_key = os.environ.get("OPEN_ROUTER_API_KEY")
+    if not api_key:
+        raise ValueError(
+            "OPEN_ROUTER_API_KEY environment variable is not set. "
+            "Please configure this API key to use the SousChef AI feature."
+        )
+
+    return ChatOpenAI(
+        api_key=api_key,
+        base_url="https://openrouter.ai/api/v1",
+        model="openrouter/sherlock-think-alpha",
+    )
+
+
+def get_souschef_prompt() -> PromptTemplate:
+    """Get the SousChef prompt template."""
+    return PromptTemplate(
+        template=SOUSCHEF_TEMPLATE,
+        input_variables=["username", "recipe_context", "conversation_history", "message"],
+    )
+
+
+class SousChefAgent:
+    """
+    High-level API for the SousChef AI assistant.
+
+    Very similar to NutritionistAgent, but with a cooking-focused prompt.
+    """
+
+    def __init__(self, user: User):
+        self.user = user
+        self.llm = get_souschef_llm()
+        self.prompt = get_souschef_prompt()
+
+        # Reuse the same tools for now (recipe search + user inventory)
+        self.tools = self._create_tools()
+        self.tool_map = {tool.name: tool for tool in self.tools}
+        self.llm_with_tools = self.llm.bind_tools(self.tools)
+        self.chain = self.prompt | self.llm_with_tools
+
+    def _create_tools(self) -> List:
+        return [
+            create_search_recipes_tool(),
+            create_get_user_inventory_tool(self.user),
+        ]
+
+    def chat(
+        self,
+        message: str,
+        conversation_history: str = "",
+        recipe_context: str = "",
+        max_iterations: int = 10,
+    ) -> Dict[str, Any]:
+        from django.utils import timezone
+
+        username = self.user.username
+
+        # First LLM call with prompt (including recipe_context + history)
+        try:
+            response = self.chain.invoke(
+                {
+                    "username": username,
+                    "recipe_context": recipe_context or "",
+                    "conversation_history": conversation_history,
+                    "message": message,
+                }
+            )
+        except Exception as e:
+            logger.error(f"SousChef LLM API error for user {username}: {e}", exc_info=True)
+            raise
+
+        # Build message history for tool loop
+        messages = [
+            HumanMessage(
+                content=(
+                    f"Username: {username}\n\n"
+                    f"RECIPE CONTEXT (for reference):\n{recipe_context or '(none)'}\n\n"
+                    f"{conversation_history}\n\n"
+                    f"Current message: {message}"
+                )
+            )
+        ]
+
+        all_tool_calls_data = []
+        iteration_count = 0
+
+        # Tool-calling loop (same pattern as NutritionistAgent)
+        while hasattr(response, "tool_calls") and response.tool_calls and iteration_count < max_iterations:
+            iteration_count += 1
+            messages.append(response)
+
+            for tool_call in response.tool_calls:
+                tool_name = tool_call["name"]
+                tool_args = tool_call["args"]
+                call_timestamp = timezone.now().isoformat()
+
+                if tool_name in self.tool_map:
+                    tool = self.tool_map[tool_name]
+                    try:
+                        tool_result = tool.invoke(tool_args)
+                    except Exception as e:
+                        logger.error(
+                            f"SousChef tool execution error ({tool_name}) for user {username}: {e}",
+                            exc_info=True,
+                        )
+                        tool_result = f"Error executing tool: {str(e)}"
+
+                    messages.append(
+                        ToolMessage(
+                            content=tool_result,
+                            tool_call_id=tool_call.get("id", "unknown"),
+                        )
+                    )
+
+                    all_tool_calls_data.append(
+                        {
+                            "tool_name": tool_name,
+                            "parameters": tool_args,
+                            "result": tool_result,
+                            "timestamp": call_timestamp,
+                        }
+                    )
+                else:
+                    error_msg = f"Error: Unknown tool '{tool_name}'"
+                    logger.warning(f"SousChef unknown tool requested ({tool_name}) for user {username}")
+                    messages.append(
+                        ToolMessage(
+                            content=error_msg,
+                            tool_call_id=tool_call.get("id", "unknown"),
+                        )
+                    )
+                    all_tool_calls_data.append(
+                        {
+                            "tool_name": tool_name,
+                            "parameters": tool_args,
+                            "result": error_msg,
+                            "timestamp": call_timestamp,
+                        }
+                    )
+
+            # Next LLM call, now with tool results in history
+            try:
+                response = self.llm_with_tools.invoke(messages)
+            except Exception as e:
+                logger.error(
+                    f"SousChef LLM API error during tool loop for user {username}: {e}",
+                    exc_info=True,
+                )
+                raise
+
+        return {
+            "content": response.content,
+            "tool_calls": all_tool_calls_data,
         }
 
 # ============================================================================
