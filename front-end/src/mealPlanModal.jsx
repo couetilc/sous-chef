@@ -19,13 +19,13 @@ export default function MealPlanModal({ meal, onClose }) {
         )}
 
         <p><strong>Prep/Cook Time:</strong> {recipe.total_time_min || 0} min</p>
-
-        <h3>Nutrition (per serving)</h3>
+        <p><strong>Servings:</strong> {meal.servings}</p>
+        <h3>Nutrition</h3>
         <ul>
-          <li>Calories: {recipe.calories_per_serving}</li>
-          <li>Protein: {recipe.protein_g} g</li>
-          <li>Fat: {recipe.fat_g} g</li>
-          <li>Carbs: {recipe.carbs_g} g</li>
+          <li>Calories: {recipe.calories_per_serving * meal.servings} kCal</li>
+          <li>Protein: {recipe.protein_g * meal.servings}g</li>
+          <li>Fat: {recipe.fat_g * meal.servings}g</li>
+          <li>Carbs: {recipe.carbs_g * meal.servings}g</li>
         </ul>
       </div>
     </div>
