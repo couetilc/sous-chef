@@ -1,7 +1,15 @@
 from django.core.mail import send_mail
+import datetime
 
 def daily_emails():
   print("executed daily!")
+  today_date = datetime.date.today()
+  subject = 'Daily Meal Plan: today_date.strftime("%d-%m-%Y")'
+  print(subject)
+  message = 'Hello, username!\nHere is your meal plan for the day:\n'
+  sender = 'notifications@souschef.life'
+  recipient = 'test@test.com'
+  send_mail(subject, message, sender, [recipient])
   # api call to get evry active user's mael plan info for today
   # format it
   # use send_mail to send it
