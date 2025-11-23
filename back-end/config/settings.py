@@ -30,7 +30,7 @@ CRONJOBS = [
   # ('0 6 * * 0', 'weekly_emails'),
   ('*/5 * * * *', 'cron.weekly_emails'),
   ('*/5 * * * *', 'cron.weekly_grocery_emails'),
-  ('*/5 * * * *', 'cron.daily_emails')
+  ('* * * * *', 'cron.daily_emails')
   
 ]
 

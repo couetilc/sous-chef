@@ -1,10 +1,12 @@
 from django.core.mail import send_mail
-import datetime
+from datetime import datetime
 
 def daily_emails():
   print("executed daily!")
-  today_date = datetime.date.today()
-  subject = 'Daily Meal Plan: today_date.strftime("%d-%m-%Y")'
+  cur_datetime = datetime.now()
+  cur_day = cur_datetime.day
+  cur_month = cur_datetime.month
+  subject = f"Daily Meal Plan: {cur_month}/{cur_day}"
   print(subject)
   message = 'Hello, username!\nHere is your meal plan for the day:\n'
   sender = 'notifications@souschef.life'
