@@ -229,13 +229,14 @@ export class Api {
     })
   }
 
-  async getRecipesFiltered({title, ingredients, searchInventory, searchFavorite, curated_ingredients, searchCuratedInventory, curated_ingredients_match_all, page = 1, sort_by }) {
+  async getRecipesFiltered({title, ingredients, searchInventory, searchFavorite, searchMyRecipes, curated_ingredients, searchCuratedInventory, curated_ingredients_match_all, page = 1, sort_by }) {
     return this.fetch(`/api/recipes/searchFiltered/?page=${page}`, {
       body: JSON.stringify({
         title,
         ingredients,
         searchInventory,
         searchFavorite,
+        searchMyRecipes,
         curated_ingredients,
         searchCuratedInventory,
         curated_ingredients_match_all,
@@ -359,6 +360,24 @@ export class Api {
 
   async clearConversation() {
     return this.fetch(`/api/nutritionist/conversation/clear/`, {
+      body: JSON.stringify({}),
+    })
+  }
+
+  async getInProgressRecipe() {
+    return this.fetch(`/api/nutritionist/recipe/`, {
+      method: 'GET',
+    })
+  }
+
+  async saveInProgressRecipe() {
+    return this.fetch(`/api/nutritionist/recipe/save/`, {
+      body: JSON.stringify({}),
+    })
+  }
+
+  async discardInProgressRecipe() {
+    return this.fetch(`/api/nutritionist/recipe/discard/`, {
       body: JSON.stringify({}),
     })
   }
