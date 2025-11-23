@@ -523,7 +523,7 @@ class ChatMessage(models.Model):
 class MealPlan(models.Model):
     """User assigned meal plan for a specific week"""
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='meal_plans')
-    week_start = models.DateField(help_text="Monday at beginning of meal plan week", default=datetime.datetime(2025, 11, 23, 6, 1, 53, 13941))
+    week_start = models.DateField(help_text="Monday at beginning of meal plan week")
     created_at = models.DateTimeField(auto_now_add=True)
     ai_in_progress = models.BooleanField(default=False)
 

@@ -17,6 +17,7 @@ Usage in views:
 import os
 import json
 import logging
+import datetime
 from typing import List, Dict, Any, Optional
 from enum import Enum
 from django.contrib.auth.models import User
@@ -47,6 +48,7 @@ class Day(Enum):
     Friday = 5
     Saturday = 6
     Sunday = 7
+
 class Meal(Enum):
     Breakfast = 1
     Lunch = 2
@@ -177,10 +179,10 @@ def create_create_mealplan_tool(user: User):
     def create_mealplan_tool(
 
     ) -> str:
-        """Create a meal plan object which can be filled with recipes
+        """Create a meal plan object which can be filled with recipes.
 
         Use this tool to create a meal plan object for this conversation if it does not exist already.
-        This tool should be called before any tool calls to modify or show the meal plan are made.
+        Only use this tool at the start of a session, or when the user asks to create an additional meal plan, since calling it will erase all of your edits!
 
         Returns:
             A string indicating whether or not the meal plan object was created.
@@ -189,7 +191,10 @@ def create_create_mealplan_tool(user: User):
         with transaction.atomic():
             mealPlan = MealPlan.objects.filter(user=user, ai_in_progress=True).first()
             if mealPlan: mealPlan.delete()
-            mealPlan = MealPlan(user=user, ai_in_progress=True)
+            mealPlan = MealPlan(
+                user=user,
+                week_start=datetime.datetime(2025, 11, 23, 6, 1, 53, 13941),
+                ai_in_progress=True)
             mealPlan.save()
 
         return "Successfully created meal plan."
@@ -210,6 +215,7 @@ def create_edit_mealplan_tool(user: User):
         """Edit one of the current meal plan object's recipes.
 
         Use this tool to edit one of the slots in the weekly meal plan.
+        This tool will search for recipes for you, so there is no need to search for recipes yourself.
 
         Args:
             day: The day of the week that the meal will be eaten on.
@@ -226,7 +232,7 @@ def create_edit_mealplan_tool(user: User):
 
         recipe = Recipe.objects.filter(title__icontains=title_query).first()
         if (recipe == None):
-            return "Could not edit meal plan: No recipes matched the given query."
+            return "Could not edit meal plan: No recipes matched the given query. Try searching with a different title."
 
         with transaction.atomic():
             entry, created = MealPlanEntry.objects.get_or_create(
@@ -284,7 +290,8 @@ Title: {recipe.title}
 ID: {recipe.id}
 Nutrition (per serving): {recipe.calories_per_serving} calories, {recipe.protein_g}g protein, {recipe.carbs_g}g carbs, {recipe.fat_g}g fat
 ---"""
-            results.append(recipe_text.strip())
+                results.append(recipe_text.strip())
+        return results
 
     return show_mealplan_tool
 
@@ -708,12 +715,16 @@ The current customer's name is {username}.
 The meal plan is an object with 21 recipe slots: 3 recipes for each day of the week.
 
 If a user asks questions about their meal plan, you must use the <tool_name>create_mealplan_tool</tool_name>, <tool_name>edit_mealplan_tool</tool_name>, and <tool_name>show_mealplan_tool</tool_name>.
-When showing the user their meal plan, keep the response condense; do not include ingredients or instructions.
 
 The general flow for creating and displaying meal plans is as follows:
-    1. The meal plan object must be created with <tool_name>create_mealplan_tool</tool_name>.
+    1. The meal plan object must be created with <tool_name>create_mealplan_tool</tool_name>. After the meal plan is initially created, ask the user if they want to fill it in with their own options, or if you should fill it for them.
     2. The meal plan object's meal slots start off empty, and they can be filled with a call to <tool_name>edit_mealplan_tool</tool_name> for each.
     3. The meal plan can also be shown to the user as a formatted string with <tool_name>show_mealplan_tool</tool_name>. It is not necessary for all recipe slots to be filled.
+
+When showing the user their meal plan, keep the response short; do not include ingredients or instructions.
+When adding entries to the meal plan, do **NOT** use <tool_name>search_recipes_tool</tool_name> to find recipes. The <tool_name>edit_mealplan_tool</tool_name> will find recipes for you.
+If a user asks you to fill all of the recipes for a day or for the entire week, you must use the <tool_name>edit_mealplan_tool</tool_name> for every relevant meal slot.
+For example, if a user you asks to fill Monday's recipes for them, you could call <tool_name>edit_mealplan_tool</tool_name> three times, with "scrambled eggs" as the title_query for breakfast, "fish tacos" as the title_query for lunch, and "beef stew" as the title_query for dinner.
 
 ## Conversation History
 
