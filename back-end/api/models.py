@@ -520,29 +520,12 @@ class ChatMessage(models.Model):
     def __str__(self):
         return f"{self.role}: {self.content[:50]}..."
 
-class TestMealPlan(models.Model):
-    recipeBreakfast = models.ForeignKey(Recipe, on_delete=models.CASCADE, related_name='meal_plans_br', blank=True, null=True)
-    recipeLunch = models.ForeignKey(Recipe, on_delete=models.CASCADE, related_name='meal_plans_lu', blank=True, null=True)
-    recipeDinner = models.ForeignKey(Recipe, on_delete=models.CASCADE, related_name='meal_plans_dr', blank=True, null=True)
-
-    def __str__(self):
-        return f"Meal Plan with {self.recipeBreakfast}, {self.recipeLunch}, {self.recipeDinner}"
-
-class TestIncompleteMealPlan(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='incomplete_meal_plans')
-    mealPlan = models.ForeignKey(TestMealPlan, on_delete=models.CASCADE, related_name='incomplete_meal_plans')
-
-    class Meta:
-        unique_together = ['user', 'mealPlan']
-
-    def __str__(self):
-        return f"Incomplete Meal Plan for {self.user}"
-
 class MealPlan(models.Model):
     """User assigned meal plan for a specific week"""
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='meal_plans')
     week_start = models.DateField(help_text="Monday at beginning of meal plan week")
     created_at = models.DateTimeField(auto_now_add=True)
+    ai_in_progress = models.BooleanField(default=False)
 
     class Meta:
         ordering = ['-created_at']
@@ -565,7 +548,6 @@ class MealPlan(models.Model):
         return [
             e.recipe for e in self.entries.filter(day_of_week=day_index).order_by('meal_index')
         ]
-
 
 class MealPlanEntry(models.Model):
     """A single recipe entry in a meal plan"""

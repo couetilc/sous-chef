@@ -31,14 +31,22 @@ from .models import (
     CuratedIngredient,
     InProgressRecipe,
     InProgressRecipeIngredient,
-    TestMealPlan,
-    TestIncompleteMealPlan
+    MealPlan,
+    MealPlanEntry
 )
 from .intents import Intent
 from decimal import Decimal
 
 logger = logging.getLogger(__name__)
 
+class Day(Enum):
+    Monday = 1
+    Tuesday = 2
+    Wednesday = 3
+    Thursday = 4
+    Friday = 5
+    Saturday = 6
+    Sunday = 7
 class Meal(Enum):
     Breakfast = 1
     Lunch = 2
@@ -179,17 +187,11 @@ def create_create_mealplan_tool(user: User):
         """
 
         with transaction.atomic():
-            mealPlan = TestMealPlan.objects.create()
-            incompleteMealPlan = TestIncompleteMealPlan.objects.filter(user=user).first()
-            if (incompleteMealPlan != None):
-                incompleteMealPlan.mealPlan.delete()
-                incompleteMealPlan.delete()
-            incompleteMealPlan = TestIncompleteMealPlan.objects.create(
-                user=user,
-                mealPlan=mealPlan
-            )
+            mealPlan = MealPlan.objects.filter(user=user, ai_in_progress=True).first()
+            if mealPlan: mealPlan.delete()
+            mealPlan = MealPlan(user=user, ai_in_progress=True)
 
-        return "Successfully created recipe."
+        return "Successfully created meal plan."
 
     return create_mealplan_tool 
 
@@ -200,40 +202,45 @@ def create_edit_mealplan_tool(user: User):
 
     @tool
     def edit_mealplan_tool(
+        day: Day,
         meal: Meal,
-        titleQuery: str
+        title_query: str
     ) -> str:
         """Edit one of the current meal plan object's recipes.
 
-        Use this tool to edit one of the three recipe slots of the meal plan. 
-        The tool's first argument corresponds to the meal slot being edited, and the second argument is a title query to search the database for recipes to replace it.
-        Choose a recipe title query which is appropriate for the meal being selected. For example, for breakfast an appropriate query might be "pancakes".
+        Use this tool to edit one of the slots in the weekly meal plan.
+
+        Args:
+            day: The day of the week that the meal will be eaten on.
+            meal: The meal (breakfast, lunch, dinner) that the recipe is for.
+            title_query: The title which will be used to search the database for a recipe to insert.
 
         Returns:                
             A string indicating whether or not the meal plan object was modified.
         """
 
-        incompleteMealPlan = TestIncompleteMealPlan.objects.filter(user=user).first()
-        if (incompleteMealPlan == None):
+        in_progress_mealplan = MealPlan.objects.filter(user=user, ai_in_progress=True).first()
+        if (in_progress_mealplan == None):
             return "Could not edit meal plan: You should create a meal plan object first with create_mealplan_tool, then try again."
 
-        with transaction.atomic():
-            mealPlan = incompleteMealPlan.mealPlan
-            if (meal == Meal.Breakfast):
-                queryset = Recipe.objects.all().order_by('-created_at')
-                queryset.filter(title=titleQuery)
-                result = queryset.first()
-                mealPlan.recipeBreakfast = result
-            if (meal == Meal.Lunch):
-                queryset = Recipe.objects.all().order_by('-created_at')
-                queryset.filter(title=titleQuery)
-                mealPlan.recipeLunch= queryset.first()
-            if (meal == Meal.Dinner):
-                queryset = Recipe.objects.all().order_by('-created_at')
-                queryset.filter(title=titleQuery)
-                mealPlan.recipeDinner= queryset.first()
+        recipe = Recipe.objects.filter(title__icontains=title_query).first()
+        if (recipe == None):
+            return "Could not edit meal plan: No recipes matched the given query."
 
-        return "Successfully edited recipe."
+        with transaction.atomic():
+            entry, created = MealPlanEntry.objects.get_or_create(
+                meal_plan=in_progress_mealplan,
+                day_of_week=day,
+                meal_index=meal,
+                defaults={'recipe': recipe, 'servings': 1.0}
+            )
+
+            if not created:
+                entry.recipe = recipe
+                entry.servings = 1.0
+                entry.save()
+
+        return "Successfully edited meal plan slot for {day}, {recipe}."
     return edit_mealplan_tool
 
 def create_show_mealplan_tool(user: User):
@@ -256,29 +263,28 @@ def create_show_mealplan_tool(user: User):
             or an error message if the meal plan object has not been created.
         """
 
-        incompleteMealPlan = TestIncompleteMealPlan.objects.filter(user=user).first()
+        incompleteMealPlan = MealPlan.objects.filter(user=user, ai_in_progress=True).first()
         if (incompleteMealPlan == None):
             return "Could not display meal plan: You should create a meal plan object first with create_mealplan_tool, then try again."
         mealPlan = incompleteMealPlan.mealPlan
 
-        recipes = [mealPlan.recipeBreakfast, mealPlan.recipeLunch, mealPlan.recipeDinner]
         results = []
-        for recipe in recipes:
-            if (recipe == None):
-                continue
-            recipe_text = f"""
-Recipe ID: {recipe.id}
+        for day in Day:
+            for meal in Meal:
+                entry = mealPlan.entries.filter(day_of_week=day, meal_index=meal).first()
+                if not entry:
+                    recipe_text = f"""
+No meal entry for {day.name}, {meal.name}.
+---"""
+                else:
+                    recipe = entry.recipe
+                    recipe_text = f"""
+Meal entry for {day.name}, {meal.name}:
 Title: {recipe.title}
+ID: {recipe.id}
 Nutrition (per serving): {recipe.calories_per_serving} calories, {recipe.protein_g}g protein, {recipe.carbs_g}g carbs, {recipe.fat_g}g fat
-Ingredients: {recipe.ingredients}
-Instructions: {recipe.instructions}
 ---"""
             results.append(recipe_text.strip())
-
-        if (results.count == 0):
-            return "Tell the user that this meal plan is empty."
-        return "\n\n".join(results)
-
 
     return show_mealplan_tool
 
