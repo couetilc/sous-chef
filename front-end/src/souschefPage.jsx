@@ -15,6 +15,18 @@ function formatTime(timestamp) {
   });
 }
 
+// Normalize a field that may be an array or a pipe-separated string
+function toList(field) {
+  if (Array.isArray(field)) return field;
+  if (typeof field === 'string') {
+    return field
+      .split('|')
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+  return [];
+}
+
 export default function SousChef() {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -28,32 +40,51 @@ export default function SousChef() {
   const [error, setError] = useState(false);
   const messagesEndRef = useRef(null);
 
+  const [recipe, setRecipe] = useState(null);
+  const [recipeError, setRecipeError] = useState(null);
+
   console.log('SousChefPage recipe id:', id);
 
-  // Placeholder recipe for User Story 7 (will later be replaced with real DB recipe)
   const placeholderRecipe = {
     title: 'Garlic Butter Chicken with Veggies',
     image_url: null,
     servings: 2,
     prep_time_min: 10,
     cook_time_min: 20,
-    ingredients: [
-      '2 chicken breasts',
-      '2 tbsp butter',
-      '3 cloves garlic, minced',
-      '1 cup broccoli florets',
-      '1 carrot, sliced',
-      'Salt & pepper to taste',
-    ],
-    instructions: [
-      'Season chicken with salt and pepper.',
-      'Pan-sear chicken in butter until golden and cooked through.',
-      'Add garlic, then the vegetables, and sauté until tender-crisp.',
-      'Taste and adjust seasoning, then serve warm.',
-    ],
+    ingredients:
+      '2 chicken breasts | 2 tbsp butter | 3 cloves garlic, minced | 1 cup broccoli florets | 1 carrot, sliced | Salt & pepper to taste',
+    instructions:
+      'Season chicken with salt and pepper. | Pan-sear chicken in butter until golden and cooked through. | Add garlic, then the vegetables, and sauté until tender-crisp. | Taste and adjust seasoning, then serve warm.',
   };
 
-  // Fetch SousChef conversation on mount
+  // Load recipe details from backend
+  useEffect(() => {
+    if (!id) return;
+
+    let cancelled = false;
+
+    async function loadRecipe() {
+      try {
+        const data = await api.getRecipeDetail({ id });
+        if (!cancelled) {
+          setRecipe(data);
+          setRecipeError(null);
+        }
+      } catch (err) {
+        console.error('Failed to load recipe for SousChef:', err);
+        if (!cancelled) {
+          setRecipeError('Unable to load recipe details.');
+        }
+      }
+    }
+
+    loadRecipe();
+    return () => {
+      cancelled = true;
+    };
+  }, [api, id]);
+
+  // Load SousChef conversation
   useEffect(() => {
     async function loadConversation() {
       try {
@@ -68,18 +99,16 @@ export default function SousChef() {
     loadConversation();
   }, [api]);
 
-  // Auto-scroll chat to bottom
+  // Auto scroll chat
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
   const LetUsBeginClicked = () => {
-    // Start a cooking session (for now just UI; later hook to backend)
     setSessionActive(true);
   };
 
   const ThatsAWrapClicked = () => {
-    // End a cooking session
     setSessionActive(false);
   };
 
@@ -90,7 +119,14 @@ export default function SousChef() {
     setError(false);
 
     try {
-      const response = await api.sousChefChat({ message: currentMessage });
+      const payload = {
+        message: currentMessage,
+      };
+      if (id) {
+        payload.recipe_id = Number(id);
+      }
+
+      const response = await api.sousChefChat(payload);
       setMessages(response.messages);
       setCurrentMessage('');
     } catch (err) {
@@ -113,6 +149,11 @@ export default function SousChef() {
       setError(true);
     }
   }
+
+  // Active recipe (DB if available, else placeholder)
+  const activeRecipe = recipe || placeholderRecipe;
+  const ingredientList = toList(activeRecipe.ingredients);
+  const instructionList = toList(activeRecipe.instructions);
 
   return (
     <div
@@ -145,7 +186,6 @@ export default function SousChef() {
             )}
           </div>
 
-          {/* Cooking session indicator bar */}
           <div
             className="cooking-session-bar"
             style={{
@@ -166,7 +206,6 @@ export default function SousChef() {
           </div>
         </header>
 
-        {/* Main layout: recipe panel + chat panel */}
         <div
           className="souschef-layout"
           style={{
@@ -176,7 +215,7 @@ export default function SousChef() {
             marginTop: 20,
           }}
         >
-          {/* LEFT: Recipe display */}
+          {/* LEFT: Recipe panel */}
           <section
             className="souschef-recipe-panel"
             style={{
@@ -192,15 +231,18 @@ export default function SousChef() {
               Current Recipe
             </h2>
             <div style={{ fontSize: 13, color: '#777', marginBottom: 10 }}>
-              (Prototype) This is a placeholder recipe. Later this will load
-              recipe #{id} from the database.
+              {recipeError
+                ? recipeError
+                : recipe
+                ? `Loaded from your recipe library.`
+                : `(Prototype) This is a placeholder recipe. Later this will load recipe #${id} from the database.`}
             </div>
 
             <div className="recipe-card">
-              {placeholderRecipe.image_url && (
+              {activeRecipe.image_url && (
                 <img
-                  src={placeholderRecipe.image_url}
-                  alt={placeholderRecipe.title}
+                  src={activeRecipe.image_url}
+                  alt={activeRecipe.title}
                   className="recipe-image"
                   style={{
                     width: '100%',
@@ -211,7 +253,7 @@ export default function SousChef() {
                   }}
                 />
               )}
-              <h3 style={{ marginBottom: 4 }}>{placeholderRecipe.title}</h3>
+              <h3 style={{ marginBottom: 4 }}>{activeRecipe.title}</h3>
               <div
                 className="recipe-meta"
                 style={{
@@ -223,19 +265,24 @@ export default function SousChef() {
                   flexWrap: 'wrap',
                 }}
               >
-                <span>Servings: {placeholderRecipe.servings}</span>
-                <span>
-                  Time:{' '}
-                  {placeholderRecipe.prep_time_min +
-                    placeholderRecipe.cook_time_min}{' '}
-                  min
-                </span>
+                {activeRecipe.servings != null && (
+                  <span>Servings: {activeRecipe.servings}</span>
+                )}
+                {(activeRecipe.prep_time_min != null ||
+                  activeRecipe.cook_time_min != null) && (
+                  <span>
+                    Time{' '}
+                    {(activeRecipe.prep_time_min || 0) +
+                      (activeRecipe.cook_time_min || 0)}{' '}
+                    min
+                  </span>
+                )}
               </div>
 
               <div className="recipe-section" style={{ marginBottom: 10 }}>
                 <h4 style={{ marginBottom: 4 }}>Ingredients</h4>
                 <ul style={{ paddingLeft: 18, margin: 0 }}>
-                  {placeholderRecipe.ingredients.map((ing, idx) => (
+                  {ingredientList.map((ing, idx) => (
                     <li key={idx} style={{ fontSize: 14, marginBottom: 2 }}>
                       {ing}
                     </li>
@@ -245,8 +292,15 @@ export default function SousChef() {
 
               <div className="recipe-section">
                 <h4 style={{ marginBottom: 4 }}>Instructions</h4>
-                <ol style={{ paddingLeft: 18, margin: 0 }}>
-                  {placeholderRecipe.instructions.map((step, idx) => (
+                {/* Explicitly force numbered list */}
+                <ol
+                  style={{
+                    paddingLeft: 22,
+                    margin: 0,
+                    listStyleType: 'decimal',
+                  }}
+                >
+                  {instructionList.map((step, idx) => (
                     <li key={idx} style={{ fontSize: 14, marginBottom: 4 }}>
                       {step}
                     </li>
@@ -287,7 +341,7 @@ export default function SousChef() {
               className="chat-messages"
               style={{
                 flexShrink: 0,
-                height: 260, // bounds the chat area
+                height: 260,
                 overflowY: 'auto',
                 border: '1px solid #eee',
                 borderRadius: 6,
@@ -359,6 +413,14 @@ export default function SousChef() {
               <textarea
                 value={currentMessage}
                 onChange={(e) => setCurrentMessage(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    if (!loading && currentMessage.trim()) {
+                      chat();
+                    }
+                  }
+                }}
                 disabled={loading}
                 placeholder="Ask SousChef to clarify an instruction, give cooking tips, or move on to the next step..."
                 style={{
@@ -440,7 +502,6 @@ export default function SousChef() {
           </section>
         </div>
 
-        {/* Footer buttons: bottom left & right */}
         <footer
           style={{
             marginTop: 18,
