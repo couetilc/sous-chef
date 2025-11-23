@@ -221,17 +221,22 @@ export default function Nutritionist() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
 
-  async function chat() {
-    if (!currentMessage?.trim()) return;
+  async function chat(messageOverride) {
+    // If messageOverride is not a string (e.g., click event), ignore it
+    const messageToSend = typeof messageOverride === 'string' ? messageOverride : currentMessage;
+    if (!messageToSend?.trim()) return;
 
     setLoading(true);
     setError(false);
     setSavedRecipeId(null);
 
     try {
-      const response = await api.nutritionistChat({ message: currentMessage });
+      const response = await api.nutritionistChat({ message: messageToSend });
       setMessages(response.messages);
-      setCurrentMessage('');
+      // Only clear input if we used the state value (not a programmatic string override)
+      if (typeof messageOverride !== 'string') {
+        setCurrentMessage('');
+      }
       // Refresh in-progress recipe in case AI called mark_recipe_ready
       await refreshInProgressRecipe();
     } catch (err) {
@@ -262,19 +267,14 @@ export default function Nutritionist() {
     try {
       const response = await api.saveInProgressRecipe();
       if (response.success && response.recipe) {
-        setSavedRecipeId(response.recipe.id);
         setPendingRecipe(null);
+        setSaving(false);
         // Send a message to the AI so it knows the recipe was saved
-        const chatResponse = await api.nutritionistChat({ message: 'I saved the recipe.' });
-        if (chatResponse.messages) {
-          setMessages(chatResponse.messages);
-          setSavedRecipeId(null);
-        }
+        await chat('I saved the recipe.');
       }
     } catch (err) {
       console.error('Save recipe error:', err);
       setError(true);
-    } finally {
       setSaving(false);
     }
   }
@@ -286,15 +286,12 @@ export default function Nutritionist() {
     try {
       await api.discardInProgressRecipe();
       setPendingRecipe(null);
+      setDiscarding(false);
       // Send a message to the AI so it knows the recipe was discarded
-      const chatResponse = await api.nutritionistChat({ message: 'I discarded the recipe.' });
-      if (chatResponse.messages) {
-        setMessages(chatResponse.messages);
-      }
+      await chat('I discarded the recipe.');
     } catch (err) {
       console.error('Discard recipe error:', err);
       setError(true);
-    } finally {
       setDiscarding(false);
     }
   }
