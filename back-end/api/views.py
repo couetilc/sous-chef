@@ -1265,11 +1265,52 @@ class SaveInProgressRecipe(APIView):
             in_progress.status = 'discarded'
             in_progress.save()
 
+            # Update the ChatMessage tool_calls to record the save
+            self._update_tool_call_outcome(request.user, in_progress.id, saved_recipe_id=recipe.id)
+
         serializer = RecipeSerializer(recipe, context={'request': request})
         return Response(
             {'success': True, 'recipe': serializer.data},
             status=status.HTTP_201_CREATED
         )
+
+    def _update_tool_call_outcome(self, user, in_progress_recipe_id, saved_recipe_id):
+        """Update the mark_recipe_ready tool call result with the save outcome."""
+        import json
+
+        # Find the active nutritionist conversation
+        conversation = ChatConversation.objects.filter(
+            user=user,
+            channel='nutritionist',
+            is_active=True
+        ).first()
+
+        if not conversation:
+            return
+
+        # Find messages with mark_recipe_ready tool calls
+        for message in conversation.messages.filter(role='assistant'):
+            if not message.tool_calls:
+                continue
+
+            tool_calls = message.tool_calls
+            updated = False
+
+            for tc in tool_calls:
+                if tc.get('tool_name') == 'mark_recipe_ready' and tc.get('result'):
+                    try:
+                        result_data = json.loads(tc['result'])
+                        if result_data.get('id') == in_progress_recipe_id:
+                            result_data['saved_recipe_id'] = saved_recipe_id
+                            tc['result'] = json.dumps(result_data)
+                            updated = True
+                    except (json.JSONDecodeError, TypeError):
+                        continue
+
+            if updated:
+                message.tool_calls = tool_calls
+                message.save(update_fields=['tool_calls'])
+                break
 
 
 class DiscardInProgressRecipe(APIView):
@@ -1288,13 +1329,56 @@ class DiscardInProgressRecipe(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
 
+        in_progress_id = in_progress.id
+        in_progress_title = in_progress.title
         in_progress.status = 'discarded'
         in_progress.save()
+
+        # Update the ChatMessage tool_calls to record the discard
+        self._update_tool_call_outcome(request.user, in_progress_id, in_progress_title)
 
         return Response(
             {'success': True, 'message': 'Recipe discarded'},
             status=status.HTTP_200_OK
         )
+
+    def _update_tool_call_outcome(self, user, in_progress_recipe_id, recipe_title):
+        """Update the mark_recipe_ready tool call result with the discard outcome."""
+        import json
+
+        # Find the active nutritionist conversation
+        conversation = ChatConversation.objects.filter(
+            user=user,
+            channel='nutritionist',
+            is_active=True
+        ).first()
+
+        if not conversation:
+            return
+
+        # Find messages with mark_recipe_ready tool calls
+        for message in conversation.messages.filter(role='assistant'):
+            if not message.tool_calls:
+                continue
+
+            tool_calls = message.tool_calls
+            updated = False
+
+            for tc in tool_calls:
+                if tc.get('tool_name') == 'mark_recipe_ready' and tc.get('result'):
+                    try:
+                        result_data = json.loads(tc['result'])
+                        if result_data.get('id') == in_progress_recipe_id:
+                            result_data['discarded'] = True
+                            tc['result'] = json.dumps(result_data)
+                            updated = True
+                    except (json.JSONDecodeError, TypeError):
+                        continue
+
+            if updated:
+                message.tool_calls = tool_calls
+                message.save(update_fields=['tool_calls'])
+                break
 
 
 class MealPlanListCreateView(APIView):

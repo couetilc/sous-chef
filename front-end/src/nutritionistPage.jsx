@@ -1,7 +1,7 @@
 import './style.css';
 import {useNavigate} from 'react-router';
 import { useApi } from './useApi';
-import { useEffect, useState, useRef, useMemo } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -16,21 +16,54 @@ function formatTime(timestamp) {
   });
 }
 
-function parseRecipeFromToolCall(toolCalls) {
+function parseRecipeOutcome(toolCalls) {
   if (!toolCalls || toolCalls.length === 0) return null;
 
-  console.log('parsing')
-
-  const markReadyCall = toolCalls.findLast(tc => tc.tool_name === 'mark_recipe_ready');
+  const markReadyCall = toolCalls.find(tc => tc.tool_name === 'mark_recipe_ready');
   if (!markReadyCall || !markReadyCall.result) return null;
 
   try {
-  console.log('found  parsing ', markReadyCall.result)
-  console.log('found  json ', JSON.parse(markReadyCall.result))
-    return JSON.parse(markReadyCall.result);
+    const result = JSON.parse(markReadyCall.result);
+    // Only return if the recipe has been saved or discarded
+    if (result.saved_recipe_id || result.discarded) {
+      return result;
+    }
+    return null;
   } catch {
     return null;
   }
+}
+
+function RecipeOutcome({ toolCalls }) {
+  const outcome = parseRecipeOutcome(toolCalls);
+  if (!outcome) return null;
+
+  const title = outcome.title || 'Untitled Recipe';
+
+  if (outcome.saved_recipe_id) {
+    return (
+      <div className="recipe-outcome recipe-outcome-saved">
+        <span className="recipe-outcome-icon">✓</span>
+        <span className="recipe-outcome-text">
+          <strong>{title}</strong> was saved.{' '}
+          <a href={`/recipes/${outcome.saved_recipe_id}/`}>View Recipe</a>
+        </span>
+      </div>
+    );
+  }
+
+  if (outcome.discarded) {
+    return (
+      <div className="recipe-outcome recipe-outcome-discarded">
+        <span className="recipe-outcome-icon">✗</span>
+        <span className="recipe-outcome-text">
+          <strong>{title}</strong> was discarded.
+        </span>
+      </div>
+    );
+  }
+
+  return null;
 }
 
 function RecipePreview({ recipe, onSave, onDiscard, saving, discarding }) {
@@ -71,7 +104,7 @@ function RecipePreview({ recipe, onSave, onDiscard, saving, discarding }) {
         <div className="recipe-preview-section">
           <h4>Instructions</h4>
           <ol className="recipe-preview-instructions">
-            {recipe.instructions.map((step, i) => (
+            {(recipe.instructions_list || recipe.instructions || []).map((step, i) => (
               <li key={i}>{step}</li>
             ))}
           </ol>
@@ -149,33 +182,27 @@ export default function Nutritionist() {
   const [saving, setSaving] = useState(false);
   const [discarding, setDiscarding] = useState(false);
   const [savedRecipeId, setSavedRecipeId] = useState(null);
+  const [pendingRecipe, setPendingRecipe] = useState(null);
   const messagesEndRef = useRef(null);
 
-  // Find the most recent pending recipe from messages
-  const pendingRecipe = useMemo(() => {
-    // Look through messages in reverse to find the most recent mark_recipe_ready call
-    for (let i = messages.length - 1; i >= 0; i--) {
-      console.log('iter ', messages.length)
-      console.log('i ', i)
-      const msg = messages[i];
-      console.log('msg ', msg )
-      if (msg.role === 'assistant' && msg.tool_calls) {
-        const recipe = parseRecipeFromToolCall(msg.tool_calls);
-        console.log('recipe found ', recipe)
-        if (recipe && recipe.status === 'pending_confirmation') {
-          console.log('returning ', recipe)
-          return recipe;
-        }
+  // Fetch conversation and in-progress recipe from API
+  async function refreshInProgressRecipe() {
+    try {
+      const response = await api.getInProgressRecipe();
+      if (response.recipe && response.recipe.status === 'pending_confirmation') {
+        setPendingRecipe(response.recipe);
+      } else {
+        setPendingRecipe(null);
       }
+    } catch (err) {
+      console.error('Failed to fetch in-progress recipe:', err);
+      setPendingRecipe(null);
     }
-    return null;
-  }, [messages]);
+  }
 
-  console.log({ pendingRecipe })
-
-  // Fetch conversation on mount
+  // Fetch conversation and pending recipe on mount
   useEffect(() => {
-    async function loadConversation() {
+    async function loadData() {
       try {
         const response = await api.getConversation();
         if (response.messages) {
@@ -184,8 +211,9 @@ export default function Nutritionist() {
       } catch (err) {
         console.error('Failed to load conversation:', err);
       }
+      await refreshInProgressRecipe();
     }
-    loadConversation();
+    loadData();
   }, [api]);
 
   // Auto-scroll to bottom when messages change or loading starts
@@ -204,6 +232,8 @@ export default function Nutritionist() {
       const response = await api.nutritionistChat({ message: currentMessage });
       setMessages(response.messages);
       setCurrentMessage('');
+      // Refresh in-progress recipe in case AI called mark_recipe_ready
+      await refreshInProgressRecipe();
     } catch (err) {
       console.error('Chat error:', err);
       setError(true);
@@ -220,6 +250,7 @@ export default function Nutritionist() {
       setMessages([]);
       setError(false);
       setSavedRecipeId(null);
+      setPendingRecipe(null);
     } catch (err) {
       console.error('Clear error:', err);
       setError(true);
@@ -232,10 +263,12 @@ export default function Nutritionist() {
       const response = await api.saveInProgressRecipe();
       if (response.success && response.recipe) {
         setSavedRecipeId(response.recipe.id);
+        setPendingRecipe(null);
         // Send a message to the AI so it knows the recipe was saved
         const chatResponse = await api.nutritionistChat({ message: 'I saved the recipe.' });
         if (chatResponse.messages) {
           setMessages(chatResponse.messages);
+          setSavedRecipeId(null);
         }
       }
     } catch (err) {
@@ -252,6 +285,7 @@ export default function Nutritionist() {
     setDiscarding(true);
     try {
       await api.discardInProgressRecipe();
+      setPendingRecipe(null);
       // Send a message to the AI so it knows the recipe was discarded
       const chatResponse = await api.nutritionistChat({ message: 'I discarded the recipe.' });
       if (chatResponse.messages) {
@@ -284,6 +318,9 @@ export default function Nutritionist() {
                 msg.content
               )}
             </div>
+            {msg.role === 'assistant' && (
+              <RecipeOutcome toolCalls={msg.tool_calls} />
+            )}
             <div className="message-time">{formatTime(msg.created_at)}</div>
           </div>
         ))}

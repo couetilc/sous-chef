@@ -1632,6 +1632,44 @@ h1 {
   color: var(--color-auburn);
 }
 
+/* Recipe Outcome (historical save/discard) */
+.recipe-outcome {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  padding: 0.75em 1em;
+  border-radius: 8px;
+  margin-top: 0.75em;
+  font-size: 0.95em;
+}
+
+.recipe-outcome-saved {
+  background: #e8f5e9;
+  border: 1px solid #4caf50;
+  color: #2e7d32;
+}
+
+.recipe-outcome-discarded {
+  background: #fbe9e7;
+  border: 1px solid #ff8a65;
+  color: #bf360c;
+}
+
+.recipe-outcome-icon {
+  font-weight: bold;
+  font-size: 1.1em;
+}
+
+.recipe-outcome-text a {
+  color: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+.recipe-outcome-text a:hover {
+  color: var(--color-auburn);
+}
+
 /* END NUTRITIONIST PAGE */
 
 /* START MEAL PLAN PAGE */
