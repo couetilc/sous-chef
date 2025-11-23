@@ -545,6 +545,80 @@ def create_set_recipe_metadata_tool(user: User):
     return set_recipe_metadata
 
 
+def create_mark_recipe_ready_tool(user: User):
+    """
+    Create a tool to mark the in-progress recipe as ready for human confirmation.
+
+    Args:
+        user: Django User object for recipe ownership
+
+    Returns:
+        A LangChain tool that marks the recipe as pending confirmation
+    """
+    @tool
+    def mark_recipe_ready() -> str:
+        """Mark the in-progress recipe as ready for human confirmation.
+
+        Use this tool when the recipe is complete and ready for the user to review.
+        The recipe should have:
+        - A title
+        - At least one ingredient
+        - Instructions
+        - Cooking times and servings (recommended)
+
+        This will display a preview card to the user where they can save or discard the recipe.
+
+        Returns:
+            JSON string with the full recipe data for display, or an error message
+        """
+        # Get active recipe
+        recipe = InProgressRecipe.objects.filter(
+            user=user
+        ).exclude(status='discarded').first()
+
+        if not recipe:
+            return "No active recipe found. Please create a recipe first using create_recipe."
+
+        # Validate recipe has minimum required fields
+        if not recipe.title:
+            return "Recipe needs a title before it can be marked as ready. Use set_recipe_metadata to add a title."
+
+        ingredients = list(recipe.ingredients.all().select_related('curated_ingredient'))
+        if not ingredients:
+            return "Recipe needs at least one ingredient before it can be marked as ready. Use add_ingredient to add ingredients."
+
+        if not recipe.instructions:
+            return "Recipe needs instructions before it can be marked as ready. Use update_instructions to add cooking steps."
+
+        # Update status to pending confirmation
+        recipe.status = 'pending_confirmation'
+        recipe.save()
+
+        # Build recipe data for frontend display
+        recipe_data = {
+            'id': recipe.id,
+            'title': recipe.title,
+            'ingredients': [
+                {
+                    'name': ing.curated_ingredient.name,
+                    'quantity': str(ing.quantity),
+                    'unit': ing.unit
+                }
+                for ing in ingredients
+            ],
+            'instructions': recipe.instructions.split('|') if recipe.instructions else [],
+            'prep_time_min': recipe.prep_time_min,
+            'cook_time_min': recipe.cook_time_min,
+            'total_time_min': recipe.total_time_min,
+            'servings': recipe.servings,
+            'status': recipe.status
+        }
+
+        return json.dumps(recipe_data)
+
+    return mark_recipe_ready
+
+
 # ============================================================================
 # LLM and Prompt Configuration
 # ============================================================================
@@ -562,6 +636,8 @@ The current customer's name is {username}.
 - Search for ingredients using search_ingredient before adding them
 - Build recipes step by step with create_recipe, add_ingredient, update_instructions, and set_recipe_metadata
 - Be conversational and guide users through the recipe creation process
+- When the recipe is complete (has title, ingredients, instructions, and ideally times/servings), use mark_recipe_ready to present it for the user's confirmation
+- After calling mark_recipe_ready, let the user know they can review and save the recipe using the preview card that will appear
 
 ### When mentioning a recipe by name:
 - You **MUST** include the recipe's markdown link in the message.
@@ -660,6 +736,7 @@ class NutritionistAgent:
             create_remove_ingredient_tool(self.user),
             create_update_instructions_tool(self.user),
             create_set_recipe_metadata_tool(self.user),
+            create_mark_recipe_ready_tool(self.user),
         ]
 
     def chat(

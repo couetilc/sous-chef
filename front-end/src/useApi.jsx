@@ -363,6 +363,24 @@ export class Api {
     })
   }
 
+  async getInProgressRecipe() {
+    return this.fetch(`/api/nutritionist/recipe/`, {
+      method: 'GET',
+    })
+  }
+
+  async saveInProgressRecipe() {
+    return this.fetch(`/api/nutritionist/recipe/save/`, {
+      body: JSON.stringify({}),
+    })
+  }
+
+  async discardInProgressRecipe() {
+    return this.fetch(`/api/nutritionist/recipe/discard/`, {
+      body: JSON.stringify({}),
+    })
+  }
+
   // Meal plans
   async getMealPlans() {
     return this.fetch('/api/meal_plans/')

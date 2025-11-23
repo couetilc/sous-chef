@@ -76,6 +76,9 @@ urlpatterns = [
     # nutritionist endpoints
     path('nutritionist/conversation/', views.NutritionistChat.as_view(), name='nutritionist-conversation'),
     path('nutritionist/conversation/clear/', views.ClearConversation.as_view(), name='nutritionist-conversation-clear'),
+    path('nutritionist/recipe/', views.InProgressRecipeView.as_view(), name='nutritionist-recipe'),
+    path('nutritionist/recipe/save/', views.SaveInProgressRecipe.as_view(), name='nutritionist-recipe-save'),
+    path('nutritionist/recipe/discard/', views.DiscardInProgressRecipe.as_view(), name='nutritionist-recipe-discard'),
 
     # meal plan endpoints
     path('meal_plans/', views.MealPlanListCreateView.as_view(), name='meal-plan-list-create'),

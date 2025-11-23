@@ -1496,6 +1496,142 @@ h1 {
   font-size: 0.9em;
 }
 
+/* Recipe Preview Card */
+.recipe-preview {
+  background: linear-gradient(135deg, #fff8f0 0%, #ffffff 100%);
+  border: 2px solid var(--color-auburn);
+  border-radius: 12px;
+  padding: 1.25em;
+  margin: 1em 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.recipe-preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1em;
+  margin-bottom: 1em;
+  flex-wrap: wrap;
+}
+
+.recipe-preview-header h3 {
+  margin: 0;
+  color: var(--color-auburn);
+  font-size: 1.3em;
+}
+
+.recipe-preview-badge {
+  background: var(--color-auburn);
+  color: white;
+  padding: 0.3em 0.8em;
+  border-radius: 20px;
+  font-size: 0.8em;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.recipe-preview-content {
+  margin-bottom: 1em;
+}
+
+.recipe-preview-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1em;
+  margin-bottom: 1em;
+  padding-bottom: 0.75em;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.recipe-preview-times {
+  display: flex;
+  gap: 1em;
+  flex-wrap: wrap;
+  font-size: 0.9em;
+  color: #666;
+}
+
+.recipe-preview-times span {
+  background: rgba(0, 0, 0, 0.05);
+  padding: 0.25em 0.5em;
+  border-radius: 4px;
+}
+
+.recipe-preview-servings {
+  font-size: 0.9em;
+  color: #666;
+  background: rgba(0, 0, 0, 0.05);
+  padding: 0.25em 0.5em;
+  border-radius: 4px;
+}
+
+.recipe-preview-section {
+  margin-bottom: 1em;
+}
+
+.recipe-preview-section h4 {
+  margin: 0 0 0.5em 0;
+  color: var(--color-auburn);
+  font-size: 1em;
+}
+
+.recipe-preview-ingredients {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.4em;
+}
+
+.recipe-preview-ingredients li {
+  padding: 0.3em 0.5em;
+  background: rgba(0, 0, 0, 0.03);
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+.recipe-preview-instructions {
+  padding-left: 1.5em;
+  margin: 0;
+}
+
+.recipe-preview-instructions li {
+  margin-bottom: 0.5em;
+  font-size: 0.9em;
+  line-height: 1.4;
+}
+
+.recipe-preview-actions {
+  display: flex;
+  gap: 0.75em;
+  justify-content: flex-end;
+  padding-top: 1em;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.recipe-saved-notice {
+  background: #e8f5e9;
+  border: 1px solid #4caf50;
+  color: #2e7d32;
+  padding: 1em;
+  border-radius: 8px;
+  margin: 1em 0;
+  text-align: center;
+  font-weight: 500;
+}
+
+.recipe-saved-notice a {
+  color: #1b5e20;
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+.recipe-saved-notice a:hover {
+  color: var(--color-auburn);
+}
+
 /* END NUTRITIONIST PAGE */
 
 /* START MEAL PLAN PAGE */

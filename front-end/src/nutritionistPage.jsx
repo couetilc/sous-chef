@@ -1,7 +1,7 @@
 import './style.css';
 import {useNavigate} from 'react-router';
 import { useApi } from './useApi';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -14,6 +14,90 @@ function formatTime(timestamp) {
     minute: '2-digit',
     hour12: true
   });
+}
+
+function parseRecipeFromToolCall(toolCalls) {
+  if (!toolCalls || toolCalls.length === 0) return null;
+
+  console.log('parsing')
+
+  const markReadyCall = toolCalls.findLast(tc => tc.tool_name === 'mark_recipe_ready');
+  if (!markReadyCall || !markReadyCall.result) return null;
+
+  try {
+  console.log('found  parsing ', markReadyCall.result)
+  console.log('found  json ', JSON.parse(markReadyCall.result))
+    return JSON.parse(markReadyCall.result);
+  } catch {
+    return null;
+  }
+}
+
+function RecipePreview({ recipe, onSave, onDiscard, saving, discarding }) {
+  if (!recipe) return null;
+
+  const hasCookTime = recipe.cook_time_min > 0;
+
+  return (
+    <div className="recipe-preview">
+      <div className="recipe-preview-header">
+        <h3>{recipe.title || 'Untitled Recipe'}</h3>
+        <span className="recipe-preview-badge">Ready for Review</span>
+      </div>
+
+      <div className="recipe-preview-content">
+        <div className="recipe-preview-meta">
+          <div className="recipe-preview-times">
+            <span>Prep: {recipe.prep_time_min || 0} min</span>
+            {hasCookTime && <span>Cook: {recipe.cook_time_min} min</span>}
+            <span>Total: {recipe.total_time_min || 0} min</span>
+          </div>
+          {recipe.servings > 0 && (
+            <div className="recipe-preview-servings">
+              Servings: {recipe.servings}
+            </div>
+          )}
+        </div>
+
+        <div className="recipe-preview-section">
+          <h4>Ingredients</h4>
+          <ul className="recipe-preview-ingredients">
+            {recipe.ingredients.map((ing, i) => (
+              <li key={i}>{ing.quantity} {ing.unit} {ing.name}</li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="recipe-preview-section">
+          <h4>Instructions</h4>
+          <ol className="recipe-preview-instructions">
+            {recipe.instructions.map((step, i) => (
+              <li key={i}>{step}</li>
+            ))}
+          </ol>
+        </div>
+      </div>
+
+      <div className="recipe-preview-actions">
+        <button
+          type="button"
+          className="button-blue"
+          onClick={onDiscard}
+          disabled={saving || discarding}
+        >
+          {discarding ? 'Discarding...' : 'Discard'}
+        </button>
+        <button
+          type="button"
+          className="button"
+          onClick={onSave}
+          disabled={saving || discarding}
+        >
+          {saving ? 'Saving...' : 'Save Recipe'}
+        </button>
+      </div>
+    </div>
+  );
 }
 
 function ToolCallsIndicator({ toolCalls }) {
@@ -62,7 +146,32 @@ export default function Nutritionist() {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [discarding, setDiscarding] = useState(false);
+  const [savedRecipeId, setSavedRecipeId] = useState(null);
   const messagesEndRef = useRef(null);
+
+  // Find the most recent pending recipe from messages
+  const pendingRecipe = useMemo(() => {
+    // Look through messages in reverse to find the most recent mark_recipe_ready call
+    for (let i = messages.length - 1; i >= 0; i--) {
+      console.log('iter ', messages.length)
+      console.log('i ', i)
+      const msg = messages[i];
+      console.log('msg ', msg )
+      if (msg.role === 'assistant' && msg.tool_calls) {
+        const recipe = parseRecipeFromToolCall(msg.tool_calls);
+        console.log('recipe found ', recipe)
+        if (recipe && recipe.status === 'pending_confirmation') {
+          console.log('returning ', recipe)
+          return recipe;
+        }
+      }
+    }
+    return null;
+  }, [messages]);
+
+  console.log({ pendingRecipe })
 
   // Fetch conversation on mount
   useEffect(() => {
@@ -89,6 +198,7 @@ export default function Nutritionist() {
 
     setLoading(true);
     setError(false);
+    setSavedRecipeId(null);
 
     try {
       const response = await api.nutritionistChat({ message: currentMessage });
@@ -109,9 +219,49 @@ export default function Nutritionist() {
       await api.clearConversation();
       setMessages([]);
       setError(false);
+      setSavedRecipeId(null);
     } catch (err) {
       console.error('Clear error:', err);
       setError(true);
+    }
+  }
+
+  async function handleSaveRecipe() {
+    setSaving(true);
+    try {
+      const response = await api.saveInProgressRecipe();
+      if (response.success && response.recipe) {
+        setSavedRecipeId(response.recipe.id);
+        // Refresh conversation to update the recipe status in tool calls
+        const convResponse = await api.getConversation();
+        if (convResponse.messages) {
+          setMessages(convResponse.messages);
+        }
+      }
+    } catch (err) {
+      console.error('Save recipe error:', err);
+      setError(true);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDiscardRecipe() {
+    if (!confirm('Discard this recipe? This cannot be undone.')) return;
+
+    setDiscarding(true);
+    try {
+      await api.discardInProgressRecipe();
+      // Refresh conversation to update the recipe status
+      const convResponse = await api.getConversation();
+      if (convResponse.messages) {
+        setMessages(convResponse.messages);
+      }
+    } catch (err) {
+      console.error('Discard recipe error:', err);
+      setError(true);
+    } finally {
+      setDiscarding(false);
     }
   }
 
@@ -139,6 +289,21 @@ export default function Nutritionist() {
         ))}
         {loading && (
           <div className="loading-indicator">Thinking...</div>
+        )}
+        {pendingRecipe && !savedRecipeId && (
+          <RecipePreview
+            recipe={pendingRecipe}
+            onSave={handleSaveRecipe}
+            onDiscard={handleDiscardRecipe}
+            saving={saving}
+            discarding={discarding}
+          />
+        )}
+        {savedRecipeId && (
+          <div className="recipe-saved-notice">
+            Recipe saved successfully!{' '}
+            <a href={`/recipes/${savedRecipeId}/`}>View Recipe</a>
+          </div>
         )}
         <div ref={messagesEndRef} />
       </div>

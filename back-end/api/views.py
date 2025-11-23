@@ -24,13 +24,15 @@ from decimal import Decimal, InvalidOperation
 from .models import (
     Ingredient, DietaryIngredient, Diet, UserDiet,
     Recipe, CookedRecipe, Meal, FavoriteRecipe, UserInventory, UserCuratedInventory, OnboardingSubmission, RecipeIngredient, HealthDetails, RecipeTag, TaggedRecipe,
-    ChatConversation, ChatMessage, CuratedIngredient, MealPlan, MealPlanEntry, UserRecipe
+    ChatConversation, ChatMessage, CuratedIngredient, MealPlan, MealPlanEntry, UserRecipe,
+    InProgressRecipe, InProgressRecipeIngredient
 )
 from .serializers import (
     UserSerializer, GroupSerializer, UserRegistrationSerializer,
     IngredientSerializer, DietSerializer,
     CookedRecipeSerializer, MealSerializer, RecipeSerializer,
-    ChatConversationSerializer, ChatMessageSerializer
+    ChatConversationSerializer, ChatMessageSerializer,
+    InProgressRecipeSerializer
 )
 from .utils.recommended import compute_recommendations
 from zoneinfo import ZoneInfo
@@ -1189,6 +1191,108 @@ class ClearConversation(APIView):
 
         return Response(
             {'success': True, 'message': 'Conversation cleared'},
+            status=status.HTTP_200_OK
+        )
+
+
+class InProgressRecipeView(APIView):
+    """Get the current in-progress recipe for the user."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        recipe = InProgressRecipe.objects.filter(
+            user=request.user
+        ).exclude(status='discarded').prefetch_related(
+            'ingredients__curated_ingredient'
+        ).first()
+
+        if not recipe:
+            return Response(
+                {'recipe': None},
+                status=status.HTTP_200_OK
+            )
+
+        serializer = InProgressRecipeSerializer(recipe)
+        return Response(
+            {'recipe': serializer.data},
+            status=status.HTTP_200_OK
+        )
+
+
+class SaveInProgressRecipe(APIView):
+    """Promote an in-progress recipe to a saved Recipe + UserRecipe."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        # Get the pending confirmation recipe
+        in_progress = InProgressRecipe.objects.filter(
+            user=request.user,
+            status='pending_confirmation'
+        ).prefetch_related('ingredients__curated_ingredient').first()
+
+        if not in_progress:
+            return Response(
+                {'error': 'No recipe pending confirmation'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Format ingredients as pipe-separated string
+        ingredients_text = ' | '.join([
+            f"{ing.quantity} {ing.unit} {ing.curated_ingredient.name}"
+            for ing in in_progress.ingredients.all()
+        ])
+
+        # Create the Recipe
+        with transaction.atomic():
+            recipe = Recipe.objects.create(
+                title=in_progress.title,
+                ingredients=ingredients_text,
+                instructions=in_progress.instructions,
+                prep_time_min=in_progress.prep_time_min,
+                cook_time_min=in_progress.cook_time_min,
+                total_time_min=in_progress.total_time_min,
+                servings=in_progress.servings,
+                is_private=True  # User-created recipes are private by default
+            )
+
+            # Create UserRecipe to link user to recipe
+            UserRecipe.objects.create(
+                user=request.user,
+                original_recipe=recipe
+            )
+
+            # Mark in-progress recipe as discarded (completed)
+            in_progress.status = 'discarded'
+            in_progress.save()
+
+        serializer = RecipeSerializer(recipe, context={'request': request})
+        return Response(
+            {'success': True, 'recipe': serializer.data},
+            status=status.HTTP_201_CREATED
+        )
+
+
+class DiscardInProgressRecipe(APIView):
+    """Discard an in-progress recipe."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        # Get active recipe (either draft or pending_confirmation)
+        in_progress = InProgressRecipe.objects.filter(
+            user=request.user
+        ).exclude(status='discarded').first()
+
+        if not in_progress:
+            return Response(
+                {'error': 'No active recipe to discard'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        in_progress.status = 'discarded'
+        in_progress.save()
+
+        return Response(
+            {'success': True, 'message': 'Recipe discarded'},
             status=status.HTTP_200_OK
         )
 
