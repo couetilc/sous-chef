@@ -40,10 +40,10 @@ export default function Nutritionist() {
     loadConversation();
   }, [api]);
 
-  // Auto-scroll to bottom when messages change
+  // Auto-scroll to bottom when messages change or loading starts
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [messages, loading]);
 
   async function chat() {
     if (!currentMessage?.trim()) return;
