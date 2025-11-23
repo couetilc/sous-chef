@@ -16,6 +16,45 @@ function formatTime(timestamp) {
   });
 }
 
+function ToolCallsIndicator({ toolCalls }) {
+  const [expanded, setExpanded] = useState(false);
+
+  if (!toolCalls || toolCalls.length === 0) return null;
+
+  const toolNames = toolCalls.map(tc => tc.tool_name);
+  const uniqueTools = [...new Set(toolNames)];
+
+  return (
+    <div className="tool-calls-indicator">
+      <button
+        className="tool-calls-toggle"
+        onClick={() => setExpanded(!expanded)}
+        aria-expanded={expanded}
+      >
+        <span className="tool-calls-icon">🔧</span>
+        <span className="tool-calls-summary">
+          {uniqueTools.length === 1
+            ? `Used ${uniqueTools[0]}`
+            : `Used ${toolCalls.length} tool${toolCalls.length > 1 ? 's' : ''}`}
+        </span>
+        <span className={`tool-calls-chevron ${expanded ? 'expanded' : ''}`}>▼</span>
+      </button>
+      {expanded && (
+        <div className="tool-calls-details">
+          {toolCalls.map((tc, idx) => (
+            <div key={idx} className="tool-call-item">
+              <div className="tool-call-name">{tc.tool_name}</div>
+              {tc.result && (
+                <div className="tool-call-result">{tc.result}</div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Nutritionist() {
   const navigate = useNavigate();
   const { api } = useApi();
@@ -83,6 +122,9 @@ export default function Nutritionist() {
       <div className="chat-messages">
         {messages.map((msg) => (
           <div key={msg.id} className={`message ${msg.role}`}>
+            {msg.role === 'assistant' && (
+              <ToolCallsIndicator toolCalls={msg.tool_calls} />
+            )}
             <div className="message-content">
               {msg.role === 'assistant' ? (
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
