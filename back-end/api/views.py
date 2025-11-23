@@ -615,6 +615,14 @@ class GetRecipesFiltered(APIView):
         if searchFavorite:
             queryset = queryset.filter(user_favorites__isnull=False)
 
+        # Filter by user's AI-created recipes (recipes created through the AI nutritionist)
+        searchMyRecipes = request.data.get('searchMyRecipes')
+        if searchMyRecipes:
+            queryset = queryset.filter(
+                is_private=True,
+                user_recipes__user=request.user
+            )
+
         # Remove duplicates that can occur from JOIN operations
         queryset = queryset.distinct()
 

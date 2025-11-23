@@ -229,13 +229,14 @@ export class Api {
     })
   }
 
-  async getRecipesFiltered({title, ingredients, searchInventory, searchFavorite, curated_ingredients, searchCuratedInventory, curated_ingredients_match_all, page = 1, sort_by }) {
+  async getRecipesFiltered({title, ingredients, searchInventory, searchFavorite, searchMyRecipes, curated_ingredients, searchCuratedInventory, curated_ingredients_match_all, page = 1, sort_by }) {
     return this.fetch(`/api/recipes/searchFiltered/?page=${page}`, {
       body: JSON.stringify({
         title,
         ingredients,
         searchInventory,
         searchFavorite,
+        searchMyRecipes,
         curated_ingredients,
         searchCuratedInventory,
         curated_ingredients_match_all,
