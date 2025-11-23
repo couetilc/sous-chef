@@ -1428,6 +1428,74 @@ h1 {
   font-weight: bold;
 }
 
+/* Tool calls indicator */
+.tool-calls-indicator {
+  margin-bottom: 0.5em;
+}
+
+.tool-calls-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+  padding: 0.4em 0.6em;
+  background: rgba(0, 122, 255, 0.1);
+  border: 1px solid rgba(0, 122, 255, 0.2);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85em;
+  color: #007AFF;
+  transition: background-color 0.2s;
+}
+
+.tool-calls-toggle:hover {
+  background: rgba(0, 122, 255, 0.15);
+}
+
+.tool-calls-icon {
+  font-size: 0.9em;
+}
+
+.tool-calls-summary {
+  font-weight: 500;
+}
+
+.tool-calls-chevron {
+  font-size: 0.7em;
+  transition: transform 0.2s;
+  margin-left: auto;
+}
+
+.tool-calls-chevron.expanded {
+  transform: rotate(180deg);
+}
+
+.tool-calls-details {
+  margin-top: 0.4em;
+  padding: 0.5em;
+  background: rgba(0, 0, 0, 0.03);
+  border-radius: 6px;
+  font-size: 0.85em;
+}
+
+.tool-call-item {
+  padding: 0.4em 0;
+}
+
+.tool-call-item:not(:last-child) {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.tool-call-name {
+  font-weight: 600;
+  color: #007AFF;
+}
+
+.tool-call-result {
+  margin-top: 0.25em;
+  color: #666;
+  font-size: 0.9em;
+}
+
 /* END NUTRITIONIST PAGE */
 
 /* START MEAL PLAN PAGE */
