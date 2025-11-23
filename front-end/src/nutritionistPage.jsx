@@ -232,10 +232,10 @@ export default function Nutritionist() {
       const response = await api.saveInProgressRecipe();
       if (response.success && response.recipe) {
         setSavedRecipeId(response.recipe.id);
-        // Refresh conversation to update the recipe status in tool calls
-        const convResponse = await api.getConversation();
-        if (convResponse.messages) {
-          setMessages(convResponse.messages);
+        // Send a message to the AI so it knows the recipe was saved
+        const chatResponse = await api.nutritionistChat({ message: 'I saved the recipe.' });
+        if (chatResponse.messages) {
+          setMessages(chatResponse.messages);
         }
       }
     } catch (err) {
@@ -252,10 +252,10 @@ export default function Nutritionist() {
     setDiscarding(true);
     try {
       await api.discardInProgressRecipe();
-      // Refresh conversation to update the recipe status
-      const convResponse = await api.getConversation();
-      if (convResponse.messages) {
-        setMessages(convResponse.messages);
+      // Send a message to the AI so it knows the recipe was discarded
+      const chatResponse = await api.nutritionistChat({ message: 'I discarded the recipe.' });
+      if (chatResponse.messages) {
+        setMessages(chatResponse.messages);
       }
     } catch (err) {
       console.error('Discard recipe error:', err);
