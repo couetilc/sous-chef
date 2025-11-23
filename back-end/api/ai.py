@@ -190,6 +190,7 @@ def create_create_mealplan_tool(user: User):
             mealPlan = MealPlan.objects.filter(user=user, ai_in_progress=True).first()
             if mealPlan: mealPlan.delete()
             mealPlan = MealPlan(user=user, ai_in_progress=True)
+            mealPlan.save()
 
         return "Successfully created meal plan."
 
@@ -230,8 +231,8 @@ def create_edit_mealplan_tool(user: User):
         with transaction.atomic():
             entry, created = MealPlanEntry.objects.get_or_create(
                 meal_plan=in_progress_mealplan,
-                day_of_week=day,
-                meal_index=meal,
+                day_of_week=day.value,
+                meal_index=meal.value,
                 defaults={'recipe': recipe, 'servings': 1.0}
             )
 
@@ -263,15 +264,14 @@ def create_show_mealplan_tool(user: User):
             or an error message if the meal plan object has not been created.
         """
 
-        incompleteMealPlan = MealPlan.objects.filter(user=user, ai_in_progress=True).first()
-        if (incompleteMealPlan == None):
+        in_progress_mealplan = MealPlan.objects.filter(user=user, ai_in_progress=True).first()
+        if (in_progress_mealplan == None):
             return "Could not display meal plan: You should create a meal plan object first with create_mealplan_tool, then try again."
-        mealPlan = incompleteMealPlan.mealPlan
 
         results = []
         for day in Day:
             for meal in Meal:
-                entry = mealPlan.entries.filter(day_of_week=day, meal_index=meal).first()
+                entry = in_progress_mealplan.entries.filter(day_of_week=day.value, meal_index=meal.value).first()
                 if not entry:
                     recipe_text = f"""
 No meal entry for {day.name}, {meal.name}.
@@ -705,15 +705,14 @@ The current customer's name is {username}.
 - Remember to share the links for **each** recipe.
 
 ## Meal Plan Instructions
-The meal plan an object with 3 recipe slots for breakfast, lunch, and dinner. There are 3 meals total for the entire week.
+The meal plan is an object with 21 recipe slots: 3 recipes for each day of the week.
 
-If a user asks questions about their meal plan, you must use the <tool_name>create_mealplan_tool</tool_name>, <tool_name>edit_mealplan_tool</tool_name>, <tool_name>show_mealplan_tool</tool_name>, and <tool_name>search_recipes_tool</tool_name>.
-When the user asks to fill the meal plan with recipes, use <tool_name>edit_mealplan_tool</tool_name> with the meal slot and title query as input, for all three slots.
+If a user asks questions about their meal plan, you must use the <tool_name>create_mealplan_tool</tool_name>, <tool_name>edit_mealplan_tool</tool_name>, and <tool_name>show_mealplan_tool</tool_name>.
 When showing the user their meal plan, keep the response condense; do not include ingredients or instructions.
 
 The general flow for creating and displaying meal plans is as follows:
     1. The meal plan object must be created with <tool_name>create_mealplan_tool</tool_name>.
-    2. The meal plan object's breakfast, lunch, and dinner slots start off empty, and they can be filled with a call to <tool_name>edit_mealplan_tool</tool_name> for each.
+    2. The meal plan object's meal slots start off empty, and they can be filled with a call to <tool_name>edit_mealplan_tool</tool_name> for each.
     3. The meal plan can also be shown to the user as a formatted string with <tool_name>show_mealplan_tool</tool_name>. It is not necessary for all recipe slots to be filled.
 
 ## Conversation History
