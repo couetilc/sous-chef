@@ -19,6 +19,16 @@ class IngredientInline(admin.TabularInline):
 	extra = 0
 
 
+class CuratedIngredientInline(admin.TabularInline):
+	"""Show curated ingredients inline on the Recipe admin page."""
+	model = RecipeCuratedIngredient
+	extra = 0
+	fields = ('curated_ingredient', 'created_at')
+	readonly_fields = ('created_at',)
+	verbose_name = "Curated Ingredient"
+	verbose_name_plural = "Curated Ingredients"
+
+
 class RestrictedForUserFilter(SimpleListFilter):
 	"""
 	Custom filter to show recipes that contain ingredients restricted by a selected user.
@@ -217,7 +227,7 @@ class RecipeAdmin(admin.ModelAdmin):
 	list_display = ('title', 'deliciousness_score', 'score_notes_preview', 'is_private', 'created_at', 'updated_at')
 	search_fields = ('title', 'instructions', 'ingredients', 'deliciousness_notes')
 	list_filter = ('is_private', DeliciousnessScoreFilter, 'created_at', RestrictedForUserFilter)
-	inlines = (IngredientInline,)
+	inlines = (IngredientInline, CuratedIngredientInline)
 	ordering = ('-deliciousness_score', '-created_at')
 	readonly_fields = ('created_at', 'updated_at', 'deliciousness_notes_display')
 
@@ -273,12 +283,52 @@ class RecipeIngredientAdmin(admin.ModelAdmin):
 
 @admin.register(CuratedIngredient)
 class CuratedIngredientAdmin(admin.ModelAdmin):
-	list_display = ('name', 'is_approved', 'frequency', 'percentage', 'created_at')
+	list_display = ('name', 'is_approved', 'frequency', 'percentage', 'recipe_count', 'created_at')
 	search_fields = ('name',)
 	list_filter = ('is_approved', 'created_at')
 	ordering = ('name',)
-	readonly_fields = ('created_at',)
+	readonly_fields = ('created_at', 'recipes_display')
 	actions = ['approve_ingredients', 'unapprove_ingredients']
+
+	fieldsets = (
+		('Ingredient Information', {
+			'fields': ('name', 'is_approved', 'frequency', 'percentage')
+		}),
+		('Related Recipes', {
+			'fields': ('recipes_display',),
+			'classes': ('collapse',)
+		}),
+		('Timestamps', {
+			'fields': ('created_at',),
+			'classes': ('collapse',)
+		}),
+	)
+
+	def recipe_count(self, obj):
+		"""Display count of recipes using this ingredient"""
+		count = obj.recipe_uses.count()
+		if count == 0:
+			return format_html('<span style="color: #999;">0</span>')
+		return f"{count}"
+	recipe_count.short_description = 'Recipes'
+	recipe_count.admin_order_field = 'recipe_uses__count'
+
+	def recipes_display(self, obj):
+		"""Display all recipes that use this curated ingredient"""
+		recipe_links = obj.recipe_uses.select_related('recipe').all()
+		if not recipe_links:
+			return format_html('<p style="color: #999;"><em>Not used in any recipes yet</em></p>')
+
+		# Sort by recipe title
+		recipe_links = sorted(recipe_links, key=lambda x: x.recipe.title)
+
+		html = '<ul style="margin: 0; padding-left: 20px; max-height: 400px; overflow-y: auto;">'
+		for link in recipe_links:
+			url = reverse('admin:api_recipe_change', args=[link.recipe.pk])
+			html += f'<li><a href="{url}" target="_blank">{link.recipe.title}</a></li>'
+		html += '</ul>'
+		return format_html(html)
+	recipes_display.short_description = 'Recipes Using This Ingredient'
 
 	def approve_ingredients(self, request, queryset):
 		"""Bulk action to approve selected curated ingredients"""
