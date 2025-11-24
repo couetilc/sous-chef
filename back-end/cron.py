@@ -1,5 +1,8 @@
 from django.core.mail import send_mail
 from datetime import datetime
+import os
+from django.contrib.auth.models import User
+from models import MealPlan
 
 def daily_emails():
   print("executed daily!")
@@ -7,10 +10,18 @@ def daily_emails():
   cur_day = cur_datetime.day
   cur_month = cur_datetime.month
   subject = f"Daily Meal Plan: {cur_month}/{cur_day}"
-  print(subject)
-  message = 'Hello, username!\nHere is your meal plan for the day:\n'
   sender = 'notifications@souschef.life'
-  recipient = 'test@test.com'
+
+  mealplan_users = User.objects.all().filter(meal_plans__isnull=False)
+  for user in mealplan_users:
+    plan = user.meal_plans.first()
+    breakfast = user.meal_plans
+    recipient = user.email
+    message = 'Hello, username!\nHere is your meal plan for the day:\n'
+
+
+
+  print(subject)
   send_mail(subject, message, sender, [recipient])
   # api call to get evry active user's mael plan info for today
   # format it
