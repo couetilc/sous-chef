@@ -3,7 +3,7 @@ from django.contrib import admin
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
-from .models import Ingredient, Diet, CookedRecipe, Meal, Recipe, FavoriteRecipe, OnboardingSubmission, UserInventory, UserCuratedInventory, RecipeTag, UserRecipe, ChatConversation, ChatMessage, CuratedIngredient, RecipeCuratedIngredient, MealPlan, MealPlanEntry
+from .models import Ingredient, Diet, CookedRecipe, Meal, Recipe, FavoriteRecipe, OnboardingSubmission, UserInventory, UserCuratedInventory, RecipeTag, UserRecipe, ChatConversation, ChatMessage, CuratedIngredient, RecipeCuratedIngredient, MealPlan, MealPlanEntry, InProgressRecipe, InProgressRecipeIngredient
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -246,3 +246,32 @@ class MealPlanSerializer(serializers.ModelSerializer):
     class Meta:
         model = MealPlan
         fields = ['id', 'week_start', 'entries', 'is_complete', 'created_at']
+
+
+class InProgressRecipeIngredientSerializer(serializers.ModelSerializer):
+    name = serializers.CharField(source='curated_ingredient.name', read_only=True)
+
+    class Meta:
+        model = InProgressRecipeIngredient
+        fields = ('id', 'name', 'quantity', 'unit')
+        read_only_fields = ('id',)
+
+
+class InProgressRecipeSerializer(serializers.ModelSerializer):
+    ingredients = InProgressRecipeIngredientSerializer(many=True, read_only=True)
+    instructions_list = serializers.SerializerMethodField()
+
+    class Meta:
+        model = InProgressRecipe
+        fields = (
+            'id', 'title', 'instructions', 'instructions_list',
+            'prep_time_min', 'cook_time_min', 'total_time_min',
+            'servings', 'status', 'ingredients', 'created_at', 'updated_at'
+        )
+        read_only_fields = ('id', 'created_at', 'updated_at')
+
+    def get_instructions_list(self, obj):
+        """Return instructions as a list of steps."""
+        if not obj.instructions:
+            return []
+        return [step.strip() for step in obj.instructions.split('|') if step.strip()]
