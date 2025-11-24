@@ -1068,6 +1068,20 @@ class SousChefAgent:
 # ============================================================================
 
 
+def souschef_llm_call(prompt: str) -> str:
+    """
+    Make a call to the SousChef LLM with the given prompt.
+
+    Args:
+        prompt: The prompt string to send to the LLM
+
+    Returns:
+        The LLM's response as a string
+    """
+    llm = get_souschef_llm()
+    response = llm.invoke([HumanMessage(content=prompt)])
+    return response.content
+
 def classify_user_intent(message: str, recipe_step: str) -> Intent:
     """
     Classify the user's intent based on their message and current recipe step.
@@ -1079,13 +1093,26 @@ def classify_user_intent(message: str, recipe_step: str) -> Intent:
     prompt = f"""
     USER MESSAGE: "{message}"
     CURRENT RECIPE STEP: "{recipe_step}"
+    
     CLASSIFY THE USER'S INTENT INTO ONE OF THE FOLLOWING CATEGORIES:
     {", ".join([intent.value for intent in Intent])}.
 
     RETURN ONLY THE INTENT VALUE.
     """
-    #response = ask_llm(prompt)
-    #return Intent(response.strip())
+
+    try:
+        raw = souschef_llm_call(prompt).strip().lower()
+    except Exception as e:
+        logger.error(f"SousChef LLM error during intent classification: {e}", exc_info=True)
+        return Intent.CLARIFY  # Default fallback intent
+    
+    # Map raw response to Intent enum
+    for intent in Intent:
+        if intent.value == raw:
+            return intent
+    
+    # Fallback for weird LLM outputs
+    return Intent.CLARIFY
     # This is a placeholder implementation. Will need to call an LLM to classify.
 
 def handle_user_intent(intent: Intent, recipe, current_step_index):
@@ -1137,8 +1164,8 @@ def clarify_step(step: str) -> str:
     The user wants clarification on the following recipe step:
     "{step}"
 
-    Explain it in SIMPLE cooking-friendly language.
+    Rephrase it in a SIMPLE, cooking-friendly language that any beginner can follow.
     """
 
-    # return ask_llm(prompt)
+    return souschef_llm_call(prompt)
     # This is a placeholder implementation.
