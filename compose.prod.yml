@@ -40,6 +40,7 @@ services:
     volumes:
       - django-static:/var/www/static
       - django-media:/var/www/media
+      - ./scraping:/scraping
     expose:
       - "8000"
     depends_on:
