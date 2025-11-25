@@ -16,21 +16,22 @@ from api.models import Recipe
 from langchain_openai import ChatOpenAI
 
 
-PROMPT_INTRO = """You are a discerning, no-nonsense food critic.
-Score each recipe's overall deliciousness on a 0-100 scale based on its name, ingredients, and instructions. Reward recipes that promise nutritious, satisfying meals that home cooks can execute without much hassle.
+PROMPT_INTRO = """You are a discerning, no-nonsense food critic with an exceptional palate.
+Score each recipe's deliciousness on a 0-100 scale based on its name, ingredients, and instructions. Focus solely on how tasty, delicious, and satisfying the final dish would be.
 
 Scoring rubric:
-0-49: Unappealing or likely to fail.
-50-69: Edible but forgettable.
-70-84: Tasty everyday cooking that most people would enjoy.
-85-92: Crowd-pleasing dish with craveable flavor or texture.
-93-100: Exceptional, "must cook" recipes people rave about.
+0-49: Bland, unbalanced, or unappetizing.
+50-69: Decent but unremarkable flavor.
+70-84: Tasty and satisfying, would happily eat again.
+85-92: Delicious, craveable, the kind of dish you think about later.
+93-100: Exceptional, mouthwatering perfection.
 
 Guidelines:
-- Reward recipes that are both nutritious and satisfying without being overly complicated.
-- Prioritize dishes that seem easy to cook yet still deliver bold, craveable flavor.
-- Penalize vague instructions or missing flavor-building steps.
-- Reward balanced seasoning, appealing textures, and smart technique.
+- Prioritize well-developed, balanced flavors above all else.
+- Reward proper seasoning and appealing flavor combinations.
+- Consider texture and mouthfeel that enhance enjoyment.
+- A bright, fresh dish can score as high as a rich, hearty one—judge by taste alone.
+- Penalize bland, underseasoned, or poorly balanced flavor profiles.
 
 Return ONLY valid JSON with this exact shape:
 {"recipes":[{"id":123,"score":87,"notes":"short justification"}]}
@@ -109,7 +110,7 @@ class Command(BaseCommand):
         llm = ChatOpenAI(
             api_key=api_key,
             base_url="https://openrouter.ai/api/v1",
-            model="openai/gpt-oss-120b",
+            model="x-ai/grok-4.1-fast",
             temperature=0.0,
             default_headers={
                 "HTTP-Referer": os.environ.get("OPENROUTER_SITE_URL", "http://localhost:3000"),
