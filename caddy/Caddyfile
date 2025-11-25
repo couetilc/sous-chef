@@ -1,21 +1,17 @@
 # Caddy configuration for Sous Chef
-# Caddy automatically handles HTTPS with Let's Encrypt
-
-souschef.life {
-    redir https://www.{host}{uri} permanent
-}
+# When using Cloudflare Tunnel, Caddy only needs to listen on HTTP
+# Cloudflare handles SSL termination at the edge
 
 # Main site
-www.souschef.life {
+:80 {
     # Encode responses (replaces nginx gzip)
     encode gzip
 
-    # Security headers
+    # Security headers (HSTS removed - Cloudflare handles this)
     header {
         X-Frame-Options "DENY"
         X-Content-Type-Options "nosniff"
         Referrer-Policy "strict-origin-when-cross-origin"
-        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
     }
 
     # Static files from Django
@@ -60,9 +56,4 @@ www.souschef.life {
         header Content-Type "text/html"
         respond "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"utf-8\"></head><body><h1>Error</h1><p>Sorry chef, something went bad</p></body></html>"
     }
-}
-
-# Reject all other requests
-:80 {
-    respond 444
 }
