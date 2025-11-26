@@ -235,6 +235,12 @@ export default function Recipes() {
           )
         })}
       </div>
+      <div className="paging">
+        {recipes?.previous &&
+          <button className="button" onClick={() => setPage(p => p - 1)}>previous page</button>}
+        {recipes?.next &&
+          <button className="button" onClick={() => setPage(p => p + 1)}>next page</button>}
+      </div>
     </div>
   )
 }
