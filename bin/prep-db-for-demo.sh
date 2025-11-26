@@ -26,5 +26,6 @@ docker compose -f "$COMPOSE_FILE" run --rm --remove-orphans backend bash -c "\
 	python manage.py demo_meal_plan && \
 	python manage.py load_curated_ingredients --auto-approve && \
 	python manage.py load_recipe_curated_ingredients && \
+	python manage.py load_recipe_scores && \
 	echo 'Done!'
 	"
