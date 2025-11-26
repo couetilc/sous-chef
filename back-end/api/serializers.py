@@ -134,6 +134,8 @@ class RecipeSerializer(serializers.ModelSerializer):
             'id', 'title', 'ingredients', 'instructions',
             'deliciousness_score',
             'deliciousness_notes',
+            'turkey_score',
+            'turkey_notes',
             'accessibility_score',
             'image_url', 'source_url',
             'servings',

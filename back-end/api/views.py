@@ -630,6 +630,9 @@ class GetRecipesFiltered(APIView):
         if sort_by == 'deliciousness':
             # Sort by deliciousness score (highest first)
             queryset = queryset.order_by('-deliciousness_score')
+        elif sort_by == 'turkey':
+            # Sort by turkey score (highest first)
+            queryset = queryset.order_by('-turkey_score')
         elif sort_by == 'combined':
             # Sort by combined score (accessibility * deliciousness)
             queryset = queryset.annotate(
