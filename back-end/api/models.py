@@ -86,6 +86,17 @@ class Recipe(models.Model):
         default="",
         help_text="LLM justification for deliciousness score (5-25 words)"
     )
+    turkey_score = models.DecimalField(
+        decimal_places=2,
+        max_digits=5,
+        default=0,
+        help_text="LLM-assessed turkey score from 0-100"
+    )
+    turkey_notes = models.TextField(
+        blank=True,
+        default="",
+        help_text="LLM justification for turkey score (5-25 words)"
+    )
     image_url = models.URLField(null=True, blank=True, max_length=400)
     source_url = models.URLField(null=True, blank=True, max_length=400)
     prep_time_min = models.IntegerField(default=0)
