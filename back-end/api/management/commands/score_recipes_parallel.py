@@ -110,12 +110,8 @@ class Command(BaseCommand):
         llm = ChatOpenAI(
             api_key=api_key,
             base_url="https://openrouter.ai/api/v1",
-            model="x-ai/grok-4.1-fast",
+            model="openrouter/bert-nebulon-alpha",
             temperature=0.0,
-            default_headers={
-                "HTTP-Referer": os.environ.get("OPENROUTER_SITE_URL", "http://localhost:3000"),
-                "X-Title": os.environ.get("OPENROUTER_APP_TITLE", "Sous Chef Deliciousness"),
-            },
         )
 
         self.stdout.write(self.style.SUCCESS(f"[{worker_id}] Starting parallel scoring worker"))
