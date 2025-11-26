@@ -17,7 +17,7 @@ export default function Recipes() {
   const [filterFavorites, setFilterFavorites] = useState(false)
   const [filterMyRecipes, setFilterMyRecipes] = useState(false)
   const [ingredientsMatchAll, setIngredientsMatchAll] = useState(false)
-  const [sortBy, setSortBy] = useState('accessibility')
+  const [sortBy, setSortBy] = useState('deliciousness')
   const [page, setPage] = useState(1)
   const [recipes, setRecipes ] = useState();
   const [ingredientFilterTrigger, setIngredientFilterTrigger] = useState(0)
@@ -32,7 +32,7 @@ export default function Recipes() {
     favorites: false,
     myRecipes: false,
     ingredientsMatchAll: true,
-    sortBy: 'accessibility',
+    sortBy: 'deliciousness',
   })
 
   // Execute search with current filter values
@@ -101,7 +101,7 @@ export default function Recipes() {
     setFilterFavorites(false)
     setFilterMyRecipes(false)
     setIngredientsMatchAll(false)
-    setSortBy('accessibility')
+    setSortBy('deliciousness')
     setIngredientFilterTrigger(t => t + 1)
     if (nameInputRef.current) {
       nameInputRef.current.value = ''
@@ -113,7 +113,7 @@ export default function Recipes() {
       favorites: false,
       myRecipes: false,
       ingredientsMatchAll: true,
-      sortBy: 'accessibility',
+      sortBy: 'deliciousness',
     }))
     setPage(1)
   }
@@ -197,17 +197,17 @@ export default function Recipes() {
         <label>Sort by:</label>
         <button
           type="button"
-          className={sortBy === 'accessibility' ? 'button' : 'button-gray'}
-          onClick={() => handleSortChange('accessibility')}
-        >
-          ⭐ Cheap & Easy (default)
-        </button>
-        <button
-          type="button"
           className={sortBy === 'deliciousness' ? 'button' : 'button-gray'}
           onClick={() => handleSortChange('deliciousness')}
         >
-          😋 Delicious
+          😋 Delicious (default)
+        </button>
+        <button
+          type="button"
+          className={sortBy === 'accessibility' ? 'button' : 'button-gray'}
+          onClick={() => handleSortChange('accessibility')}
+        >
+          ⭐ Cheap & Easy
         </button>
         <button
           type="button"
