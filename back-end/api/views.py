@@ -631,13 +631,22 @@ class GetRecipesFiltered(APIView):
             # Sort by deliciousness score (highest first)
             queryset = queryset.order_by('-deliciousness_score')
         elif sort_by == 'turkey':
-            # Sort by turkey score (highest first)
-            queryset = queryset.order_by('-turkey_score')
+            # Sort by turkey score with deliciousness as a factor
+            # Combined turkey-delicious score = turkey_score * deliciousness_score
+            # This discounts recipes that aren't delicious
+            queryset = queryset.annotate(
+                turkey_delicious_score=ExpressionWrapper(
+                    F('turkey_score') * F('deliciousness_score'),
+                    output_field=FloatField()
+                )
+            ).order_by('-turkey_delicious_score')
         elif sort_by == 'combined':
-            # Sort by combined score (accessibility * deliciousness)
+            # Sort by combined score (accessibility * deliciousness^2)
+            # The squared deliciousness heavily discounts non-delicious recipes
+            # For example: deliciousness=50 -> 50^2=2500, but deliciousness=80 -> 80^2=6400
             queryset = queryset.annotate(
                 combined_score=ExpressionWrapper(
-                    F('accessibility_score') * F('deliciousness_score'),
+                    F('accessibility_score') * F('deliciousness_score') * F('deliciousness_score'),
                     output_field=FloatField()
                 )
             ).order_by('-combined_score')
