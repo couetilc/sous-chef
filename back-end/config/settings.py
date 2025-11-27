@@ -191,7 +191,7 @@ SPECTACULAR_SETTINGS = {
 }
 
 # DEVELOPMENT environment
-if DEBUG == True:
+if DEBUG == False:
     SECRET_KEY = 'django-insecure-g5kt_ez1(+i$ru&a0*)wamwgvcp^6&t-&zb#^@#+*h2j-@0%z+'
 
     STORAGES = {
@@ -229,7 +229,7 @@ if DEBUG == True:
 # (https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/)
 else:
     SECRET_KEY = env.get("DJANGO_SECRET_KEY")
-    ALLOWED_HOSTS = ['www.souschef.life', 'souschef.life', '127.0.0.1']
+    ALLOWED_HOSTS = ['www.souschef.life', 'souschef.life', '127.0.0.1', 'localhost', 'backend']
     CORS_ALLOWED_ORIGINS = [
         "http://www.souschef.life",
         "http://souschef.life",  # Vite default
