@@ -191,7 +191,7 @@ SPECTACULAR_SETTINGS = {
 }
 
 # DEVELOPMENT environment
-if DEBUG == False:
+if DEBUG == True:
     SECRET_KEY = 'django-insecure-g5kt_ez1(+i$ru&a0*)wamwgvcp^6&t-&zb#^@#+*h2j-@0%z+'
 
     STORAGES = {
