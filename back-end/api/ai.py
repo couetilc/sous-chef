@@ -918,7 +918,7 @@ def get_souschef_llm() -> ChatOpenAI:
     return ChatOpenAI(
         api_key=api_key,
         base_url="https://openrouter.ai/api/v1",
-        model="openrouter/sherlock-think-alpha",
+        model="x-ai/grok-4.1-fast",
     )
 
 
@@ -1115,41 +1115,73 @@ def classify_user_intent(message: str, recipe_step: str) -> Intent:
     return Intent.CLARIFY
     # This is a placeholder implementation. Will need to call an LLM to classify.
 
-def handle_user_intent(intent: Intent, recipe, current_step_index):
+def handle_user_intent(intent: Intent, recipe_or_session, current_step_index=None):
     """
     Handle the user's intent and return the appropriate recipe step or action.
 
     Args:
         intent: The classified user intent
-        recipe: The recipe object being followed
-        current_step_index: The index of the current recipe step
+        recipe_or_session: Either a CookingSession object (preferred) or a recipe-like object with .steps
+        current_step_index: The index of the current recipe step (optional, used for testing with mock recipes)
+    
+    Returns:
+        Dictionary with 'step_index' and 'message' keys
     """
+    # Import here to avoid circular dependency
+    from .models import CookingSession
+    
+    # Determine if we're working with a CookingSession or a test mock
+    is_cooking_session = isinstance(recipe_or_session, CookingSession)
+    
+    if is_cooking_session:
+        session = recipe_or_session
+        steps = session.get_steps_list()
+        current_index = session.current_step_index
+    else:
+        # Testing mode with mock recipe
+        recipe = recipe_or_session
+        steps = recipe.steps
+        current_index = current_step_index if current_step_index is not None else 0
+    
     if intent == Intent.NEXT_STEP:
-        new_index = min(current_step_index + 1, len(recipe.steps) - 1)
+        new_index = min(current_index + 1, len(steps) - 1)
+        if is_cooking_session:
+            session.current_step_index = new_index
+            session.save(update_fields=['current_step_index'])
         return {
             "step_index": new_index,
             "message": f"Moving to the next step {new_index + 1}."
         }
+    
     if intent == Intent.PREVIOUS_STEP:
-        new_index = max(current_step_index - 1, 0)
+        new_index = max(current_index - 1, 0)
+        if is_cooking_session:
+            session.current_step_index = new_index
+            session.save(update_fields=['current_step_index'])
         return {
             "step_index": new_index,
             "message": f"Returning to the previous step {new_index + 1}."
         }
+    
     if intent == Intent.RESTART_RECIPE:
+        if is_cooking_session:
+            session.restart()
         return {
             "step_index": 0,
             "message": "Restarting the recipe from the beginning."
         }
+    
     if intent == Intent.CLARIFY:
-        explanation = clarify_step(recipe.steps[current_step_index])
+        current_step = steps[current_index]
+        explanation = clarify_step(current_step)
         return {
-            "step_index": current_step_index,
+            "step_index": current_index,
             "message": explanation
         }
+    
     if intent == Intent.REPAIR:
         return {
-            "step_index": current_step_index,
+            "step_index": current_index,
             "message": "I noticed confusion. Let's go over the current step again carefully."
         }
 

@@ -33,6 +33,7 @@ export default function SousChef() {
   const { api } = useApi();
 
   const [sessionActive, setSessionActive] = useState(false);
+  const [cookingSession, setCookingSession] = useState(null);
 
   const [currentMessage, setCurrentMessage] = useState('');
   const [messages, setMessages] = useState([]);
@@ -84,6 +85,30 @@ export default function SousChef() {
     };
   }, [api, id]);
 
+  // Load active cooking session if exists
+  useEffect(() => {
+    if (!id) return;
+
+    let cancelled = false;
+
+    async function loadCookingSession() {
+      try {
+        const data = await api.getCookingSession({ recipe_id: Number(id) });
+        if (!cancelled && data.session !== null && data.id) {
+          setCookingSession(data);
+          setSessionActive(data.is_active);
+        }
+      } catch (err) {
+        console.error('Failed to load cooking session:', err);
+      }
+    }
+
+    loadCookingSession();
+    return () => {
+      cancelled = true;
+    };
+  }, [api, id]);
+
   // Load SousChef conversation
   useEffect(() => {
     async function loadConversation() {
@@ -104,12 +129,30 @@ export default function SousChef() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const LetUsBeginClicked = () => {
-    setSessionActive(true);
+  const LetUsBeginClicked = async () => {
+    if (!id) return;
+    
+    try {
+      const response = await api.startCookingSession({ recipe_id: Number(id) });
+      setCookingSession(response);
+      setSessionActive(true);
+    } catch (err) {
+      console.error('Failed to start cooking session:', err);
+      setError(true);
+    }
   };
 
-  const ThatsAWrapClicked = () => {
-    setSessionActive(false);
+  const ThatsAWrapClicked = async () => {
+    if (!id) return;
+    
+    try {
+      await api.endCookingSession({ recipe_id: Number(id) });
+      setCookingSession(null);
+      setSessionActive(false);
+    } catch (err) {
+      console.error('Failed to end cooking session:', err);
+      setError(true);
+    }
   };
 
   async function chat() {
@@ -128,6 +171,13 @@ export default function SousChef() {
 
       const response = await api.sousChefChat(payload);
       setMessages(response.messages);
+      
+      // Update cooking session if included in response
+      if (response.cooking_session) {
+        setCookingSession(response.cooking_session);
+        setSessionActive(response.cooking_session.is_active);
+      }
+      
       setCurrentMessage('');
     } catch (err) {
       console.error('SousChef chat error:', err);
@@ -300,11 +350,36 @@ export default function SousChef() {
                     listStyleType: 'decimal',
                   }}
                 >
-                  {instructionList.map((step, idx) => (
-                    <li key={idx} style={{ fontSize: 14, marginBottom: 4 }}>
-                      {step}
-                    </li>
-                  ))}
+                  {instructionList.map((step, idx) => {
+                    const isCurrentStep = cookingSession && cookingSession.current_step_index === idx;
+                    return (
+                      <li 
+                        key={idx} 
+                        style={{ 
+                          fontSize: 14, 
+                          marginBottom: 4,
+                          padding: '6px 8px',
+                          backgroundColor: isCurrentStep ? '#fff3cd' : 'transparent',
+                          borderLeft: isCurrentStep ? '4px solid #a83232' : '4px solid transparent',
+                          borderRadius: 4,
+                          fontWeight: isCurrentStep ? 600 : 400,
+                          transition: 'all 0.3s ease',
+                        }}
+                      >
+                        {step}
+                        {isCurrentStep && (
+                          <span style={{ 
+                            marginLeft: 8, 
+                            fontSize: 12, 
+                            color: '#a83232',
+                            fontWeight: 700
+                          }}>
+                            ← You are here
+                          </span>
+                        )}
+                      </li>
+                    );
+                  })}
                 </ol>
               </div>
             </div>

@@ -3,7 +3,7 @@ from django.contrib import admin
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
-from .models import Ingredient, Diet, CookedRecipe, Meal, Recipe, FavoriteRecipe, OnboardingSubmission, UserInventory, UserCuratedInventory, RecipeTag, UserRecipe, ChatConversation, ChatMessage, CuratedIngredient, RecipeCuratedIngredient, MealPlan, MealPlanEntry, InProgressRecipe, InProgressRecipeIngredient
+from .models import Ingredient, Diet, CookedRecipe, Meal, Recipe, FavoriteRecipe, OnboardingSubmission, UserInventory, UserCuratedInventory, RecipeTag, UserRecipe, ChatConversation, ChatMessage, CuratedIngredient, RecipeCuratedIngredient, MealPlan, MealPlanEntry, InProgressRecipe, InProgressRecipeIngredient, CookingSession
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -277,3 +277,28 @@ class InProgressRecipeSerializer(serializers.ModelSerializer):
         if not obj.instructions:
             return []
         return [step.strip() for step in obj.instructions.split('|') if step.strip()]
+
+
+class CookingSessionSerializer(serializers.ModelSerializer):
+    """Serializer for active cooking sessions"""
+    recipe_id = serializers.IntegerField(source='recipe.id', read_only=True)
+    recipe_title = serializers.CharField(source='recipe.title', read_only=True)
+    current_step = serializers.SerializerMethodField()
+    total_steps = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CookingSession
+        fields = (
+            'id', 'recipe_id', 'recipe_title', 'current_step_index',
+            'current_step', 'total_steps', 'is_active',
+            'start_time', 'end_time'
+        )
+        read_only_fields = ('id', 'start_time', 'end_time')
+
+    def get_current_step(self, obj):
+        """Get the text of the current step"""
+        return obj.get_current_step()
+
+    def get_total_steps(self, obj):
+        """Get the total number of steps in the recipe"""
+        return len(obj.get_steps_list())
