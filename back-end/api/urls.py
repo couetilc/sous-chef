@@ -87,4 +87,7 @@ urlpatterns = [
     path('meal_plans/<int:pk>/entries/<int:entry_id>/', views.MealPlanEntryDeleteView.as_view(), name='meal-plan-entry-delete'),
     path('souschef/conversation/', views.SousChefChat.as_view(), name='souschef-conversation'),
     path('souschef/conversation/clear/', views.ClearSousChefConversation.as_view(), name='souschef-conversation-clear'),
+    path('cooking_session/start/', views.StartCookingSession.as_view(), name='cooking-session-start'),
+    path('cooking_session/end/', views.EndCookingSession.as_view(), name='cooking-session-end'),
+    path('cooking_session/', views.GetCookingSession.as_view(), name='cooking-session-get'),
 ]
