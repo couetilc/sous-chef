@@ -108,3 +108,120 @@ class TestIntentHandlers:
         result = handle_user_intent(Intent.REPAIR, recipe, current_step_index=1)
         assert "confusion" in result["message"].lower() or "carefully" in result["message"].lower()
         assert result["step_index"] == 1
+
+
+@pytest.mark.django_db
+class TestCookingSessionIntegration:
+    """Test CookingSession integration with intent handling"""
+
+    @pytest.fixture
+    def user(self):
+        """Create a test user"""
+        return User.objects.create_user(username='testuser', password='testpass123')
+
+    @pytest.fixture
+    def recipe(self):
+        """Create a test recipe"""
+        return Recipe.objects.create(
+            title='Test Recipe',
+            ingredients='Ingredient 1|Ingredient 2',
+            instructions='Step 1: Do this|Step 2: Do that|Step 3: Finish',
+            servings=2,
+            prep_time_min=10,
+            cook_time_min=20,
+            total_time_min=30
+        )
+
+    @pytest.fixture
+    def cooking_session(self, user, recipe):
+        """Create a test cooking session"""
+        from api.models import CookingSession
+        return CookingSession.objects.create(
+            user=user,
+            recipe=recipe,
+            current_step_index=0,
+            is_active=True
+        )
+
+    def test_cooking_session_next_step(self, cooking_session):
+        """Test moving to next step with CookingSession"""
+        result = handle_user_intent(Intent.NEXT_STEP, cooking_session)
+        cooking_session.refresh_from_db()
+        
+        assert cooking_session.current_step_index == 1
+        assert result["step_index"] == 1
+        assert "next step" in result["message"].lower()
+
+    def test_cooking_session_previous_step(self, cooking_session):
+        """Test moving to previous step with CookingSession"""
+        cooking_session.current_step_index = 2
+        cooking_session.save()
+        
+        result = handle_user_intent(Intent.PREVIOUS_STEP, cooking_session)
+        cooking_session.refresh_from_db()
+        
+        assert cooking_session.current_step_index == 1
+        assert result["step_index"] == 1
+        assert "previous step" in result["message"].lower()
+
+    def test_cooking_session_restart(self, cooking_session):
+        """Test restarting recipe with CookingSession"""
+        cooking_session.current_step_index = 2
+        cooking_session.save()
+        
+        result = handle_user_intent(Intent.RESTART_RECIPE, cooking_session)
+        cooking_session.refresh_from_db()
+        
+        assert cooking_session.current_step_index == 0
+        assert result["step_index"] == 0
+        assert "restarting" in result["message"].lower()
+
+    def test_cooking_session_get_current_step(self, cooking_session):
+        """Test getting current step text"""
+        current_step = cooking_session.get_current_step()
+        assert current_step == "Step 1: Do this"
+        
+        cooking_session.current_step_index = 1
+        cooking_session.save()
+        current_step = cooking_session.get_current_step()
+        assert current_step == "Step 2: Do that"
+
+    def test_cooking_session_get_steps_list(self, cooking_session):
+        """Test parsing instructions into steps list"""
+        steps = cooking_session.get_steps_list()
+        assert len(steps) == 3
+        assert steps[0] == "Step 1: Do this"
+        assert steps[1] == "Step 2: Do that"
+        assert steps[2] == "Step 3: Finish"
+
+    def test_cooking_session_next_step_at_end(self, cooking_session):
+        """Test that next_step at end stays at last step"""
+        cooking_session.current_step_index = 2
+        cooking_session.save()
+        
+        result = handle_user_intent(Intent.NEXT_STEP, cooking_session)
+        cooking_session.refresh_from_db()
+        
+        assert cooking_session.current_step_index == 2
+        assert result["step_index"] == 2
+
+    def test_cooking_session_previous_step_at_beginning(self, cooking_session):
+        """Test that previous_step at beginning stays at first step"""
+        result = handle_user_intent(Intent.PREVIOUS_STEP, cooking_session)
+        cooking_session.refresh_from_db()
+        
+        assert cooking_session.current_step_index == 0
+        assert result["step_index"] == 0
+
+    @patch('api.ai.souschef_llm_call')
+    def test_cooking_session_clarify(self, mock_llm_call, cooking_session):
+        """Test clarifying current step with CookingSession"""
+        mock_llm_call.return_value = "This means you should do this carefully."
+        
+        result = handle_user_intent(Intent.CLARIFY, cooking_session)
+        cooking_session.refresh_from_db()
+        
+        assert cooking_session.current_step_index == 0  # Should stay at same step
+        assert result["step_index"] == 0
+        assert "carefully" in result["message"].lower()
+        mock_llm_call.assert_called_once()
