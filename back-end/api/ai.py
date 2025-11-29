@@ -171,21 +171,21 @@ def create_get_user_inventory_tool(user: User):
 
     return get_user_inventory
 
-def create_create_mealplan_tool(user: User):
+def create_reset_mealplan_tool(user: User):
     """
-    Create a create meal plan tool.
-    """
+    Create a reset meal plan tool.
+    """ 
     @tool
-    def create_mealplan_tool(
+    def reset_mealplan_tool(
 
     ) -> str:
-        """Create a meal plan object which can be filled with recipes.
+        """Resets the meal plan object which is to be filled with recipes.
 
-        Use this tool to create a meal plan object for this conversation if it does not exist already.
+        Use this tool to reset or inititalize a meal plan object for this conversation if it does not exist already.
         Only use this tool at the start of a session, or when the user asks to create an additional meal plan, since calling it will erase all of your edits!
 
         Returns:
-            A string indicating whether or not the meal plan object was created.
+            A string indicating whether or not the meal plan object was reset.
         """
 
         with transaction.atomic():
@@ -199,7 +199,7 @@ def create_create_mealplan_tool(user: User):
 
         return "Successfully created meal plan."
 
-    return create_mealplan_tool 
+    return reset_mealplan_tool 
 
 def create_edit_mealplan_tool(user: User):
     """
@@ -714,10 +714,10 @@ The current customer's name is {username}.
 ## Meal Plan Instructions
 The meal plan is an object with 21 recipe slots: 3 recipes for each day of the week.
 
-If a user asks questions about their meal plan, you must use the <tool_name>create_mealplan_tool</tool_name>, <tool_name>edit_mealplan_tool</tool_name>, and <tool_name>show_mealplan_tool</tool_name>.
+If a user asks questions about their meal plan, you must use the <tool_name>reset_mealplan_tool</tool_name>, <tool_name>edit_mealplan_tool</tool_name>, and <tool_name>show_mealplan_tool</tool_name>.
 
 The general flow for creating and displaying meal plans is as follows:
-    1. The meal plan object must be created with <tool_name>create_mealplan_tool</tool_name>. After the meal plan is initially created, ask the user if they want to fill it in with their own options, or if you should fill it for them.
+    1. The meal plan object must be created with <tool_name>reset_mealplan_tool</tool_name>. After the meal plan is initially created, ask the user if they want to fill it in with their own options, or if you should fill it for them.
     2. The meal plan object's meal slots start off empty, and they can be filled with a call to <tool_name>edit_mealplan_tool</tool_name> for each.
     3. The meal plan can also be shown to the user as a formatted string with <tool_name>show_mealplan_tool</tool_name>. It is not necessary for all recipe slots to be filled.
 
@@ -807,7 +807,7 @@ class NutritionistAgent:
             # Recipe search and inventory
             create_search_recipes_tool(),
             create_get_user_inventory_tool(self.user),
-            create_create_mealplan_tool(self.user),
+            create_reset_mealplan_tool(self.user),
             create_edit_mealplan_tool(self.user),
             create_show_mealplan_tool(self.user),
 
