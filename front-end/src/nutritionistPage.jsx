@@ -148,10 +148,17 @@ function RecipeSuggestion({ recipe }) {
       <div className="recipe-suggestion-actions">
         <button
           type="button"
+          className="button-blue"
+          onClick={() => navigate(`/recipes/${recipe.id}`)}
+        >
+          View Recipe
+        </button>
+        <button
+          type="button"
           className="button"
           onClick={() => navigate(`/sous-chef/${recipe.id}`)}
         >
-          View Full Recipe
+          Cook Now
         </button>
       </div>
     </div>

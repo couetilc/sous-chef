@@ -1773,7 +1773,7 @@ h1 {
 
 .recipe-suggestion-actions {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: 0.75em;
   padding-top: 1em;
   border-top: 1px solid #d0e8ff;
