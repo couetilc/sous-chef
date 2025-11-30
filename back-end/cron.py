@@ -2,12 +2,13 @@ from django.core.mail import send_mail
 from datetime import datetime
 import os
 from django.contrib.auth.models import User
-from models import MealPlan
+from api.models import MealPlan
 
 def daily_emails():
   print("executed daily!")
   cur_datetime = datetime.now()
   cur_day = cur_datetime.day
+  cur_day_ofweek = cur_datetime.weekday()
   cur_month = cur_datetime.month
   subject = f"Daily Meal Plan: {cur_month}/{cur_day}"
   sender = 'notifications@souschef.life'
@@ -22,7 +23,7 @@ def daily_emails():
 
 
   print(subject)
-  send_mail(subject, message, sender, [recipient])
+  # send_mail(subject, message, sender, [recipient])
   # api call to get evry active user's mael plan info for today
   # format it
   # use send_mail to send it
