@@ -634,3 +634,14 @@ class InProgressRecipeIngredient(models.Model):
 
     def __str__(self):
         return f"{self.quantity} {self.unit} {self.curated_ingredient.name} for {self.recipe}"
+
+class DietRestrictedCuratedIngredient(models.Model):
+    """Ingredient restricted by diet"""
+    diet = models.ForeignKey(Diet, on_delete=models.CASCADE, related_name='restricted_ingredients')
+    ingredient = models.ForeignKey(CuratedIngredient, on_delete=models.CASCADE, related_name='restricted_diets')
+
+    class Meta:
+        ordering = ['ingredient__name']
+
+    def __str__(self):
+        return f"(diet:{self.diet.name},ingredient:{self.ingredient.name})"
