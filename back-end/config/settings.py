@@ -31,7 +31,7 @@ CRONJOBS = [
   ('*/5 * * * *', 'cron.weekly_emails'),
   ('*/5 * * * *', 'cron.weekly_grocery_emails'),
   ('* * * * *', 'cron.daily_emails')
-  
+
 ]
 
 INSTALLED_APPS = [
@@ -229,7 +229,7 @@ if DEBUG == True:
 # (https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/)
 else:
     SECRET_KEY = env.get("DJANGO_SECRET_KEY")
-    ALLOWED_HOSTS = ['www.souschef.life', 'souschef.life']
+    ALLOWED_HOSTS = ['www.souschef.life', 'souschef.life', '127.0.0.1', 'localhost', 'backend']
     CORS_ALLOWED_ORIGINS = [
         "http://www.souschef.life",
         "http://souschef.life",  # Vite default

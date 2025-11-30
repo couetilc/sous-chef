@@ -1,0 +1,10 @@
+# Copy this file to config.yml and replace the placeholder values.
+tunnel: 151d47a9-d0b9-44d5-8d2d-8907a08b91b4
+credentials-file: /etc/cloudflared/151d47a9-d0b9-44d5-8d2d-8907a08b91b4.json
+
+ingress:
+  - hostname: www.souschef.life
+    service: http://caddy:80
+  - hostname: souschef.life
+    service: http://caddy:80
+  - service: http_status:404

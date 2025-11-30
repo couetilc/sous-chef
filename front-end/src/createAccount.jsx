@@ -39,20 +39,29 @@ export default function CreateAccount(props) {
 
       // Handle different error types
       if (error.data && typeof error.data === 'object') {
-        // Backend validation errors - format nicely
-        const errorMessages = Object.entries(error.data)
-          .map(([field, messages]) => {
-            const fieldLabel = field.charAt(0).toUpperCase() + field.replace('_', ' ').slice(1);
-            const messageText = Array.isArray(messages) ? messages.join(' ') : messages;
-            return `${fieldLabel}: ${messageText}`;
-          })
-          .join('\n');
-        setServerError(errorMessages);
+        // Check if it's a validation error object
+        if (error.data.error) {
+          // Single error message
+          setServerError(error.data.error);
+        } else if (error.data.details) {
+          // Error with details (from non-JSON response)
+          setServerError(`Server Error: ${error.data.details}`);
+        } else {
+          // Backend validation errors - format nicely
+          const errorMessages = Object.entries(error.data)
+            .map(([field, messages]) => {
+              const fieldLabel = field.charAt(0).toUpperCase() + field.replace('_', ' ').slice(1);
+              const messageText = Array.isArray(messages) ? messages.join(' ') : messages;
+              return `${fieldLabel}: ${messageText}`;
+            })
+            .join('\n');
+          setServerError(errorMessages);
+        }
       } else if (error.message) {
         // Network or other errors
         setServerError(error.message);
       } else {
-        setServerError('Registration failed. Please try again.');
+        setServerError('Registration failed. Please check your connection and try again.');
       }
     } finally {
       setIsSubmitting(false);

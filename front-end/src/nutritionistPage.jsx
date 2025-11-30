@@ -34,6 +34,35 @@ function parseRecipeOutcome(toolCalls) {
   }
 }
 
+function parseRecipeSuggestions(toolCalls) {
+  if (!toolCalls || toolCalls.length === 0) return [];
+
+  const suggestions = [];
+
+  // Find all suggest_recipe tool calls
+  const suggestCalls = toolCalls.filter(tc => tc.tool_name === 'suggest_recipe');
+
+  for (const call of suggestCalls) {
+    if (!call.result) continue;
+
+    // Check if result is an error message
+    if (call.result.startsWith('Error:')) {
+      // Skip error results - LLM will communicate errors in message content
+      continue;
+    }
+
+    try {
+      const recipe = JSON.parse(call.result);
+      suggestions.push(recipe);
+    } catch (e) {
+      console.error('Failed to parse recipe suggestion:', e);
+      // Skip malformed results
+    }
+  }
+
+  return suggestions;
+}
+
 function RecipeOutcome({ toolCalls }) {
   const outcome = parseRecipeOutcome(toolCalls);
   if (!outcome) return null;
@@ -64,6 +93,76 @@ function RecipeOutcome({ toolCalls }) {
   }
 
   return null;
+}
+
+function RecipeSuggestion({ recipe }) {
+  const navigate = useNavigate();
+
+  if (!recipe) return null;
+
+  const hasCookTime = recipe.cook_time_min > 0;
+  const hasNutrition = recipe.calories_per_serving > 0;
+
+  return (
+    <div className="recipe-suggestion">
+      <div className="recipe-suggestion-header">
+        <h3>{recipe.title || 'Untitled Recipe'}</h3>
+        <span className="recipe-suggestion-badge">AI Suggestion</span>
+      </div>
+
+      {recipe.image_url && (
+        <div className="recipe-suggestion-image">
+          <img src={recipe.image_url} alt={recipe.title} loading="lazy" />
+        </div>
+      )}
+
+      <div className="recipe-suggestion-content">
+        {(recipe.prep_time_min > 0 || recipe.cook_time_min > 0 || hasNutrition || recipe.servings > 0) && (
+          <div className="recipe-suggestion-meta">
+            {(recipe.prep_time_min > 0 || recipe.cook_time_min > 0) && (
+              <div className="recipe-suggestion-times">
+                {recipe.prep_time_min > 0 && <span>Prep: {recipe.prep_time_min} min</span>}
+                {hasCookTime && <span>Cook: {recipe.cook_time_min} min</span>}
+                {recipe.total_time_min > 0 && <span>Total: {recipe.total_time_min} min</span>}
+              </div>
+            )}
+
+            {hasNutrition && (
+              <div className="recipe-suggestion-nutrition">
+                <span>{recipe.calories_per_serving} cal</span>
+                {recipe.protein_g > 0 && <span>{recipe.protein_g}g protein</span>}
+                {recipe.carbs_g > 0 && <span>{recipe.carbs_g}g carbs</span>}
+                {recipe.fat_g > 0 && <span>{recipe.fat_g}g fat</span>}
+              </div>
+            )}
+
+            {recipe.servings > 0 && (
+              <div className="recipe-suggestion-servings">
+                Servings: {recipe.servings}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="recipe-suggestion-actions">
+        <button
+          type="button"
+          className="button-blue"
+          onClick={() => navigate(`/recipes/${recipe.id}`)}
+        >
+          View Recipe
+        </button>
+        <button
+          type="button"
+          className="button"
+          onClick={() => navigate(`/sous-chef/${recipe.id}`)}
+        >
+          Cook Now
+        </button>
+      </div>
+    </div>
+  );
 }
 
 function RecipePreview({ recipe, onSave, onDiscard, saving, discarding }) {
@@ -316,7 +415,12 @@ export default function Nutritionist() {
               )}
             </div>
             {msg.role === 'assistant' && (
-              <RecipeOutcome toolCalls={msg.tool_calls} />
+              <>
+                <RecipeOutcome toolCalls={msg.tool_calls} />
+                {parseRecipeSuggestions(msg.tool_calls).map((recipe, idx) => (
+                  <RecipeSuggestion key={`${msg.id}-suggestion-${idx}`} recipe={recipe} />
+                ))}
+              </>
             )}
             <div className="message-time">{formatTime(msg.created_at)}</div>
           </div>

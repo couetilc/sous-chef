@@ -21,6 +21,10 @@ services:
     hostname: frontend-build
     image: node:20-alpine
     working_dir: /app
+    build:
+      context: ./front-end
+      dockerfile: Dockerfile
+      target: prod
     volumes:
       - ./front-end:/app
       - frontend-dist:/app/dist
@@ -36,6 +40,7 @@ services:
     volumes:
       - django-static:/var/www/static
       - django-media:/var/www/media
+      - ./scraping:/scraping
     expose:
       - "8000"
     depends_on:
@@ -48,9 +53,8 @@ services:
     hostname: caddy
     image: caddy:2-alpine
     restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
+    expose:
+      - "80"
     volumes:
       - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       - frontend-dist:/usr/share/nginx/html:ro
@@ -63,6 +67,20 @@ services:
         condition: service_completed_successfully
       backend:
         condition: service_started
+    networks:
+      - sous-chef
+
+  cloudflared:
+    image: cloudflare/cloudflared:2024.4.0
+    container_name: cloudflared-tunnel
+    command: tunnel --config /etc/cloudflared/config.yml run
+    depends_on:
+      - caddy
+    volumes:
+      - ./cloudflared:/etc/cloudflared:ro
+    environment:
+      - TUNNEL_TRANSPORT_PROTOCOL=quic
+    restart: unless-stopped
     networks:
       - sous-chef
 

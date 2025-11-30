@@ -86,6 +86,17 @@ class Recipe(models.Model):
         default="",
         help_text="LLM justification for deliciousness score (5-25 words)"
     )
+    turkey_score = models.DecimalField(
+        decimal_places=2,
+        max_digits=5,
+        default=0,
+        help_text="LLM-assessed turkey score from 0-100"
+    )
+    turkey_notes = models.TextField(
+        blank=True,
+        default="",
+        help_text="LLM justification for turkey score (5-25 words)"
+    )
     image_url = models.URLField(null=True, blank=True, max_length=400)
     source_url = models.URLField(null=True, blank=True, max_length=400)
     prep_time_min = models.IntegerField(default=0)
@@ -329,9 +340,48 @@ class CookingSession(models.Model):
     start_time = models.DateTimeField(auto_now_add=True)
     end_time = models.DateTimeField(null=True, blank=True)
     is_active = models.BooleanField(default=True)
+    current_step_index = models.IntegerField(default=0, help_text="Index of the current recipe step (0-based)")
 
     def __str__(self):
         return f"{self.user.username} - {self.recipe.title} ({'active' if self.is_active else 'completed'})"
+
+    def get_current_step(self):
+        """Get the text of the current step"""
+        steps = self.get_steps_list()
+        if 0 <= self.current_step_index < len(steps):
+            return steps[self.current_step_index]
+        return None
+
+    def get_steps_list(self):
+        """Parse recipe instructions into list of steps"""
+        if not self.recipe.instructions:
+            return []
+        # Handle pipe-separated or array format
+        if isinstance(self.recipe.instructions, list):
+            return self.recipe.instructions
+        return [s.strip() for s in self.recipe.instructions.split('|') if s.strip()]
+
+    def next_step(self):
+        """Move to the next step, returns True if moved, False if already at end"""
+        steps = self.get_steps_list()
+        if self.current_step_index < len(steps) - 1:
+            self.current_step_index += 1
+            self.save(update_fields=['current_step_index'])
+            return True
+        return False
+
+    def previous_step(self):
+        """Move to the previous step, returns True if moved, False if already at beginning"""
+        if self.current_step_index > 0:
+            self.current_step_index -= 1
+            self.save(update_fields=['current_step_index'])
+            return True
+        return False
+
+    def restart(self):
+        """Restart from the first step"""
+        self.current_step_index = 0
+        self.save(update_fields=['current_step_index'])
 
 class ScrapedInventory(models.Model):
     # Optional external/CSV id if present

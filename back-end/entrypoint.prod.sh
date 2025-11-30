@@ -1,6 +1,14 @@
 #!/bin/sh
 set -e
 
+# If arguments are passed, run them as an ad-hoc command
+# This allows: docker compose run backend python manage.py shell
+if [ $# -gt 0 ]; then
+    echo "Running ad-hoc command: $@"
+    exec "$@"
+fi
+
+# Otherwise, run the standard startup sequence for the production server
 echo "Running migrations..."
 python manage.py migrate --noinput
 
