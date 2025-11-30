@@ -652,6 +652,15 @@ The current customer's name is {username}.
 - At the end of your message, you **MUST** link to recipes from the search recipes tool call.
 - Remember to share the links for **each** recipe.
 
+### Communication Requirements:
+- You MUST always provide a conversational message to the user in addition to any tool calls
+- When calling tools (search_recipes, search_ingredient, etc.), explain what you're doing and/or summarize results
+- Never return only tool calls without accompanying explanatory or follow-up text
+- Examples:
+  - Before tool: "Let me search for recipes that match your criteria..."
+  - After tool: "I found 3 delicious chicken recipes for you! Here they are..."
+  - During creation: "Great! I've added flour to your recipe. What other ingredients would you like?"
+
 ## Conversation History
 
 {conversation_history}
@@ -882,6 +891,23 @@ class NutritionistAgent:
         logger.info(f"Final response for {username}: {final_content_preview}")
         if all_tool_calls_data:
             logger.info(f"Total tool calls executed: {len(all_tool_calls_data)}")
+
+        # Ensure we always have conversational content for the user
+        # If content is empty but we made tool calls, request a concluding message
+        if (not response.content or not response.content.strip()) and all_tool_calls_data:
+            logger.debug("Content is empty after tool calls - requesting concluding message from LLM")
+
+            # Create a temporary message requesting a summary (not saved to history)
+            summary_request = HumanMessage(
+                content="Please provide a brief message to the user about what you just did and/or the results."
+            )
+
+            # Get final message from LLM (without tool calling)
+            final_response = self.llm.invoke(messages + [summary_request])
+
+            # Use the generated content
+            response.content = final_response.content
+            logger.debug(f"Generated concluding message: {final_response.content[:100]}...")
 
         # Return final response and metadata
         return {
