@@ -120,6 +120,62 @@ Instructions: {recipe.instructions}
     return search_recipes_tool
 
 
+def create_suggest_recipe_tool():
+    """
+    Create a recipe suggestion tool.
+
+    This tool allows the AI to actively recommend specific recipes from the database
+    by displaying them as preview cards in the UI with a "View Full Recipe" button.
+    """
+    @tool
+    def suggest_recipe(recipe_id: int) -> str:
+        """Suggest an existing recipe to the user by ID.
+
+        Use this tool when you want to actively recommend a specific recipe to the user
+        based on their needs, preferences, or questions. This displays a preview card in
+        the UI with recipe details (title, image, times, nutrition) and a button to view
+        the full recipe.
+
+        This is different from search_recipes_tool:
+        - search_recipes_tool: For searching/browsing recipes (displays as markdown links in chat)
+        - suggest_recipe: For actively recommending specific recipes (displays as preview card with "View Full Recipe" button)
+
+        Use suggest_recipe when you want to highlight a recipe as a strong recommendation,
+        not just list it among search results.
+
+        Args:
+            recipe_id: The ID of the recipe to suggest (from search results)
+
+        Returns:
+            JSON string with recipe data for display, or error message if not found
+        """
+        try:
+            recipe = Recipe.objects.get(id=recipe_id)
+        except Recipe.DoesNotExist:
+            return f"Error: Recipe with ID {recipe_id} not found in the database."
+
+        # Build recipe data for frontend preview card
+        recipe_data = {
+            'id': recipe.id,
+            'title': recipe.title,
+            'image_url': recipe.image_url if recipe.image_url else None,
+            'servings': recipe.servings,
+            'prep_time_min': recipe.prep_time_min,
+            'cook_time_min': recipe.cook_time_min,
+            'total_time_min': recipe.total_time_min,
+            'calories_per_serving': recipe.calories_per_serving,
+            'protein_g': recipe.protein_g,
+            'carbs_g': recipe.carbs_g,
+            'fat_g': recipe.fat_g,
+            'ingredients': recipe.ingredients,
+            'instructions': recipe.instructions.split('|') if recipe.instructions else [],
+        }
+
+        return json.dumps(recipe_data)
+
+    return suggest_recipe
+
+
 def create_get_user_inventory_tool(user: User):
     """
     Create a user inventory tool with user context in closure.
@@ -646,6 +702,14 @@ The current customer's name is {username}.
 - When the recipe is complete (has title, ingredients, instructions, and ideally times/servings), use mark_recipe_ready to present it for the user's confirmation
 - After calling mark_recipe_ready, let the user know they can review and save the recipe using the preview card that will appear
 
+### When suggesting existing recipes:
+- Use search_recipes_tool to find recipes matching user criteria
+- If you want to actively recommend a specific recipe from search results, use suggest_recipe with the recipe's ID
+- suggest_recipe displays a preview card with recipe details (title, image, times, nutrition) and a "View Full Recipe" button
+- Only suggest recipes that genuinely match the user's needs (dietary restrictions, time constraints, nutrition goals)
+- You can suggest multiple recipes in one response by calling suggest_recipe multiple times
+- After calling suggest_recipe, let the user know they can click "View Full Recipe" to see the full details and cooking instructions
+
 ### When mentioning a recipe by name:
 - You **MUST** include the recipe's markdown link in the message.
 - You **MUST NOT** write the recipe ID outside a markdown link.
@@ -743,6 +807,7 @@ class NutritionistAgent:
             # Recipe search and inventory
             create_search_recipes_tool(),
             create_get_user_inventory_tool(self.user),
+            create_suggest_recipe_tool(),
 
             # Recipe creation tools
             create_search_ingredient_tool(),

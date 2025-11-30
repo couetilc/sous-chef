@@ -722,3 +722,147 @@ class TestToolCallsAlwaysHaveContent:
         if result['tool_calls']:
             assert result['content'] is not None
             assert len(result['content']) > 0
+
+
+@pytest.mark.django_db
+class TestSuggestRecipeTool:
+    """Test the suggest_recipe tool"""
+
+    def test_suggest_recipe_valid_id(self, test_recipe):
+        """Test suggesting existing recipe returns JSON with recipe data"""
+        from api.ai import create_suggest_recipe_tool
+        import json
+
+        tool = create_suggest_recipe_tool()
+        result = tool.invoke({'recipe_id': test_recipe.id})
+
+        # Should return JSON
+        data = json.loads(result)
+        assert data['id'] == test_recipe.id
+        assert data['title'] == test_recipe.title
+        assert 'image_url' in data
+        assert 'calories_per_serving' in data
+        assert 'protein_g' in data
+        assert 'carbs_g' in data
+        assert 'fat_g' in data
+        assert 'servings' in data
+        assert 'prep_time_min' in data
+        assert 'cook_time_min' in data
+        assert 'total_time_min' in data
+        assert 'ingredients' in data
+        assert 'instructions' in data
+
+    def test_suggest_recipe_invalid_id(self):
+        """Test suggesting non-existent recipe returns error message"""
+        from api.ai import create_suggest_recipe_tool
+
+        tool = create_suggest_recipe_tool()
+        result = tool.invoke({'recipe_id': 99999})
+
+        assert result.startswith('Error:')
+        assert 'not found' in result
+        assert '99999' in result
+
+    def test_suggest_recipe_includes_nutrition_data(self, test_recipe):
+        """Test that nutrition data is included in suggestion"""
+        from api.ai import create_suggest_recipe_tool
+        import json
+
+        # Update recipe with nutrition data
+        test_recipe.calories_per_serving = 350
+        test_recipe.protein_g = 25
+        test_recipe.carbs_g = 40
+        test_recipe.fat_g = 15
+        test_recipe.save()
+
+        tool = create_suggest_recipe_tool()
+        result = tool.invoke({'recipe_id': test_recipe.id})
+
+        data = json.loads(result)
+        assert data['calories_per_serving'] == 350
+        assert data['protein_g'] == 25
+        assert data['carbs_g'] == 40
+        assert data['fat_g'] == 15
+
+    def test_suggest_recipe_with_image_url(self, test_recipe):
+        """Test that image_url is included when available"""
+        from api.ai import create_suggest_recipe_tool
+        import json
+
+        test_recipe.image_url = 'https://example.com/recipe.jpg'
+        test_recipe.save()
+
+        tool = create_suggest_recipe_tool()
+        result = tool.invoke({'recipe_id': test_recipe.id})
+
+        data = json.loads(result)
+        assert data['image_url'] == 'https://example.com/recipe.jpg'
+
+    def test_suggest_recipe_without_image(self, test_recipe):
+        """Test that image_url is None when not available"""
+        from api.ai import create_suggest_recipe_tool
+        import json
+
+        test_recipe.image_url = None
+        test_recipe.save()
+
+        tool = create_suggest_recipe_tool()
+        result = tool.invoke({'recipe_id': test_recipe.id})
+
+        data = json.loads(result)
+        assert data['image_url'] is None
+
+    def test_suggest_recipe_parses_instructions(self, test_recipe):
+        """Test that pipe-separated instructions are parsed into list"""
+        from api.ai import create_suggest_recipe_tool
+        import json
+
+        test_recipe.instructions = 'Step 1|Step 2|Step 3'
+        test_recipe.save()
+
+        tool = create_suggest_recipe_tool()
+        result = tool.invoke({'recipe_id': test_recipe.id})
+
+        data = json.loads(result)
+        assert data['instructions'] == ['Step 1', 'Step 2', 'Step 3']
+
+    @patch('api.views.NutritionistAgent')
+    def test_suggest_recipe_in_conversation(self, mock_agent_class, authenticated_client, test_user, test_recipe):
+        """Test that suggest_recipe tool calls are saved to conversation"""
+        import json
+
+        # Mock agent to simulate suggest_recipe tool call
+        create_mock_agent_chat(
+            mock_agent_class,
+            response_content="Here's a great recipe I found for you!",
+            tool_calls_data=[{
+                'tool_name': 'suggest_recipe',
+                'parameters': {'recipe_id': test_recipe.id},
+                'result': json.dumps({
+                    'id': test_recipe.id,
+                    'title': test_recipe.title,
+                    'calories_per_serving': 350,
+                    'protein_g': 25
+                }),
+                'timestamp': '2025-01-12T10:00:00'
+            }]
+        )
+
+        # Send message
+        response = authenticated_client.post('/api/nutritionist/conversation/', {
+            'message': 'Suggest a recipe for me'
+        })
+
+        # Verify response
+        assert response.status_code == status.HTTP_200_OK
+        assistant_message = response.data['messages'][1]
+        assert assistant_message['role'] == 'assistant'
+        assert len(assistant_message['tool_calls']) == 1
+        assert assistant_message['tool_calls'][0]['tool_name'] == 'suggest_recipe'
+        assert assistant_message['tool_calls'][0]['parameters']['recipe_id'] == test_recipe.id
+
+        # Verify tool call result is valid JSON
+        tool_result = assistant_message['tool_calls'][0]['result']
+        parsed_result = json.loads(tool_result)
+        assert parsed_result['id'] == test_recipe.id
+        assert parsed_result['title'] == test_recipe.title
