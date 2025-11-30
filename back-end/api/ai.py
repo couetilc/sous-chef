@@ -52,7 +52,8 @@ def create_search_recipes_tool():
         max_calories: int = None,
         min_protein: int = None,
         max_fat: int = None,
-        max_carbs: int = None
+        max_carbs: int = None,
+        max_total_time: int = None
     ) -> str:
         """Search for recipes in the recipe library using full-text search.
 
@@ -67,6 +68,9 @@ def create_search_recipes_tool():
             min_protein: Minimum protein in grams (optional)
             max_fat: Maximum fat in grams (optional)
             max_carbs: Maximum carbohydrates in grams (optional)
+            max_total_time: Maximum total cooking time in minutes (optional)
+                           Includes both prep and cook time combined.
+                           Examples: 30 for quick meals, 60 for moderate time commitment
 
         Returns:
             A formatted string containing recipe details (id, title, nutrition, ingredients, instructions, link)
@@ -88,6 +92,9 @@ def create_search_recipes_tool():
 
         if max_carbs is not None:
             queryset = queryset.filter(carbs_g__lte=max_carbs)
+
+        if max_total_time is not None:
+            queryset = queryset.filter(total_time_min__lte=max_total_time)
 
         # Limit to 5 results
         recipes = queryset[:5]
@@ -1093,7 +1100,7 @@ def classify_user_intent(message: str, recipe_step: str) -> Intent:
     prompt = f"""
     USER MESSAGE: "{message}"
     CURRENT RECIPE STEP: "{recipe_step}"
-    
+
     CLASSIFY THE USER'S INTENT INTO ONE OF THE FOLLOWING CATEGORIES:
     {", ".join([intent.value for intent in Intent])}.
 
@@ -1105,12 +1112,12 @@ def classify_user_intent(message: str, recipe_step: str) -> Intent:
     except Exception as e:
         logger.error(f"SousChef LLM error during intent classification: {e}", exc_info=True)
         return Intent.CLARIFY  # Default fallback intent
-    
+
     # Map raw response to Intent enum
     for intent in Intent:
         if intent.value == raw:
             return intent
-    
+
     # Fallback for weird LLM outputs
     return Intent.CLARIFY
     # This is a placeholder implementation. Will need to call an LLM to classify.
@@ -1123,16 +1130,16 @@ def handle_user_intent(intent: Intent, recipe_or_session, current_step_index=Non
         intent: The classified user intent
         recipe_or_session: Either a CookingSession object (preferred) or a recipe-like object with .steps
         current_step_index: The index of the current recipe step (optional, used for testing with mock recipes)
-    
+
     Returns:
         Dictionary with 'step_index' and 'message' keys
     """
     # Import here to avoid circular dependency
     from .models import CookingSession
-    
+
     # Determine if we're working with a CookingSession or a test mock
     is_cooking_session = isinstance(recipe_or_session, CookingSession)
-    
+
     if is_cooking_session:
         session = recipe_or_session
         steps = session.get_steps_list()
@@ -1142,7 +1149,7 @@ def handle_user_intent(intent: Intent, recipe_or_session, current_step_index=Non
         recipe = recipe_or_session
         steps = recipe.steps
         current_index = current_step_index if current_step_index is not None else 0
-    
+
     if intent == Intent.NEXT_STEP:
         new_index = min(current_index + 1, len(steps) - 1)
         if is_cooking_session:
@@ -1152,7 +1159,7 @@ def handle_user_intent(intent: Intent, recipe_or_session, current_step_index=Non
             "step_index": new_index,
             "message": f"Moving to the next step {new_index + 1}."
         }
-    
+
     if intent == Intent.PREVIOUS_STEP:
         new_index = max(current_index - 1, 0)
         if is_cooking_session:
@@ -1162,7 +1169,7 @@ def handle_user_intent(intent: Intent, recipe_or_session, current_step_index=Non
             "step_index": new_index,
             "message": f"Returning to the previous step {new_index + 1}."
         }
-    
+
     if intent == Intent.RESTART_RECIPE:
         if is_cooking_session:
             session.restart()
@@ -1170,7 +1177,7 @@ def handle_user_intent(intent: Intent, recipe_or_session, current_step_index=Non
             "step_index": 0,
             "message": "Restarting the recipe from the beginning."
         }
-    
+
     if intent == Intent.CLARIFY:
         current_step = steps[current_index]
         explanation = clarify_step(current_step)
@@ -1178,7 +1185,7 @@ def handle_user_intent(intent: Intent, recipe_or_session, current_step_index=Non
             "step_index": current_index,
             "message": explanation
         }
-    
+
     if intent == Intent.REPAIR:
         return {
             "step_index": current_index,
