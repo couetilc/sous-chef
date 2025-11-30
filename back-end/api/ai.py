@@ -1122,33 +1122,49 @@ def classify_user_intent(message: str, recipe_step: str) -> Intent:
     return Intent.CLARIFY
     # This is a placeholder implementation. Will need to call an LLM to classify.
 
-def handle_user_intent(intent: Intent, recipe_or_session, current_step_index=None):
+def handle_user_intent(
+    intent: Intent,
+    recipe_or_session,
+    current_step_index=None,
+    user_message: Optional[str] = None,
+):
     """
     Handle the user's intent and return the appropriate recipe step or action.
 
     Args:
         intent: The classified user intent
-        recipe_or_session: Either a CookingSession object (preferred) or a recipe-like object with .steps
-        current_step_index: The index of the current recipe step (optional, used for testing with mock recipes)
+        recipe_or_session: Either a CookingSession object (preferred) or a recipe-like
+                           object with .steps (for testing/mocks)
+        current_step_index: The index of the current recipe step (optional, used for testing)
+        user_message: The original user message (used for clarify-like intents)
 
     Returns:
         Dictionary with 'step_index' and 'message' keys
     """
     # Import here to avoid circular dependency
-    from .models import CookingSession
+    from .models import CookingSession as CS
 
     # Determine if we're working with a CookingSession or a test mock
-    is_cooking_session = isinstance(recipe_or_session, CookingSession)
+    is_cooking_session = isinstance(recipe_or_session, CS)
 
     if is_cooking_session:
         session = recipe_or_session
         steps = session.get_steps_list()
         current_index = session.current_step_index
+        recipe_obj = session.recipe
     else:
-        # Testing mode with mock recipe
+        # Testing mode with mock recipe object
         recipe = recipe_or_session
-        steps = recipe.steps
+        steps = getattr(recipe, "steps", [])
         current_index = current_step_index if current_step_index is not None else 0
+        # Best-effort: some mocks might hang the real recipe off `.recipe`
+        recipe_obj = getattr(recipe_or_session, "recipe", None)
+
+    if not steps:
+        return {
+            "step_index": 0,
+            "message": "I don't see any steps for this recipe yet.",
+        }
 
     if intent == Intent.NEXT_STEP:
         new_index = min(current_index + 1, len(steps) - 1)
@@ -1180,31 +1196,73 @@ def handle_user_intent(intent: Intent, recipe_or_session, current_step_index=Non
 
     if intent == Intent.CLARIFY:
         current_step = steps[current_index]
-        explanation = clarify_step(current_step)
+        explanation = clarify_step(
+            step=current_step,
+            user_message=user_message,
+            recipe=recipe_obj,
+        )
         return {
             "step_index": current_index,
-            "message": explanation
+            "message": explanation,
         }
 
     if intent == Intent.REPAIR:
         return {
             "step_index": current_index,
-            "message": "I noticed confusion. Let's go over the current step again carefully."
+            "message": "I noticed some confusion. Let's go over the current step again carefully.",
         }
 
-def clarify_step(step: str) -> str:
+    # Fallback: don't move the step, just be conservative
+    return {
+        "step_index": current_index,
+        "message": "Let's stay on this step and keep going from here.",
+    }
+
+def clarify_step(
+    step: str,
+    user_message: Optional[str] = None,
+    recipe=None,
+) -> str:
     """
     Provide a clarification for the given recipe step.
 
     Args:
         step: The recipe step to clarify
+        user_message: The user's original question about this step (may be about the step
+                      itself *or* about the overall recipe / final result)
+        recipe: Optional Recipe object for full-context clarification
     """
-    prompt = f"""
-    The user wants clarification on the following recipe step:
-    "{step}"
+    # Safely extract recipe context if available
+    recipe_title = getattr(recipe, "title", None) if recipe is not None else None
+    ingredients_raw = getattr(recipe, "ingredients", None) if recipe is not None else None
+    instructions_raw = getattr(recipe, "instructions", None) if recipe is not None else None
 
-    Rephrase it in a SIMPLE, cooking-friendly language that any beginner can follow.
-    """
+    recipe_parts = []
+    if recipe_title:
+        recipe_parts.append(f"RECIPE TITLE:\n{recipe_title}")
+    if ingredients_raw:
+        recipe_parts.append(f"RECIPE INGREDIENTS (raw field):\n{ingredients_raw}")
+    if instructions_raw:
+        recipe_parts.append(f"FULL RECIPE INSTRUCTIONS (raw field):\n{instructions_raw}")
+
+    recipe_block = "\n\n".join(recipe_parts) if recipe_parts else "(No additional recipe context was provided.)"
+
+    prompt = f"""
+You are SousChef, a friendly step-by-step cooking assistant.
+
+The user is cooking this recipe:
+{recipe_block}
+
+They are currently at this step:
+"{step}"
+
+The user asked:
+"{user_message or ''}"
+
+Your job:
+- Directly and concisely answer the user's question in clear, beginner-friendly language.
+- Use the current step *and* the overall recipe context when helpful.
+- Do NOT just repeat the original step; expand on it and make it specific and actionable.
+"""
 
     return souschef_llm_call(prompt)
-    # This is a placeholder implementation.

@@ -1617,20 +1617,32 @@ class SousChefChat(APIView):
                         current_step = cooking_session.get_current_step()
                         if current_step:
                             intent = classify_user_intent(message, current_step)
-                            
-                            # Handle navigation intents directly
+
                             from .intents import Intent
                             if intent in [Intent.NEXT_STEP, Intent.PREVIOUS_STEP, Intent.RESTART_RECIPE]:
-                                result = handle_user_intent(intent, cooking_session)
+                                result = handle_user_intent(
+                                    intent,
+                                    cooking_session,
+                                    user_message=message,
+                                )
                                 response_content = result['message']
                             elif intent == Intent.CLARIFY:
-                                result = handle_user_intent(intent, cooking_session)
+                                result = handle_user_intent(
+                                    intent,
+                                    cooking_session,
+                                    user_message=message,
+                                )
                                 response_content = result['message']
                             elif intent == Intent.REPAIR:
-                                result = handle_user_intent(intent, cooking_session)
+                                result = handle_user_intent(
+                                    intent,
+                                    cooking_session,
+                                    user_message=message,
+                                )
                                 response_content = result['message']
                     except Exception as e:
                         logger.warning(f"Intent classification failed, falling back to LLM: {e}")
+
                 
                 # If no intent-based response, use the LLM agent
                 if response_content is None:

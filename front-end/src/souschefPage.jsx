@@ -32,7 +32,6 @@ export default function SousChef() {
   const { id } = useParams();
   const { api } = useApi();
 
-  const [sessionActive, setSessionActive] = useState(false);
   const [cookingSession, setCookingSession] = useState(null);
 
   const [currentMessage, setCurrentMessage] = useState('');
@@ -85,25 +84,35 @@ export default function SousChef() {
     };
   }, [api, id]);
 
-  // Load active cooking session if exists
+  // Load or start cooking session (always active)
   useEffect(() => {
     if (!id) return;
 
     let cancelled = false;
 
-    async function loadCookingSession() {
+    async function ensureCookingSession() {
       try {
         const data = await api.getCookingSession({ recipe_id: Number(id) });
-        if (!cancelled && data.session !== null && data.id) {
+
+        // If a session exists, use it
+        if (!cancelled && data && data.id) {
           setCookingSession(data);
-          setSessionActive(data.is_active);
+        }
+        // If no session, start a new one so highlighting always works
+        else if (!cancelled) {
+          const newSession = await api.startCookingSession({
+            recipe_id: Number(id),
+          });
+          if (!cancelled) {
+            setCookingSession(newSession);
+          }
         }
       } catch (err) {
-        console.error('Failed to load cooking session:', err);
+        console.error('Failed to load or start cooking session:', err);
       }
     }
 
-    loadCookingSession();
+    ensureCookingSession();
     return () => {
       cancelled = true;
     };
@@ -129,32 +138,6 @@ export default function SousChef() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const LetUsBeginClicked = async () => {
-    if (!id) return;
-    
-    try {
-      const response = await api.startCookingSession({ recipe_id: Number(id) });
-      setCookingSession(response);
-      setSessionActive(true);
-    } catch (err) {
-      console.error('Failed to start cooking session:', err);
-      setError(true);
-    }
-  };
-
-  const ThatsAWrapClicked = async () => {
-    if (!id) return;
-    
-    try {
-      await api.endCookingSession({ recipe_id: Number(id) });
-      setCookingSession(null);
-      setSessionActive(false);
-    } catch (err) {
-      console.error('Failed to end cooking session:', err);
-      setError(true);
-    }
-  };
-
   async function chat() {
     if (!currentMessage?.trim()) return;
 
@@ -171,13 +154,12 @@ export default function SousChef() {
 
       const response = await api.sousChefChat(payload);
       setMessages(response.messages);
-      
+
       // Update cooking session if included in response
       if (response.cooking_session) {
         setCookingSession(response.cooking_session);
-        setSessionActive(response.cooking_session.is_active);
       }
-      
+
       setCurrentMessage('');
     } catch (err) {
       console.error('SousChef chat error:', err);
@@ -234,25 +216,6 @@ export default function SousChef() {
                 Cooking recipe ID: {id}
               </div>
             )}
-          </div>
-
-          <div
-            className="cooking-session-bar"
-            style={{
-              width: '100%',
-              maxWidth: 640,
-              padding: '8px 12px',
-              margin: '16px auto 0',
-              borderRadius: 999,
-              backgroundColor: sessionActive ? '#e5f8ea' : '#f3f3f3',
-              color: sessionActive ? '#137a3b' : '#555',
-              border: sessionActive ? '1px solid #8bd79d' : '1px solid #ddd',
-              textAlign: 'center',
-              fontWeight: 600,
-              fontSize: 14,
-            }}
-          >
-            Cooking Session: {sessionActive ? 'Active' : 'Inactive'}
           </div>
         </header>
 
@@ -351,32 +314,28 @@ export default function SousChef() {
                   }}
                 >
                   {instructionList.map((step, idx) => {
-                    const isCurrentStep = cookingSession && cookingSession.current_step_index === idx;
+                    const isCurrentStep =
+                      cookingSession &&
+                      cookingSession.current_step_index === idx;
                     return (
-                      <li 
-                        key={idx} 
-                        style={{ 
-                          fontSize: 14, 
+                      <li
+                        key={idx}
+                        style={{
+                          fontSize: 14,
                           marginBottom: 4,
                           padding: '6px 8px',
-                          backgroundColor: isCurrentStep ? '#fff3cd' : 'transparent',
-                          borderLeft: isCurrentStep ? '4px solid #a83232' : '4px solid transparent',
+                          backgroundColor: isCurrentStep
+                            ? '#fff3cd'
+                            : 'transparent',
+                          borderLeft: isCurrentStep
+                            ? '4px solid #a83232'
+                            : '4px solid transparent',
                           borderRadius: 4,
                           fontWeight: isCurrentStep ? 600 : 400,
                           transition: 'all 0.3s ease',
                         }}
                       >
                         {step}
-                        {isCurrentStep && (
-                          <span style={{ 
-                            marginLeft: 8, 
-                            fontSize: 12, 
-                            color: '#a83232',
-                            fontWeight: 700
-                          }}>
-                            ← You are here
-                          </span>
-                        )}
                       </li>
                     );
                   })}
@@ -576,43 +535,6 @@ export default function SousChef() {
             </div>
           </section>
         </div>
-
-        <footer
-          style={{
-            marginTop: 18,
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}
-        >
-          <button
-            onClick={LetUsBeginClicked}
-            style={{
-              padding: '8px 16px',
-              borderRadius: 999,
-              border: '1px solid #ddd',
-              backgroundColor: '#f7f7f7',
-              color: '#000',
-              cursor: 'pointer',
-            }}
-          >
-            Let us begin!
-          </button>
-
-          <button
-            onClick={ThatsAWrapClicked}
-            style={{
-              padding: '8px 16px',
-              borderRadius: 999,
-              border: '1px solid #a83232',
-              backgroundColor: '#a83232',
-              color: '#fff',
-              cursor: 'pointer',
-            }}
-          >
-            That&apos;s a wrap!
-          </button>
-        </footer>
       </div>
     </div>
   );
