@@ -16,17 +16,25 @@ def daily_emails():
   mealplan_users = User.objects.all().filter(meal_plans__isnull=False)
   for user in mealplan_users:
     plan = user.meal_plans.first()
-    breakfast = user.meal_plans
     recipient = user.email
-    message = 'Hello, username!\nHere is your meal plan for the day:\n'
+    message = 'Hello, user.name!\nHere is your meal plan for the day:\n'
+    # breakfast 
+    meals = plan.get_recipes_for_day(cur_day_ofweek)
+    #breakfast = meals[0]
+    #lunch = meals[1]
+    #dinner = meals[2]
+    print('breakfast: ' + breakfast)
+    print('lunch: ' + lunch)
+    print('dinner: ' + dinner)
 
+    # lunch
 
+    # dinner
 
-  print(subject)
-  # send_mail(subject, message, sender, [recipient])
-  # api call to get evry active user's mael plan info for today
-  # format it
-  # use send_mail to send it
+    # send_mail(subject, message, sender, [recipient])
+    # api call to get evry active user's mael plan info for today
+    # format it
+    # use send_mail to send it
   
 
 def weekly_emails():
