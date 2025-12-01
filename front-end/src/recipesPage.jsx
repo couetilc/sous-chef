@@ -15,8 +15,9 @@ export default function Recipes() {
   const [enteredName, setEnteredName] = useState('')
   const [filterInventory, setFilterInventory] = useState(false)
   const [filterFavorites, setFilterFavorites] = useState(false)
+  const [filterMyRecipes, setFilterMyRecipes] = useState(false)
   const [ingredientsMatchAll, setIngredientsMatchAll] = useState(false)
-  const [sortBy, setSortBy] = useState('accessibility')
+  const [sortBy, setSortBy] = useState('deliciousness')
   const [page, setPage] = useState(1)
   const [recipes, setRecipes ] = useState();
   const [ingredientFilterTrigger, setIngredientFilterTrigger] = useState(0)
@@ -29,8 +30,9 @@ export default function Recipes() {
     name: '',
     inventory: false,
     favorites: false,
+    myRecipes: false,
     ingredientsMatchAll: true,
-    sortBy: 'accessibility',
+    sortBy: 'deliciousness',
   })
 
   // Execute search with current filter values
@@ -44,6 +46,9 @@ export default function Recipes() {
     }
     if (activeFilters.favorites) {
       param.searchFavorite = 'True'
+    }
+    if (activeFilters.myRecipes) {
+      param.searchMyRecipes = 'True'
     }
     if (activeFilters.sortBy) {
       param.sort_by = activeFilters.sortBy
@@ -73,6 +78,7 @@ export default function Recipes() {
       name: enteredName,
       inventory: filterInventory,
       favorites: filterFavorites,
+      myRecipes: filterMyRecipes,
       ingredientsMatchAll: ingredientsMatchAll,
       sortBy: sortBy,
     }))
@@ -93,8 +99,9 @@ export default function Recipes() {
     setEnteredName('')
     setFilterInventory(false)
     setFilterFavorites(false)
+    setFilterMyRecipes(false)
     setIngredientsMatchAll(false)
-    setSortBy('accessibility')
+    setSortBy('deliciousness')
     setIngredientFilterTrigger(t => t + 1)
     if (nameInputRef.current) {
       nameInputRef.current.value = ''
@@ -104,8 +111,9 @@ export default function Recipes() {
       name: '',
       inventory: false,
       favorites: false,
+      myRecipes: false,
       ingredientsMatchAll: true,
-      sortBy: 'accessibility',
+      sortBy: 'deliciousness',
     }))
     setPage(1)
   }
@@ -168,6 +176,15 @@ export default function Recipes() {
               />
               Filter by Inventory
             </label>
+
+            <label>
+              <input
+                type="checkbox"
+                checked={filterMyRecipes}
+                onChange={(e) => setFilterMyRecipes(e.target.checked)}
+              />
+              My Recipes
+            </label>
           </div>
 
           <div className="filter-buttons">
@@ -180,17 +197,24 @@ export default function Recipes() {
         <label>Sort by:</label>
         <button
           type="button"
-          className={sortBy === 'accessibility' ? 'button' : 'button-gray'}
-          onClick={() => handleSortChange('accessibility')}
-        >
-          ⭐ Cheap & Easy (default)
-        </button>
-        <button
-          type="button"
           className={sortBy === 'deliciousness' ? 'button' : 'button-gray'}
           onClick={() => handleSortChange('deliciousness')}
         >
-          😋 Delicious
+          😋 Delicious (default)
+        </button>
+        <button
+          type="button"
+          className={sortBy === 'accessibility' ? 'button' : 'button-gray'}
+          onClick={() => handleSortChange('accessibility')}
+        >
+          ⭐ Cheap & Easy
+        </button>
+        <button
+          type="button"
+          className={sortBy === 'turkey' ? 'button' : 'button-gray'}
+          onClick={() => handleSortChange('turkey')}
+        >
+          🦃 Turkey Score
         </button>
         <button
           type="button"
@@ -217,6 +241,12 @@ export default function Recipes() {
             />
           )
         })}
+      </div>
+      <div className="paging">
+        {recipes?.previous &&
+          <button className="button" onClick={() => setPage(p => p - 1)}>previous page</button>}
+        {recipes?.next &&
+          <button className="button" onClick={() => setPage(p => p + 1)}>next page</button>}
       </div>
     </div>
   )

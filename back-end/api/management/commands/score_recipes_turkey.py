@@ -14,27 +14,27 @@ from api.models import Recipe
 from langchain_openai import ChatOpenAI
 
 
-PROMPT_INTRO = """You are a discerning, no-nonsense food critic with an exceptional palate.
-Score each recipe's deliciousness on a 0-100 scale based on its name, ingredients, and instructions. Focus solely on how tasty, delicious, and satisfying the final dish would be.
+PROMPT_INTRO = """You are a turkey compatibility expert evaluating recipes for Thanksgiving turkey meals.
+Score each recipe on a 0-100 scale based on how well it pairs with turkey as a Thanksgiving side dish or complement. Focus on traditional Thanksgiving flavors and how harmoniously the dish works alongside roasted turkey.
 
 Scoring rubric:
-0-49: Bland, unbalanced, or unappetizing.
-50-69: Decent but unremarkable flavor.
-70-84: Tasty and satisfying, would happily eat again.
-85-92: Delicious, craveable, the kind of dish you think about later.
-93-100: Exceptional, mouthwatering perfection.
+0-49: Clashes with turkey or doesn't fit Thanksgiving themes (e.g., spicy Asian dishes, seafood-forward dishes).
+50-69: Acceptable but not traditional or harmonious (e.g., generic vegetables, basic starches).
+70-84: Good Thanksgiving compatibility, complements turkey well (e.g., roasted vegetables, simple stuffing).
+85-92: Excellent turkey pairing, classic Thanksgiving flavors (e.g., cranberry sauce, green bean casserole, traditional stuffing).
+93-100: Perfect Thanksgiving essential, iconic turkey companion (e.g., classic gravy, perfect mashed potatoes, traditional stuffing with sage).
 
 Guidelines:
-- Prioritize well-developed, balanced flavors above all else.
-- Reward proper seasoning and appealing flavor combinations.
-- Consider texture and mouthfeel that enhance enjoyment.
-- A bright, fresh dish can score as high as a rich, hearty one—judge by taste alone.
-- Penalize bland, underseasoned, or poorly balanced flavor profiles.
+- Prioritize traditional Thanksgiving flavors: sage, thyme, rosemary, cranberry, sweet potato, etc.
+- Reward dishes that complement turkey's savory, mild flavor profile.
+- Consider balance: does this add something turkey lacks (sweetness, acidity, crunch)?
+- Favor comforting, fall-appropriate ingredients and preparations.
+- Penalize dishes that compete with turkey (other proteins, strong conflicting flavors, non-seasonal ingredients).
 
 Return ONLY valid JSON with this exact shape:
 {"recipes":[{"id":123,"score":87,"notes":"short justification"}]}
 
-Notes must be 5-25 words describing the main reason for the score.
+Notes must be 5-25 words describing why this recipe works (or doesn't) with turkey.
 Do not include markdown code fences or any text before/after the JSON.
 
 Recipes to score:
@@ -83,13 +83,13 @@ def extract_json_object(raw_content: str) -> Dict[str, Any]:
 
 
 class Command(BaseCommand):
-    help = "Compute deliciousness scores for recipes using the Polaris Alpha model."
+    help = "Compute turkey compatibility scores for recipes using the Grok AI model."
 
     def add_arguments(self, parser):
         parser.add_argument('--limit', type=int, help='Maximum number of recipes to score')
         parser.add_argument('--batch-size', type=int, default=10, help='Recipes per LLM request (default: 10)')
         parser.add_argument('--dry-run', action='store_true', help='Run without updating the database')
-        parser.add_argument('--only-missing', action='store_true', help='Only score recipes with a zero deliciousness score')
+        parser.add_argument('--only-missing', action='store_true', help='Only score recipes with a zero turkey score')
         parser.add_argument('--csv-path', type=str, help='Optional path for the incremental CSV log')
 
     def handle(self, *args, **options):
@@ -104,10 +104,10 @@ class Command(BaseCommand):
 
         queryset = Recipe.objects.order_by_ingredient_accessibility()
         if only_missing:
-            queryset = queryset.filter(deliciousness_score=0)
+            queryset = queryset.filter(turkey_score=0)
 
         # Calculate total for progress tracking (always count unscored for accurate ETA)
-        unscored_count = Recipe.objects.filter(deliciousness_score=0).count()
+        unscored_count = Recipe.objects.filter(turkey_score=0).count()
         total_recipes = queryset.count()  # What we'll actually process
         if limit:
             total_recipes = min(total_recipes, limit)
@@ -126,7 +126,7 @@ class Command(BaseCommand):
             temperature=0.0,
             default_headers={
                 "HTTP-Referer": os.environ.get("OPENROUTER_SITE_URL", "http://localhost:3000"),
-                "X-Title": os.environ.get("OPENROUTER_APP_TITLE", "Sous Chef Deliciousness"),
+                "X-Title": os.environ.get("OPENROUTER_APP_TITLE", "Sous Chef Turkey Score"),
             },
         )
 
@@ -165,7 +165,7 @@ class Command(BaseCommand):
                 batch_updates = self._handle_results(results, csv_writer, batch_copy)
                 csv_file.flush()
                 if not dry_run and batch_updates:
-                    Recipe.objects.bulk_update(batch_updates, ['deliciousness_score', 'deliciousness_notes'])
+                    Recipe.objects.bulk_update(batch_updates, ['turkey_score', 'turkey_notes'])
                 total_updates += len(batch_updates)
 
                 # Calculate statistics (use unscored_count for accurate ETA)
@@ -209,7 +209,7 @@ class Command(BaseCommand):
             batch_updates = self._handle_results(results, csv_writer, batch_copy)
             csv_file.flush()
             if not dry_run and batch_updates:
-                Recipe.objects.bulk_update(batch_updates, ['deliciousness_score', 'deliciousness_notes'])
+                Recipe.objects.bulk_update(batch_updates, ['turkey_score', 'turkey_notes'])
             total_updates += len(batch_updates)
 
             # Display final progress
@@ -245,7 +245,7 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING("Dry run complete. Database was not updated."))
             return
 
-        self.stdout.write(self.style.SUCCESS(f"Updated {total_updates} recipes with new deliciousness scores."))
+        self.stdout.write(self.style.SUCCESS(f"Updated {total_updates} recipes with new turkey scores."))
 
     def _tmp_dir(self) -> Path:
         back_end_root = Path(__file__).resolve().parents[3]
@@ -256,7 +256,7 @@ class Command(BaseCommand):
     def _init_csv(self) -> str:
         tmp_dir = self._tmp_dir()
         timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-        path = tmp_dir / f"recipe_scores_{timestamp}.csv"
+        path = tmp_dir / f"turkey_scores_{timestamp}.csv"
         return str(path)
 
     def _score_batch(self, recipes: List[Recipe], llm: ChatOpenAI) -> List[Dict[str, Any]]:
@@ -334,8 +334,8 @@ class Command(BaseCommand):
 
             score_decimal = max(Decimal('0'), min(Decimal('100'), score_decimal))
             recipe = by_id[recipe_id]
-            recipe.deliciousness_score = score_decimal
-            recipe.deliciousness_notes = notes
+            recipe.turkey_score = score_decimal
+            recipe.turkey_notes = notes
             updates.append(recipe)
 
             csv_writer.writerow([recipe_id, recipe.title, str(score_decimal), notes])
@@ -345,7 +345,7 @@ class Command(BaseCommand):
         error_dir = self._tmp_dir() / "errors"
         error_dir.mkdir(parents=True, exist_ok=True)
         timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-        path = error_dir / f"recipe_score_error_{timestamp}.txt"
+        path = error_dir / f"turkey_score_error_{timestamp}.txt"
         with path.open('w', encoding='utf-8') as fh:
             fh.write("Prompt:\n")
             fh.write(prompt)

@@ -105,6 +105,30 @@ export default function Recipe(props) {
             )}
           </div>
         )}
+        {recipe.turkey_score !== null && recipe.turkey_score !== undefined && (
+          <div className="score-badge-wrapper">
+            <div className="score-badge" style={{
+              backgroundColor: '#8B4513',
+              color: 'white',
+              padding: '6px 12px',
+              borderRadius: '20px',
+              fontSize: '14px',
+              fontWeight: 'bold'
+            }}>
+              🦃 Turkey Score: {Math.round(recipe.turkey_score)}/100
+            </div>
+            {recipe.turkey_notes && (
+              <div style={{
+                fontSize: '13px',
+                color: '#666',
+                marginTop: '4px',
+                fontStyle: 'italic'
+              }}>
+                {recipe.turkey_notes}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <button

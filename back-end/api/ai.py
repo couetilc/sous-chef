@@ -70,8 +70,8 @@ def create_search_recipes_tool():
         max_calories: int = None,
         min_protein: int = None,
         max_fat: int = None,
-        max_carbs: int = None
-    # TODO expand
+        max_carbs: int = None,
+        max_total_time: int = None
     ) -> str:
         """Search for recipes in the recipe library using full-text search.
 
@@ -86,6 +86,9 @@ def create_search_recipes_tool():
             min_protein: Minimum protein in grams (optional)
             max_fat: Maximum fat in grams (optional)
             max_carbs: Maximum carbohydrates in grams (optional)
+            max_total_time: Maximum total cooking time in minutes (optional)
+                           Includes both prep and cook time combined.
+                           Examples: 30 for quick meals, 60 for moderate time commitment
 
         Returns:
             A formatted string containing recipe details (id, title, nutrition, ingredients, instructions, link)
@@ -107,6 +110,9 @@ def create_search_recipes_tool():
 
         if max_carbs is not None:
             queryset = queryset.filter(carbs_g__lte=max_carbs)
+
+        if max_total_time is not None:
+            queryset = queryset.filter(total_time_min__lte=max_total_time)
 
         # Limit to 5 results
         recipes = queryset[:5]
@@ -130,6 +136,62 @@ Instructions: {recipe.instructions}
         return "\n\n".join(results)
 
     return search_recipes_tool
+
+
+def create_suggest_recipe_tool():
+    """
+    Create a recipe suggestion tool.
+
+    This tool allows the AI to actively recommend specific recipes from the database
+    by displaying them as preview cards in the UI with a "View Full Recipe" button.
+    """
+    @tool
+    def suggest_recipe(recipe_id: int) -> str:
+        """Suggest an existing recipe to the user by ID.
+
+        Use this tool when you want to actively recommend a specific recipe to the user
+        based on their needs, preferences, or questions. This displays a preview card in
+        the UI with recipe details (title, image, times, nutrition) and a button to view
+        the full recipe.
+
+        This is different from search_recipes_tool:
+        - search_recipes_tool: For searching/browsing recipes (displays as markdown links in chat)
+        - suggest_recipe: For actively recommending specific recipes (displays as preview card with "View Full Recipe" button)
+
+        Use suggest_recipe when you want to highlight a recipe as a strong recommendation,
+        not just list it among search results.
+
+        Args:
+            recipe_id: The ID of the recipe to suggest (from search results)
+
+        Returns:
+            JSON string with recipe data for display, or error message if not found
+        """
+        try:
+            recipe = Recipe.objects.get(id=recipe_id)
+        except Recipe.DoesNotExist:
+            return f"Error: Recipe with ID {recipe_id} not found in the database."
+
+        # Build recipe data for frontend preview card
+        recipe_data = {
+            'id': recipe.id,
+            'title': recipe.title,
+            'image_url': recipe.image_url if recipe.image_url else None,
+            'servings': recipe.servings,
+            'prep_time_min': recipe.prep_time_min,
+            'cook_time_min': recipe.cook_time_min,
+            'total_time_min': recipe.total_time_min,
+            'calories_per_serving': recipe.calories_per_serving,
+            'protein_g': recipe.protein_g,
+            'carbs_g': recipe.carbs_g,
+            'fat_g': recipe.fat_g,
+            'ingredients': recipe.ingredients,
+            'instructions': recipe.instructions.split('|') if recipe.instructions else [],
+        }
+
+        return json.dumps(recipe_data)
+
+    return suggest_recipe
 
 
 def create_get_user_inventory_tool(user: User):
@@ -704,6 +766,80 @@ def create_set_recipe_metadata_tool(user: User):
     return set_recipe_metadata
 
 
+def create_mark_recipe_ready_tool(user: User):
+    """
+    Create a tool to mark the in-progress recipe as ready for human confirmation.
+
+    Args:
+        user: Django User object for recipe ownership
+
+    Returns:
+        A LangChain tool that marks the recipe as pending confirmation
+    """
+    @tool
+    def mark_recipe_ready() -> str:
+        """Mark the in-progress recipe as ready for human confirmation.
+
+        Use this tool when the recipe is complete and ready for the user to review.
+        The recipe should have:
+        - A title
+        - At least one ingredient
+        - Instructions
+        - Cooking times and servings (recommended)
+
+        This will display a preview card to the user where they can save or discard the recipe.
+
+        Returns:
+            JSON string with the full recipe data for display, or an error message
+        """
+        # Get active recipe
+        recipe = InProgressRecipe.objects.filter(
+            user=user
+        ).exclude(status='discarded').first()
+
+        if not recipe:
+            return "No active recipe found. Please create a recipe first using create_recipe."
+
+        # Validate recipe has minimum required fields
+        if not recipe.title:
+            return "Recipe needs a title before it can be marked as ready. Use set_recipe_metadata to add a title."
+
+        ingredients = list(recipe.ingredients.all().select_related('curated_ingredient'))
+        if not ingredients:
+            return "Recipe needs at least one ingredient before it can be marked as ready. Use add_ingredient to add ingredients."
+
+        if not recipe.instructions:
+            return "Recipe needs instructions before it can be marked as ready. Use update_instructions to add cooking steps."
+
+        # Update status to pending confirmation
+        recipe.status = 'pending_confirmation'
+        recipe.save()
+
+        # Build recipe data for frontend display
+        recipe_data = {
+            'id': recipe.id,
+            'title': recipe.title,
+            'ingredients': [
+                {
+                    'name': ing.curated_ingredient.name,
+                    'quantity': str(ing.quantity),
+                    'unit': ing.unit
+                }
+                for ing in ingredients
+            ],
+            'instructions': recipe.instructions.split('|') if recipe.instructions else [],
+            'prep_time_min': recipe.prep_time_min,
+            'cook_time_min': recipe.cook_time_min,
+            'total_time_min': recipe.total_time_min,
+            'servings': recipe.servings,
+            'status': recipe.status
+        }
+
+        return json.dumps(recipe_data)
+
+    return mark_recipe_ready
+
+
 # ============================================================================
 # LLM and Prompt Configuration
 # ============================================================================
@@ -721,6 +857,22 @@ The current customer's name is {username}.
 - Search for ingredients using search_ingredient before adding them
 - Build recipes step by step with create_recipe, add_ingredient, update_instructions, and set_recipe_metadata
 - Be conversational and guide users through the recipe creation process
+- When the recipe is complete (has title, ingredients, instructions, and ideally times/servings), use mark_recipe_ready to present it for the user's confirmation
+- After calling mark_recipe_ready, let the user know they can review and save the recipe using the preview card that will appear
+
+### When suggesting existing recipes:
+- Use search_recipes_tool to find recipes matching user criteria
+- **IMPORTANT:** When the user shows interest in a recipe (e.g., "that sounds good", "I like that one", "let's do that", or asking for a specific recipe recommendation), you **MUST** call suggest_recipe with the recipe's ID
+- suggest_recipe displays a preview card with recipe details (title, image, times, nutrition) and two buttons: "View Recipe" and "Cook Now"
+- **Always use suggest_recipe** when you want the user to see the interactive preview card - don't just mention recipes in text
+- **Examples of when to use suggest_recipe:**
+  - User asks: "What's a good high-protein dinner?" → Search, then suggest_recipe for 1-3 best matches
+  - User says: "That chicken recipe sounds perfect" → Call suggest_recipe with that recipe's ID
+  - User asks: "Can you recommend something quick?" → Search, then suggest_recipe for quick recipes
+  - User says: "I'm happy with any of those" → Call suggest_recipe for all the recipes you mentioned
+- Only suggest recipes that genuinely match the user's needs (dietary restrictions, time constraints, nutrition goals)
+- You can suggest multiple recipes in one response by calling suggest_recipe multiple times
+- After calling suggest_recipe, let the user know they can view the recipe details or start cooking with AI assistance
 
 ### When mentioning a recipe by name:
 - You **MUST** include the recipe's markdown link in the message.
@@ -742,6 +894,15 @@ When showing the user their meal plan, keep the response short; do not include i
 When adding entries to the meal plan, do **NOT** use <tool_name>search_recipes_tool</tool_name> to find recipes. The <tool_name>edit_mealplan_tool</tool_name> will find recipes for you.
 If a user asks you to fill all of the recipes for a day or for the entire week, you must use the <tool_name>edit_mealplan_tool</tool_name> for every relevant meal slot.
 For example, if a user you asks to fill Monday's recipes for them, you could call <tool_name>edit_mealplan_tool</tool_name> three times, with "scrambled eggs" as the title_query for breakfast, "fish tacos" as the title_query for lunch, and "beef stew" as the title_query for dinner.
+
+### Communication Requirements:
+- You MUST always provide a conversational message to the user in addition to any tool calls
+- When calling tools (search_recipes, search_ingredient, etc.), explain what you're doing and/or summarize results
+- Never return only tool calls without accompanying explanatory or follow-up text
+- Examples:
+  - Before tool: "Let me search for recipes that match your criteria..."
+  - After tool: "I found 3 delicious chicken recipes for you! Here they are..."
+  - During creation: "Great! I've added flour to your recipe. What other ingredients would you like?"
 
 ## Conversation History
 
@@ -828,6 +989,7 @@ class NutritionistAgent:
             create_edit_mealplan_tool(self.user),
             create_show_mealplan_tool(self.user),
 
+            create_suggest_recipe_tool(),
 
             # Recipe creation tools
             create_search_ingredient_tool(),
@@ -837,6 +999,7 @@ class NutritionistAgent:
             create_remove_ingredient_tool(self.user),
             create_update_instructions_tool(self.user),
             create_set_recipe_metadata_tool(self.user),
+            create_mark_recipe_ready_tool(self.user),
         ]
 
     def chat(
@@ -977,6 +1140,23 @@ class NutritionistAgent:
         if all_tool_calls_data:
             logger.info(f"Total tool calls executed: {len(all_tool_calls_data)}")
 
+        # Ensure we always have conversational content for the user
+        # If content is empty but we made tool calls, request a concluding message
+        if (not response.content or not response.content.strip()) and all_tool_calls_data:
+            logger.debug("Content is empty after tool calls - requesting concluding message from LLM")
+
+            # Create a temporary message requesting a summary (not saved to history)
+            summary_request = HumanMessage(
+                content="Please provide a brief message to the user about what you just did and/or the results."
+            )
+
+            # Get final message from LLM (without tool calling)
+            final_response = self.llm.invoke(messages + [summary_request])
+
+            # Use the generated content
+            response.content = final_response.content
+            logger.debug(f"Generated concluding message: {final_response.content[:100]}...")
+
         # Return final response and metadata
         return {
             'content': response.content,
@@ -1019,7 +1199,7 @@ def get_souschef_llm() -> ChatOpenAI:
     return ChatOpenAI(
         api_key=api_key,
         base_url="https://openrouter.ai/api/v1",
-        model="openrouter/sherlock-think-alpha",
+        model="x-ai/grok-4.1-fast",
     )
 
 
@@ -1169,6 +1349,20 @@ class SousChefAgent:
 # ============================================================================
 
 
+def souschef_llm_call(prompt: str) -> str:
+    """
+    Make a call to the SousChef LLM with the given prompt.
+
+    Args:
+        prompt: The prompt string to send to the LLM
+
+    Returns:
+        The LLM's response as a string
+    """
+    llm = get_souschef_llm()
+    response = llm.invoke([HumanMessage(content=prompt)])
+    return response.content
+
 def classify_user_intent(message: str, recipe_step: str) -> Intent:
     """
     Classify the user's intent based on their message and current recipe step.
@@ -1180,66 +1374,169 @@ def classify_user_intent(message: str, recipe_step: str) -> Intent:
     prompt = f"""
     USER MESSAGE: "{message}"
     CURRENT RECIPE STEP: "{recipe_step}"
+
     CLASSIFY THE USER'S INTENT INTO ONE OF THE FOLLOWING CATEGORIES:
     {", ".join([intent.value for intent in Intent])}.
 
     RETURN ONLY THE INTENT VALUE.
     """
-    #response = ask_llm(prompt)
-    #return Intent(response.strip())
+
+    try:
+        raw = souschef_llm_call(prompt).strip().lower()
+    except Exception as e:
+        logger.error(f"SousChef LLM error during intent classification: {e}", exc_info=True)
+        return Intent.CLARIFY  # Default fallback intent
+
+    # Map raw response to Intent enum
+    for intent in Intent:
+        if intent.value == raw:
+            return intent
+
+    # Fallback for weird LLM outputs
+    return Intent.CLARIFY
     # This is a placeholder implementation. Will need to call an LLM to classify.
 
-def handle_user_intent(intent: Intent, recipe, current_step_index):
+def handle_user_intent(
+    intent: Intent,
+    recipe_or_session,
+    current_step_index=None,
+    user_message: Optional[str] = None,
+):
     """
     Handle the user's intent and return the appropriate recipe step or action.
 
     Args:
         intent: The classified user intent
-        recipe: The recipe object being followed
-        current_step_index: The index of the current recipe step
+        recipe_or_session: Either a CookingSession object (preferred) or a recipe-like
+                           object with .steps (for testing/mocks)
+        current_step_index: The index of the current recipe step (optional, used for testing)
+        user_message: The original user message (used for clarify-like intents)
+
+    Returns:
+        Dictionary with 'step_index' and 'message' keys
     """
+    # Import here to avoid circular dependency
+    from .models import CookingSession as CS
+
+    # Determine if we're working with a CookingSession or a test mock
+    is_cooking_session = isinstance(recipe_or_session, CS)
+
+    if is_cooking_session:
+        session = recipe_or_session
+        steps = session.get_steps_list()
+        current_index = session.current_step_index
+        recipe_obj = session.recipe
+    else:
+        # Testing mode with mock recipe object
+        recipe = recipe_or_session
+        steps = getattr(recipe, "steps", [])
+        current_index = current_step_index if current_step_index is not None else 0
+        # Best-effort: some mocks might hang the real recipe off `.recipe`
+        recipe_obj = getattr(recipe_or_session, "recipe", None)
+
+    if not steps:
+        return {
+            "step_index": 0,
+            "message": "I don't see any steps for this recipe yet.",
+        }
+
     if intent == Intent.NEXT_STEP:
-        new_index = min(current_step_index + 1, len(recipe.steps) - 1)
+        new_index = min(current_index + 1, len(steps) - 1)
+        if is_cooking_session:
+            session.current_step_index = new_index
+            session.save(update_fields=['current_step_index'])
         return {
             "step_index": new_index,
             "message": f"Moving to the next step {new_index + 1}."
         }
+
     if intent == Intent.PREVIOUS_STEP:
-        new_index = max(current_step_index - 1, 0)
+        new_index = max(current_index - 1, 0)
+        if is_cooking_session:
+            session.current_step_index = new_index
+            session.save(update_fields=['current_step_index'])
         return {
             "step_index": new_index,
             "message": f"Returning to the previous step {new_index + 1}."
         }
+
     if intent == Intent.RESTART_RECIPE:
+        if is_cooking_session:
+            session.restart()
         return {
             "step_index": 0,
             "message": "Restarting the recipe from the beginning."
         }
+
     if intent == Intent.CLARIFY:
-        explanation = clarify_step(recipe.steps[current_step_index])
+        current_step = steps[current_index]
+        explanation = clarify_step(
+            step=current_step,
+            user_message=user_message,
+            recipe=recipe_obj,
+        )
         return {
-            "step_index": current_step_index,
-            "message": explanation
-        }
-    if intent == Intent.REPAIR:
-        return {
-            "step_index": current_step_index,
-            "message": "I noticed confusion. Let's go over the current step again carefully."
+            "step_index": current_index,
+            "message": explanation,
         }
 
-def clarify_step(step: str) -> str:
+    if intent == Intent.REPAIR:
+        return {
+            "step_index": current_index,
+            "message": "I noticed some confusion. Let's go over the current step again carefully.",
+        }
+
+    # Fallback: don't move the step, just be conservative
+    return {
+        "step_index": current_index,
+        "message": "Let's stay on this step and keep going from here.",
+    }
+
+def clarify_step(
+    step: str,
+    user_message: Optional[str] = None,
+    recipe=None,
+) -> str:
     """
     Provide a clarification for the given recipe step.
 
     Args:
         step: The recipe step to clarify
+        user_message: The user's original question about this step (may be about the step
+                      itself *or* about the overall recipe / final result)
+        recipe: Optional Recipe object for full-context clarification
     """
+    # Safely extract recipe context if available
+    recipe_title = getattr(recipe, "title", None) if recipe is not None else None
+    ingredients_raw = getattr(recipe, "ingredients", None) if recipe is not None else None
+    instructions_raw = getattr(recipe, "instructions", None) if recipe is not None else None
+
+    recipe_parts = []
+    if recipe_title:
+        recipe_parts.append(f"RECIPE TITLE:\n{recipe_title}")
+    if ingredients_raw:
+        recipe_parts.append(f"RECIPE INGREDIENTS (raw field):\n{ingredients_raw}")
+    if instructions_raw:
+        recipe_parts.append(f"FULL RECIPE INSTRUCTIONS (raw field):\n{instructions_raw}")
+
+    recipe_block = "\n\n".join(recipe_parts) if recipe_parts else "(No additional recipe context was provided.)"
+
     prompt = f"""
-    The user wants clarification on the following recipe step:
-    "{step}"
+You are SousChef, a friendly step-by-step cooking assistant.
 
-    Explain it in SIMPLE cooking-friendly language.
-    """
+The user is cooking this recipe:
+{recipe_block}
 
-    # return ask_llm(prompt)
-    # This is a placeholder implementation.
+They are currently at this step:
+"{step}"
+
+The user asked:
+"{user_message or ''}"
+
+Your job:
+- Directly and concisely answer the user's question in clear, beginner-friendly language.
+- Use the current step *and* the overall recipe context when helpful.
+- Do NOT just repeat the original step; expand on it and make it specific and actionable.
+"""
+
+    return souschef_llm_call(prompt)

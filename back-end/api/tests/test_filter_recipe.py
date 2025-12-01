@@ -4,7 +4,7 @@ Tests for Filtering Recipes
 import pytest
 from django.contrib.auth.models import User
 from rest_framework import status
-from api.models import Recipe, FavoriteRecipe, Ingredient, RecipeIngredient, UserInventory, CuratedIngredient, RecipeCuratedIngredient, UserCuratedInventory
+from api.models import Recipe, FavoriteRecipe, Ingredient, RecipeIngredient, UserInventory, CuratedIngredient, RecipeCuratedIngredient, UserCuratedInventory, UserRecipe
 
 @pytest.mark.django_db
 class TestFilterRecipes:
@@ -253,6 +253,73 @@ class TestFilterRecipes:
         })
 
         assert len(response.data['results']) == 0
+
+    def test_filter_my_recipes(self, authenticated_client, test_user):
+        """Test filtering by user's AI-created recipes"""
+        # Create a public recipe (not created by user)
+        public_recipe = Recipe.objects.create(title='Public Recipe', is_private=False)
+
+        # Create a private recipe linked to the test user (AI-created)
+        my_recipe = Recipe.objects.create(title='My AI Recipe', is_private=True)
+        UserRecipe.objects.create(user=test_user, original_recipe=my_recipe, ingredients='test', instructions='test')
+
+        # Create another private recipe not linked to user
+        other_private = Recipe.objects.create(title='Other Private', is_private=True)
+
+        response = authenticated_client.post('/api/recipes/searchFiltered/', {
+            "searchMyRecipes": True
+        })
+
+        assert len(response.data['results']) == 1
+        assert response.data['results'][0]['title'] == 'My AI Recipe'
+
+    def test_filter_my_recipes_multiple(self, authenticated_client, test_user):
+        """Test filtering returns multiple AI-created recipes"""
+        my_recipe1 = Recipe.objects.create(title='My Recipe 1', is_private=True)
+        UserRecipe.objects.create(user=test_user, original_recipe=my_recipe1, ingredients='test', instructions='test')
+
+        my_recipe2 = Recipe.objects.create(title='My Recipe 2', is_private=True)
+        UserRecipe.objects.create(user=test_user, original_recipe=my_recipe2, ingredients='test', instructions='test')
+
+        public_recipe = Recipe.objects.create(title='Public Recipe', is_private=False)
+
+        response = authenticated_client.post('/api/recipes/searchFiltered/', {
+            "searchMyRecipes": True
+        })
+
+        assert len(response.data['results']) == 2
+        titles = [r['title'] for r in response.data['results']]
+        assert 'My Recipe 1' in titles
+        assert 'My Recipe 2' in titles
+
+    def test_filter_my_recipes_empty(self, authenticated_client, test_user):
+        """Test filtering returns empty when user has no AI-created recipes"""
+        public_recipe = Recipe.objects.create(title='Public Recipe', is_private=False)
+        other_private = Recipe.objects.create(title='Other Private', is_private=True)
+
+        response = authenticated_client.post('/api/recipes/searchFiltered/', {
+            "searchMyRecipes": True
+        })
+
+        assert len(response.data['results']) == 0
+
+    def test_filter_my_recipes_user_isolation(self, authenticated_client, test_user):
+        """Test that my recipes filter only returns current user's recipes"""
+        # Create another user with their own recipe
+        other_user = User.objects.create_user(username='other', password='pass')
+        other_recipe = Recipe.objects.create(title='Other User Recipe', is_private=True)
+        UserRecipe.objects.create(user=other_user, original_recipe=other_recipe, ingredients='test', instructions='test')
+
+        # Create test user's recipe
+        my_recipe = Recipe.objects.create(title='My Recipe', is_private=True)
+        UserRecipe.objects.create(user=test_user, original_recipe=my_recipe, ingredients='test', instructions='test')
+
+        response = authenticated_client.post('/api/recipes/searchFiltered/', {
+            "searchMyRecipes": True
+        })
+
+        assert len(response.data['results']) == 1
+        assert response.data['results'][0]['title'] == 'My Recipe'
 
     def test_filter_no_filters(self, authenticated_client, test_user):
         fries = Recipe.objects.create(title='Fries')

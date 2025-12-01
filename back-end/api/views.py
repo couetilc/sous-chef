@@ -24,17 +24,19 @@ from decimal import Decimal, InvalidOperation
 from .models import (
     Ingredient, DietaryIngredient, Diet, UserDiet,
     Recipe, CookedRecipe, Meal, FavoriteRecipe, UserInventory, UserCuratedInventory, OnboardingSubmission, RecipeIngredient, HealthDetails, RecipeTag, TaggedRecipe,
-    ChatConversation, ChatMessage, CuratedIngredient, MealPlan, MealPlanEntry, UserRecipe
+    ChatConversation, ChatMessage, CuratedIngredient, MealPlan, MealPlanEntry, UserRecipe,
+    InProgressRecipe, InProgressRecipeIngredient, CookingSession
 )
 from .serializers import (
     UserSerializer, GroupSerializer, UserRegistrationSerializer,
     IngredientSerializer, DietSerializer,
     CookedRecipeSerializer, MealSerializer, RecipeSerializer,
-    ChatConversationSerializer, ChatMessageSerializer
+    ChatConversationSerializer, ChatMessageSerializer,
+    InProgressRecipeSerializer, CookingSessionSerializer
 )
 from .utils.recommended import compute_recommendations
 from zoneinfo import ZoneInfo
-from .ai import NutritionistAgent, SousChefAgent
+from .ai import NutritionistAgent, SousChefAgent, classify_user_intent, handle_user_intent
 
 class Paginator(PageNumberPagination):
     page_size = 100
@@ -613,6 +615,14 @@ class GetRecipesFiltered(APIView):
         if searchFavorite:
             queryset = queryset.filter(user_favorites__isnull=False)
 
+        # Filter by user's AI-created recipes (recipes created through the AI nutritionist)
+        searchMyRecipes = request.data.get('searchMyRecipes')
+        if searchMyRecipes:
+            queryset = queryset.filter(
+                is_private=True,
+                user_recipes__user=request.user
+            )
+
         # Remove duplicates that can occur from JOIN operations
         queryset = queryset.distinct()
 
@@ -620,11 +630,23 @@ class GetRecipesFiltered(APIView):
         if sort_by == 'deliciousness':
             # Sort by deliciousness score (highest first)
             queryset = queryset.order_by('-deliciousness_score')
+        elif sort_by == 'turkey':
+            # Sort by turkey score with deliciousness as a factor
+            # Combined turkey-delicious score = turkey_score * deliciousness_score
+            # This discounts recipes that aren't delicious
+            queryset = queryset.annotate(
+                turkey_delicious_score=ExpressionWrapper(
+                    F('turkey_score') * F('deliciousness_score'),
+                    output_field=FloatField()
+                )
+            ).order_by('-turkey_delicious_score')
         elif sort_by == 'combined':
-            # Sort by combined score (accessibility * deliciousness)
+            # Sort by combined score (accessibility * deliciousness^2)
+            # The squared deliciousness heavily discounts non-delicious recipes
+            # For example: deliciousness=50 -> 50^2=2500, but deliciousness=80 -> 80^2=6400
             queryset = queryset.annotate(
                 combined_score=ExpressionWrapper(
-                    F('accessibility_score') * F('deliciousness_score'),
+                    F('accessibility_score') * F('deliciousness_score') * F('deliciousness_score'),
                     output_field=FloatField()
                 )
             ).order_by('-combined_score')
@@ -1193,6 +1215,192 @@ class ClearConversation(APIView):
         )
 
 
+class InProgressRecipeView(APIView):
+    """Get the current in-progress recipe for the user."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        recipe = InProgressRecipe.objects.filter(
+            user=request.user
+        ).exclude(status='discarded').prefetch_related(
+            'ingredients__curated_ingredient'
+        ).first()
+
+        if not recipe:
+            return Response(
+                {'recipe': None},
+                status=status.HTTP_200_OK
+            )
+
+        serializer = InProgressRecipeSerializer(recipe)
+        return Response(
+            {'recipe': serializer.data},
+            status=status.HTTP_200_OK
+        )
+
+
+class SaveInProgressRecipe(APIView):
+    """Promote an in-progress recipe to a saved Recipe + UserRecipe."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        # Get the pending confirmation recipe
+        in_progress = InProgressRecipe.objects.filter(
+            user=request.user,
+            status='pending_confirmation'
+        ).prefetch_related('ingredients__curated_ingredient').first()
+
+        if not in_progress:
+            return Response(
+                {'error': 'No recipe pending confirmation'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Format ingredients as pipe-separated string
+        ingredients_text = ' | '.join([
+            f"{ing.quantity} {ing.unit} {ing.curated_ingredient.name}"
+            for ing in in_progress.ingredients.all()
+        ])
+
+        # Create the Recipe
+        with transaction.atomic():
+            recipe = Recipe.objects.create(
+                title=in_progress.title,
+                ingredients=ingredients_text,
+                instructions=in_progress.instructions,
+                prep_time_min=in_progress.prep_time_min,
+                cook_time_min=in_progress.cook_time_min,
+                total_time_min=in_progress.total_time_min,
+                servings=in_progress.servings,
+                is_private=True  # User-created recipes are private by default
+            )
+
+            # Create UserRecipe to link user to recipe
+            UserRecipe.objects.create(
+                user=request.user,
+                original_recipe=recipe
+            )
+
+            # Mark in-progress recipe as discarded (completed)
+            in_progress.status = 'discarded'
+            in_progress.save()
+
+            # Update the ChatMessage tool_calls to record the save
+            self._update_tool_call_outcome(request.user, in_progress.id, saved_recipe_id=recipe.id)
+
+        serializer = RecipeSerializer(recipe, context={'request': request})
+        return Response(
+            {'success': True, 'recipe': serializer.data},
+            status=status.HTTP_201_CREATED
+        )
+
+    def _update_tool_call_outcome(self, user, in_progress_recipe_id, saved_recipe_id):
+        """Update the mark_recipe_ready tool call result with the save outcome."""
+        import json
+
+        # Find the active nutritionist conversation
+        conversation = ChatConversation.objects.filter(
+            user=user,
+            channel='nutritionist',
+            is_active=True
+        ).first()
+
+        if not conversation:
+            return
+
+        # Find messages with mark_recipe_ready tool calls
+        for message in conversation.messages.filter(role='assistant'):
+            if not message.tool_calls:
+                continue
+
+            tool_calls = message.tool_calls
+            updated = False
+
+            for tc in tool_calls:
+                if tc.get('tool_name') == 'mark_recipe_ready' and tc.get('result'):
+                    try:
+                        result_data = json.loads(tc['result'])
+                        if result_data.get('id') == in_progress_recipe_id:
+                            result_data['saved_recipe_id'] = saved_recipe_id
+                            tc['result'] = json.dumps(result_data)
+                            updated = True
+                    except (json.JSONDecodeError, TypeError):
+                        continue
+
+            if updated:
+                message.tool_calls = tool_calls
+                message.save(update_fields=['tool_calls'])
+                break
+
+
+class DiscardInProgressRecipe(APIView):
+    """Discard an in-progress recipe."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        # Get active recipe (either draft or pending_confirmation)
+        in_progress = InProgressRecipe.objects.filter(
+            user=request.user
+        ).exclude(status='discarded').first()
+
+        if not in_progress:
+            return Response(
+                {'error': 'No active recipe to discard'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        in_progress_id = in_progress.id
+        in_progress_title = in_progress.title
+        in_progress.status = 'discarded'
+        in_progress.save()
+
+        # Update the ChatMessage tool_calls to record the discard
+        self._update_tool_call_outcome(request.user, in_progress_id, in_progress_title)
+
+        return Response(
+            {'success': True, 'message': 'Recipe discarded'},
+            status=status.HTTP_200_OK
+        )
+
+    def _update_tool_call_outcome(self, user, in_progress_recipe_id, recipe_title):
+        """Update the mark_recipe_ready tool call result with the discard outcome."""
+        import json
+
+        # Find the active nutritionist conversation
+        conversation = ChatConversation.objects.filter(
+            user=user,
+            channel='nutritionist',
+            is_active=True
+        ).first()
+
+        if not conversation:
+            return
+
+        # Find messages with mark_recipe_ready tool calls
+        for message in conversation.messages.filter(role='assistant'):
+            if not message.tool_calls:
+                continue
+
+            tool_calls = message.tool_calls
+            updated = False
+
+            for tc in tool_calls:
+                if tc.get('tool_name') == 'mark_recipe_ready' and tc.get('result'):
+                    try:
+                        result_data = json.loads(tc['result'])
+                        if result_data.get('id') == in_progress_recipe_id:
+                            result_data['discarded'] = True
+                            tc['result'] = json.dumps(result_data)
+                            updated = True
+                    except (json.JSONDecodeError, TypeError):
+                        continue
+
+            if updated:
+                message.tool_calls = tool_calls
+                message.save(update_fields=['tool_calls'])
+                break
+
+
 class MealPlanListCreateView(APIView):
     """List user's meal plans or create a new one"""
     permission_classes = [permissions.IsAuthenticated]
@@ -1328,14 +1536,30 @@ class SousChefChat(APIView):
         # Optional recipe_id for context
         recipe_id = request.data.get('recipe_id')
         recipe_context = ""
+        cooking_session = None
+        recipe = None
 
         if recipe_id is not None:
             try:
                 recipe = Recipe.objects.get(id=recipe_id)
+                
+                # Get or create active cooking session for this recipe
+                cooking_session = CookingSession.objects.filter(
+                    user=request.user,
+                    recipe=recipe,
+                    is_active=True
+                ).first()
 
                 # Build a plain-text context block for the LLM
                 ingredients_str = str(recipe.ingredients)
                 instructions_str = str(recipe.instructions)
+                
+                # Include current step information if session exists
+                current_step_info = ""
+                if cooking_session:
+                    current_step = cooking_session.get_current_step()
+                    if current_step:
+                        current_step_info = f"\nCURRENT STEP (Step {cooking_session.current_step_index + 1}):\n{current_step}\n"
 
                 recipe_context = (
                     f"CURRENT RECIPE CONTEXT\n"
@@ -1344,7 +1568,8 @@ class SousChefChat(APIView):
                     f"Title: {recipe.title}\n"
                     f"Servings: {recipe.servings}\n"
                     f"Prep time: {recipe.prep_time_min} minutes\n"
-                    f"Cook time: {recipe.cook_time_min} minutes\n\n"
+                    f"Cook time: {recipe.cook_time_min} minutes\n"
+                    f"{current_step_info}\n"
                     f"Ingredients (raw field):\n{ingredients_str}\n\n"
                     f"Instructions (raw field):\n{instructions_str}\n"
                 )
@@ -1385,38 +1610,82 @@ class SousChefChat(APIView):
                     content=message,
                 )
 
-                try:
-                    agent = SousChefAgent(user=user)
-                    result = agent.chat(
-                        message=message,
-                        conversation_history=conversation_history,
-                        recipe_context=recipe_context,
-                    )
-                except ValueError as e:
-                    logger.error(f"SousChef config error for user {user.username}: {e}")
-                    return Response(
-                        {'error': 'AI service is not properly configured. Please contact support.'},
-                        status=status.HTTP_503_SERVICE_UNAVAILABLE,
-                    )
-                except Exception as e:
-                    logger.error(f"SousChef agent error for user {user.username}: {e}", exc_info=True)
-                    result = {
-                        'content': "I'm sorry, I'm having trouble processing your request right now. Please try again in a moment.",
-                        'tool_calls': None,
-                    }
+                # Classify user intent if we have an active cooking session
+                response_content = None
+                if cooking_session:
+                    try:
+                        current_step = cooking_session.get_current_step()
+                        if current_step:
+                            intent = classify_user_intent(message, current_step)
+
+                            from .intents import Intent
+                            if intent in [Intent.NEXT_STEP, Intent.PREVIOUS_STEP, Intent.RESTART_RECIPE]:
+                                result = handle_user_intent(
+                                    intent,
+                                    cooking_session,
+                                    user_message=message,
+                                )
+                                response_content = result['message']
+                            elif intent == Intent.CLARIFY:
+                                result = handle_user_intent(
+                                    intent,
+                                    cooking_session,
+                                    user_message=message,
+                                )
+                                response_content = result['message']
+                            elif intent == Intent.REPAIR:
+                                result = handle_user_intent(
+                                    intent,
+                                    cooking_session,
+                                    user_message=message,
+                                )
+                                response_content = result['message']
+                    except Exception as e:
+                        logger.warning(f"Intent classification failed, falling back to LLM: {e}")
+
+                
+                # If no intent-based response, use the LLM agent
+                if response_content is None:
+                    try:
+                        agent = SousChefAgent(user=user)
+                        result = agent.chat(
+                            message=message,
+                            conversation_history=conversation_history,
+                            recipe_context=recipe_context,
+                        )
+                        response_content = result['content']
+                        tool_calls = result.get('tool_calls')
+                    except ValueError as e:
+                        logger.error(f"SousChef config error for user {user.username}: {e}")
+                        return Response(
+                            {'error': 'AI service is not properly configured. Please contact support.'},
+                            status=status.HTTP_503_SERVICE_UNAVAILABLE,
+                        )
+                    except Exception as e:
+                        logger.error(f"SousChef agent error for user {user.username}: {e}", exc_info=True)
+                        response_content = "I'm sorry, I'm having trouble processing your request right now. Please try again in a moment."
+                        tool_calls = None
+                else:
+                    tool_calls = None
 
                 # save assistant response
                 ChatMessage.objects.create(
                     conversation=conversation,
                     role='assistant',
-                    content=result['content'],
-                    tool_calls=result['tool_calls'],
+                    content=response_content,
+                    tool_calls=tool_calls,
                 )
 
                 # reload with messages prefetched for serialization
                 conversation = ChatConversation.objects.prefetch_related('messages').get(id=conversation.id)
-                serializer = ChatConversationSerializer(conversation)
-                return Response(serializer.data, status=status.HTTP_200_OK)
+                response_data = ChatConversationSerializer(conversation).data
+                
+                # Add cooking session data if it exists
+                if cooking_session:
+                    cooking_session.refresh_from_db()
+                    response_data['cooking_session'] = CookingSessionSerializer(cooking_session).data
+                
+                return Response(response_data, status=status.HTTP_200_OK)
 
         except Exception as e:
             logger.error(f"Unexpected error in SousChef chat for user {user.username}: {e}", exc_info=True)
@@ -1440,3 +1709,102 @@ class ClearSousChefConversation(APIView):
             {'success': True, 'message': 'SousChef conversation cleared'},
             status=status.HTTP_200_OK,
         )
+
+
+class StartCookingSession(APIView):
+    """Start a new cooking session for a recipe"""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        recipe_id = request.data.get('recipe_id')
+        if not recipe_id:
+            return Response(
+                {'error': 'recipe_id is required'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            recipe = Recipe.objects.get(id=recipe_id)
+        except Recipe.DoesNotExist:
+            return Response(
+                {'error': f'Recipe with id {recipe_id} not found'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # End any existing active sessions for this user/recipe
+        CookingSession.objects.filter(
+            user=request.user,
+            recipe=recipe,
+            is_active=True
+        ).update(is_active=False, end_time=timezone.now())
+
+        # Create new session starting at step 0
+        session = CookingSession.objects.create(
+            user=request.user,
+            recipe=recipe,
+            current_step_index=0,
+            is_active=True
+        )
+
+        serializer = CookingSessionSerializer(session)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+class EndCookingSession(APIView):
+    """End the active cooking session for a recipe"""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        recipe_id = request.data.get('recipe_id')
+        if not recipe_id:
+            return Response(
+                {'error': 'recipe_id is required'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            session = CookingSession.objects.get(
+                user=request.user,
+                recipe_id=recipe_id,
+                is_active=True
+            )
+            session.is_active = False
+            session.end_time = timezone.now()
+            session.save(update_fields=['is_active', 'end_time'])
+
+            return Response(
+                {'success': True, 'message': 'Cooking session ended'},
+                status=status.HTTP_200_OK,
+            )
+        except CookingSession.DoesNotExist:
+            return Response(
+                {'error': 'No active cooking session found for this recipe'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+
+class GetCookingSession(APIView):
+    """Get the active cooking session for a recipe"""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        recipe_id = request.query_params.get('recipe_id')
+        if not recipe_id:
+            return Response(
+                {'error': 'recipe_id query parameter is required'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            session = CookingSession.objects.get(
+                user=request.user,
+                recipe_id=recipe_id,
+                is_active=True
+            )
+            serializer = CookingSessionSerializer(session)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except CookingSession.DoesNotExist:
+            return Response(
+                {'session': None},
+                status=status.HTTP_200_OK,
+            )

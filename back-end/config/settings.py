@@ -24,13 +24,14 @@ EMAIL_HOST = 'smtp4dev'
 EMAIL_PORT = 25
 
 CRONJOBS = [
+  # daily
+  # ('0 6 * * *', 'cron.daily_emails')
   # weekly
   # ('0 6 * * 0', 'weekly_emails'),
-  ('*/5 * * * #', 'weekly_emails'),
-  ('*/5 * * * #', 'weekly_grocery_emails'),
-  # daily
-  ('0 6 * * *', 'daily_emails')
-  
+  ('*/5 * * * *', 'cron.weekly_emails'),
+  ('*/5 * * * *', 'cron.weekly_grocery_emails'),
+  ('* * * * *', 'cron.daily_emails')
+
 ]
 
 INSTALLED_APPS = [
@@ -40,6 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_crontab',
     'rest_framework',
     'drf_spectacular',
     'corsheaders',
@@ -227,7 +229,7 @@ if DEBUG == True:
 # (https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/)
 else:
     SECRET_KEY = env.get("DJANGO_SECRET_KEY")
-    ALLOWED_HOSTS = ['www.souschef.life', 'souschef.life']
+    ALLOWED_HOSTS = ['www.souschef.life', 'souschef.life', '127.0.0.1', 'localhost', 'backend']
     CORS_ALLOWED_ORIGINS = [
         "http://www.souschef.life",
         "http://souschef.life",  # Vite default

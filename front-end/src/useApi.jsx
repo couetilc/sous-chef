@@ -80,7 +80,24 @@ export class Api {
       },
       credentials: 'include',
     }).then(async (res) => {
-      const data = await res.json();
+      // Try to parse JSON, but handle cases where response is not JSON
+      let data;
+      const contentType = res.headers.get('content-type');
+      
+      if (contentType && contentType.includes('application/json')) {
+        try {
+          data = await res.json();
+        } catch (e) {
+          console.error('Failed to parse JSON response:', e);
+          data = { error: 'Invalid JSON response from server' };
+        }
+      } else {
+        // Not JSON - might be HTML error page
+        const text = await res.text();
+        console.error('Non-JSON response received:', text.substring(0, 200));
+        data = { error: 'Server returned non-JSON response', details: text.substring(0, 200) };
+      }
+      
       if (!res.ok) {
         throw { status: res.status, data };
       }
@@ -102,16 +119,21 @@ export class Api {
   }
 
   async register({ username, email, password, password_confirm, first_name, last_name }) {
-    return this.fetch('/api/register/', {
-      body: JSON.stringify({
-        username,
-        email,
-        password,
-        password_confirm,
-        first_name,
-        last_name
-      }),
-    })
+    try {
+      return await this.fetch('/api/register/', {
+        body: JSON.stringify({
+          username,
+          email,
+          password,
+          password_confirm,
+          first_name,
+          last_name
+        }),
+      });
+    } catch (error) {
+      console.error('Registration API error:', error);
+      throw error;
+    }
   }
 
   async updateEmail({ email }) {
@@ -229,13 +251,14 @@ export class Api {
     })
   }
 
-  async getRecipesFiltered({title, ingredients, searchInventory, searchFavorite, curated_ingredients, searchCuratedInventory, curated_ingredients_match_all, page = 1, sort_by }) {
+  async getRecipesFiltered({title, ingredients, searchInventory, searchFavorite, searchMyRecipes, curated_ingredients, searchCuratedInventory, curated_ingredients_match_all, page = 1, sort_by }) {
     return this.fetch(`/api/recipes/searchFiltered/?page=${page}`, {
       body: JSON.stringify({
         title,
         ingredients,
         searchInventory,
         searchFavorite,
+        searchMyRecipes,
         curated_ingredients,
         searchCuratedInventory,
         curated_ingredients_match_all,
@@ -363,6 +386,24 @@ export class Api {
     })
   }
 
+  async getInProgressRecipe() {
+    return this.fetch(`/api/nutritionist/recipe/`, {
+      method: 'GET',
+    })
+  }
+
+  async saveInProgressRecipe() {
+    return this.fetch(`/api/nutritionist/recipe/save/`, {
+      body: JSON.stringify({}),
+    })
+  }
+
+  async discardInProgressRecipe() {
+    return this.fetch(`/api/nutritionist/recipe/discard/`, {
+      body: JSON.stringify({}),
+    })
+  }
+
   // Meal plans
   async getMealPlans() {
     return this.fetch('/api/meal_plans/')
@@ -406,6 +447,24 @@ export class Api {
   async clearSousChefConversation() {
     return this.fetch(`/api/souschef/conversation/clear/`, {
       body: JSON.stringify({}),
+    })
+  }
+
+  async startCookingSession({ recipe_id }) {
+    return this.fetch(`/api/cooking_session/start/`, {
+      body: JSON.stringify({ recipe_id }),
+    })
+  }
+
+  async endCookingSession({ recipe_id }) {
+    return this.fetch(`/api/cooking_session/end/`, {
+      body: JSON.stringify({ recipe_id }),
+    })
+  }
+
+  async getCookingSession({ recipe_id }) {
+    return this.fetch(`/api/cooking_session/?recipe_id=${recipe_id}`, {
+      method: 'GET',
     })
   }
 }
