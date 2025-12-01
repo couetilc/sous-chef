@@ -570,12 +570,12 @@ class ChatMessage(models.Model):
     def __str__(self):
         return f"{self.role}: {self.content[:50]}..."
 
-
 class MealPlan(models.Model):
     """User assigned meal plan for a specific week"""
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='meal_plans')
     week_start = models.DateField(help_text="Monday at beginning of meal plan week")
     created_at = models.DateTimeField(auto_now_add=True)
+    ai_in_progress = models.BooleanField(default=False)
 
     class Meta:
         ordering = ['-created_at']
@@ -598,7 +598,6 @@ class MealPlan(models.Model):
         return [
             e.recipe for e in self.entries.filter(day_of_week=day_index).order_by('meal_index')
         ]
-
 
 class MealPlanEntry(models.Model):
     """A single recipe entry in a meal plan"""
@@ -685,3 +684,15 @@ class InProgressRecipeIngredient(models.Model):
 
     def __str__(self):
         return f"{self.quantity} {self.unit} {self.curated_ingredient.name} for {self.recipe}"
+
+class DietRestrictedCuratedIngredient(models.Model):
+    """Ingredient restricted by diet"""
+    diet = models.ForeignKey(Diet, on_delete=models.CASCADE, related_name='restricted_ingredients')
+    ingredient = models.ForeignKey(CuratedIngredient, on_delete=models.CASCADE, related_name='restricted_diets')
+
+    class Meta:
+        ordering = ['ingredient__name']
+        unique_together = ['diet', 'ingredient']
+
+    def __str__(self):
+        return f"(diet:{self.diet.name},ingredient:{self.ingredient.name})"
