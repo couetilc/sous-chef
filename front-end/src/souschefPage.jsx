@@ -84,35 +84,26 @@ export default function SousChef() {
     };
   }, [api, id]);
 
-  // Load or start cooking session (always active)
+  // Always start a fresh cooking session at step 1 (index 0) for each recipe load
   useEffect(() => {
     if (!id) return;
 
     let cancelled = false;
 
-    async function ensureCookingSession() {
+    async function startFreshCookingSession() {
       try {
-        const data = await api.getCookingSession({ recipe_id: Number(id) });
-
-        // If a session exists, use it
-        if (!cancelled && data && data.id) {
-          setCookingSession(data);
-        }
-        // If no session, start a new one so highlighting always works
-        else if (!cancelled) {
-          const newSession = await api.startCookingSession({
-            recipe_id: Number(id),
-          });
-          if (!cancelled) {
-            setCookingSession(newSession);
-          }
+        const newSession = await api.startCookingSession({
+          recipe_id: Number(id),
+        });
+        if (!cancelled) {
+          setCookingSession(newSession);
         }
       } catch (err) {
-        console.error('Failed to load or start cooking session:', err);
+        console.error('Failed to start cooking session:', err);
       }
     }
 
-    ensureCookingSession();
+    startFreshCookingSession();
     return () => {
       cancelled = true;
     };
