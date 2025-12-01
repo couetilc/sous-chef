@@ -642,6 +642,7 @@ class DietRestrictedCuratedIngredient(models.Model):
 
     class Meta:
         ordering = ['ingredient__name']
+        unique_together = ['diet', 'ingredient']
 
     def __str__(self):
         return f"(diet:{self.diet.name},ingredient:{self.ingredient.name})"

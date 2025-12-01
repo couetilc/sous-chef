@@ -220,7 +220,7 @@ def create_edit_mealplan_tool(user: User):
         Args:
             day: The day of the week that the meal will be eaten on.
             meal: The meal (breakfast, lunch, dinner) that the recipe is for.
-            title_query: The title which will be used to search the database for a recipe to insert.
+            title_query: The title which will be used to search the database for a recipe to insert. Do not be too specific so that there is a better chance of finding a recipe.
 
         Returns:                
             A string indicating whether or not the meal plan object was modified.
@@ -228,9 +228,11 @@ def create_edit_mealplan_tool(user: User):
 
         in_progress_mealplan = MealPlan.objects.filter(user=user, ai_in_progress=True).first()
         if (in_progress_mealplan == None):
-            return "Could not edit meal plan: You should create a meal plan object first with create_mealplan_tool, then try again."
+            return "Could not edit meal plan: You should create a meal plan object first with reset_mealplan_tool, then try again."
 
-        recipe = Recipe.objects.filter(title__icontains=title_query).first()
+        queryset = Recipe.objects.filter(title__icontains=title_query)
+        queryset = queryset.filter(calories_per_serving__lt=1000) # TODO redo these bounds
+        recipe = queryset.first()
         if (recipe == None):
             return "Could not edit meal plan: No recipes matched the given query. Try searching with a different title."
 
@@ -247,7 +249,9 @@ def create_edit_mealplan_tool(user: User):
                 entry.servings = 1.0
                 entry.save()
 
-        return "Successfully edited meal plan slot for {day}, {recipe}."
+        return f"""
+Successfully inserted {recipe.title} as recipe for {day.name}, {meal.name}.
+""".strip()
     return edit_mealplan_tool
 
 def create_show_mealplan_tool(user: User):
@@ -259,7 +263,7 @@ def create_show_mealplan_tool(user: User):
     def show_mealplan_tool() -> str:
         """ Show the current meal plan being created by the user.
 
-        Use this tool to show the in-progress meal plan to the user.
+        Use this tool to show the in-progress meal plan to the user. This also displays the total nutrition statistics for the entire week.
         This tool fails if the meal plan object does not yet exist.
         If the meal plan's recipes are empty, you should ask the user if they want to fill their meal plan with recipes.
         When showing the meal plan contents to the user, be sure to include the ingredient ID for debugging purposes.
@@ -275,6 +279,10 @@ def create_show_mealplan_tool(user: User):
             return "Could not display meal plan: You should create a meal plan object first with create_mealplan_tool, then try again."
 
         results = []
+        total_calories = 0
+        total_protein = 0
+        total_carbs = 0
+        total_fat = 0
         for day in Day:
             for meal in Meal:
                 entry = in_progress_mealplan.entries.filter(day_of_week=day.value, meal_index=meal.value).first()
@@ -284,6 +292,10 @@ No meal entry for {day.name}, {meal.name}.
 ---"""
                 else:
                     recipe = entry.recipe
+                    total_calories += recipe.calories_per_serving
+                    total_protein += recipe.protein_g
+                    total_carbs += recipe.carbs_g
+                    total_fat += recipe.fat_g
                     recipe_text = f"""
 Meal entry for {day.name}, {meal.name}:
 Title: {recipe.title}
@@ -291,7 +303,12 @@ ID: {recipe.id}
 Nutrition (per serving): {recipe.calories_per_serving} calories, {recipe.protein_g}g protein, {recipe.carbs_g}g carbs, {recipe.fat_g}g fat
 ---"""
                 results.append(recipe_text.strip())
-        return results
+
+        total_nutrition_text = f"""
+Total Nutrition Content for the Week: {total_calories} calories, {total_protein}g protein, {total_carbs}g carbs, {total_fat}g fat
+                       """
+        results.append(total_nutrition_text.strip())
+        return "\n\n".join(results)
 
     return show_mealplan_tool
 
