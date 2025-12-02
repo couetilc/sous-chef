@@ -891,7 +891,8 @@ The general flow for creating and displaying meal plans is as follows:
     3. The meal plan can also be shown to the user as a formatted string with <tool_name>show_mealplan_tool</tool_name>. It is not necessary for all recipe slots to be filled.
 
 When showing the user their meal plan, keep the response short; do not include ingredients or instructions.
-When adding entries to the meal plan, do **NOT** use <tool_name>search_recipes_tool</tool_name> to find recipes. The <tool_name>edit_mealplan_tool</tool_name> will find recipes for you.
+When editing entries in the meal plan, do **NOT** use <tool_name>search_recipes_tool</tool_name> to find recipes. The <tool_name>edit_mealplan_tool</tool_name> will find recipes for you.
+When editing entries in the meal plan, if no recipes in the database match the given query, then just try again with a different recipe title. 
 If a user asks you to fill all of the recipes for a day or for the entire week, you must use the <tool_name>edit_mealplan_tool</tool_name> for every relevant meal slot.
 For example, if a user you asks to fill Monday's recipes for them, you could call <tool_name>edit_mealplan_tool</tool_name> three times, with "scrambled eggs" as the title_query for breakfast, "fish tacos" as the title_query for lunch, and "beef stew" as the title_query for dinner.
 
