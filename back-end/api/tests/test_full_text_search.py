@@ -150,6 +150,226 @@ class TestRecipeFullTextSearch:
         results = Recipe.objects.search_full_text("bake")
         assert results.count() >= 1
 
+    # Category 1: Core Problem Fix Tests
+    def test_search_natural_language_with_filler_words(self, db):
+        """Test the exact query that was failing: 'easy pork recipes with fennel garlic onion'"""
+        # Setup: Create recipe with the actual ingredients
+        Recipe.objects.create(
+            title="Pork Tenderloin with Fennel",
+            ingredients="1 lb pork tenderloin | 1 fennel bulb | 4 garlic cloves | 1 onion, diced",
+            instructions="Season pork with salt and pepper. Roast with fennel, garlic, and onion at 400F for 25 minutes."
+        ).update_search_vector()
+
+        # Query includes "easy" and "recipes" which aren't in the recipe text
+        results = Recipe.objects.search_full_text("easy pork recipes with fennel garlic onion")
+
+        # Should find the recipe despite missing "easy" and "recipes"
+        assert results.count() >= 1
+        found = results[0]
+        assert "pork" in found.title.lower() or "pork" in found.ingredients.lower()
+        assert "fennel" in found.ingredients.lower()
+        assert "garlic" in found.ingredients.lower()
+        assert "onion" in found.ingredients.lower()
+
+    def test_search_multi_ingredient_with_modifiers(self, db):
+        """Test various multi-ingredient queries with modifier words"""
+        # Setup: Create recipes
+        Recipe.objects.create(
+            title="Chicken and Broccoli Stir Fry",
+            ingredients="chicken breast | broccoli | soy sauce | ginger | garlic",
+            instructions="Stir fry chicken and broccoli with sauce."
+        ).update_search_vector()
+
+        Recipe.objects.create(
+            title="Beef Tacos",
+            ingredients="ground beef | tortillas | lettuce | tomato | cheese",
+            instructions="Cook beef. Serve in tortillas with toppings."
+        ).update_search_vector()
+
+        # Test Case 1: Query with "quick" modifier
+        results = Recipe.objects.search_full_text("quick chicken broccoli dinner")
+        assert results.count() >= 1
+        assert any("chicken" in r.ingredients.lower() and "broccoli" in r.ingredients.lower() for r in results)
+
+        # Test Case 2: Query with "healthy" modifier
+        results = Recipe.objects.search_full_text("healthy beef tacos recipe")
+        assert results.count() >= 1
+        assert any("beef" in r.ingredients.lower() for r in results)
+
+    def test_search_ignores_common_filler_words(self, db):
+        """Test that common filler words don't prevent matches"""
+        Recipe.objects.create(
+            title="Salmon with Asparagus",
+            ingredients="salmon fillet | asparagus | lemon | olive oil",
+            instructions="Roast salmon and asparagus together."
+        ).update_search_vector()
+
+        # All these queries should find the salmon recipe
+        filler_queries = [
+            "best salmon asparagus",
+            "delicious salmon and asparagus recipe",
+            "simple salmon with asparagus dinner",
+            "amazing salmon asparagus dish",
+        ]
+
+        for query in filler_queries:
+            results = Recipe.objects.search_full_text(query)
+            assert results.count() >= 1, f"Query '{query}' failed to find salmon recipe"
+            assert "salmon" in results[0].ingredients.lower()
+
+    # Category 2: Natural Language Query Tests
+    def test_search_ingredient_list_queries(self, db):
+        """Test queries that are primarily lists of ingredients"""
+        Recipe.objects.create(
+            title="Pasta Primavera",
+            ingredients="pasta | zucchini | bell peppers | tomatoes | parmesan",
+            instructions="Cook pasta. Sauté vegetables. Combine with cheese."
+        ).update_search_vector()
+
+        # User might query with just ingredient names
+        results = Recipe.objects.search_full_text("pasta zucchini bell peppers")
+        assert results.count() >= 1
+        assert all(ing in results[0].ingredients.lower() for ing in ["pasta", "zucchini", "pepper"])
+
+    def test_search_protein_with_sides(self, db):
+        """Test queries like 'chicken with rice and vegetables'"""
+        Recipe.objects.create(
+            title="Grilled Chicken Bowl",
+            ingredients="chicken breast | brown rice | mixed vegetables | teriyaki sauce",
+            instructions="Grill chicken. Serve over rice with vegetables."
+        ).update_search_vector()
+
+        results = Recipe.objects.search_full_text("chicken with rice and vegetables")
+        assert results.count() >= 1
+        found = results[0]
+        assert "chicken" in found.ingredients.lower()
+        assert "rice" in found.ingredients.lower()
+        assert "vegetable" in found.ingredients.lower()
+
+    def test_search_cuisine_plus_ingredient(self, db):
+        """Test queries combining cuisine type with ingredients"""
+        Recipe.objects.create(
+            title="Thai Basil Chicken",
+            ingredients="chicken | thai basil | fish sauce | chilies | garlic",
+            instructions="Stir fry chicken with Thai basil and sauce."
+        ).update_search_vector()
+
+        # Query mentions "Thai" which is in title, and ingredients
+        results = Recipe.objects.search_full_text("thai chicken basil")
+        assert results.count() >= 1
+        assert "thai" in results[0].title.lower() or "thai" in results[0].ingredients.lower()
+
+    # Category 3: Websearch Feature Tests
+    def test_search_phrase_with_quotes(self, db):
+        """Test that quoted phrases match as a unit"""
+        Recipe.objects.create(
+            title="Classic Chicken Breast Recipe",
+            ingredients="chicken breast | olive oil | herbs",
+            instructions="Season the chicken breast and bake."
+        ).update_search_vector()
+
+        Recipe.objects.create(
+            title="Chicken Thigh Dinner",
+            ingredients="chicken thighs | vegetables",
+            instructions="Roast chicken pieces."
+        ).update_search_vector()
+
+        # Search for exact phrase "chicken breast"
+        results = Recipe.objects.search_full_text('"chicken breast"')
+
+        # Should prioritize recipes with "chicken breast" as a phrase
+        if results.count() > 0:
+            # First result should contain "chicken breast" together
+            first_result_text = (results[0].title + " " + results[0].ingredients).lower()
+            assert "chicken breast" in first_result_text
+
+    def test_search_exclusion_with_minus(self, db):
+        """Test that minus sign is treated as a regular term (OR logic doesn't support exclusion)"""
+        Recipe.objects.create(
+            title="Tomato Pasta",
+            ingredients="pasta | tomatoes | basil | garlic",
+            instructions="Cook pasta with tomato sauce."
+        ).update_search_vector()
+
+        Recipe.objects.create(
+            title="Alfredo Pasta",
+            ingredients="pasta | cream | parmesan | garlic",
+            instructions="Make creamy alfredo sauce."
+        ).update_search_vector()
+
+        # Search for "pasta -tomato"
+        # With OR logic, "-tomato" is just another search term (the minus sign is ignored/stemmed)
+        # So this will match any recipe with "pasta" OR "tomato"
+        results = Recipe.objects.search_full_text("pasta -tomato")
+
+        # Should find recipes with pasta (both will match since they contain "pasta")
+        assert results.count() >= 1
+        # Both recipes should be found since they both contain "pasta"
+        assert any("pasta" in r.title.lower() for r in results)
+
+    # Category 4: Backward Compatibility Tests
+    def test_search_simple_single_word_still_works(self, search_recipes):
+        """Test that simple queries still work as before"""
+        results = Recipe.objects.search_full_text("pasta")
+        assert results.count() >= 1
+        assert any("pasta" in r.title.lower() or "pasta" in r.ingredients.lower() for r in results)
+
+    def test_search_title_matches_still_rank_highest(self, db):
+        """Test that title matches still rank higher than ingredient matches"""
+        Recipe.objects.create(
+            title="Chocolate Cake",
+            ingredients="flour | sugar | eggs | vanilla",
+            instructions="Mix and bake."
+        ).update_search_vector()
+
+        Recipe.objects.create(
+            title="Vanilla Cupcakes",
+            ingredients="flour | sugar | eggs | chocolate chips",
+            instructions="Mix and bake."
+        ).update_search_vector()
+
+        results = Recipe.objects.search_full_text("chocolate")
+
+        # First result should have "chocolate" in title (weighted higher)
+        assert "chocolate" in results[0].title.lower()
+
+    # Category 5: Edge Case Tests
+    def test_search_very_long_natural_language_query(self, db):
+        """Test handling of long, conversational queries"""
+        Recipe.objects.create(
+            title="Mediterranean Chicken",
+            ingredients="chicken | olives | feta | tomatoes | oregano",
+            instructions="Bake chicken with Mediterranean toppings."
+        ).update_search_vector()
+
+        long_query = "I'm looking for an easy and quick dinner recipe with chicken, maybe something Mediterranean style with olives and feta cheese that my family would enjoy"
+
+        results = Recipe.objects.search_full_text(long_query)
+
+        # Should still find relevant recipes despite verbosity
+        assert results.count() >= 1
+        found = results[0]
+        assert "chicken" in found.ingredients.lower()
+
+    def test_search_with_special_characters(self, db):
+        """Test queries with punctuation and special characters"""
+        Recipe.objects.create(
+            title="Mom's Apple Pie",
+            ingredients="apples | sugar | cinnamon | pie crust",
+            instructions="Make classic apple pie."
+        ).update_search_vector()
+
+        # Queries with apostrophes, commas, etc.
+        queries = [
+            "mom's apple pie",
+            "apple, cinnamon, sugar",
+            "apple & cinnamon pie",
+        ]
+
+        for query in queries:
+            results = Recipe.objects.search_full_text(query)
+            assert results.count() >= 0  # Should not crash
+
 
 @pytest.mark.django_db
 class TestRecipeFilterViewFullTextSearch:
