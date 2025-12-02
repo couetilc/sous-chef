@@ -123,8 +123,17 @@ export default function MealPlanPage() {
   async function fetchOrCreateMealPlan(startDate) {
     try {
       const plans = await api.getMealPlans();
+      console.log("plans: " + plans);
       const iso = startDate.toISOString().split('T')[0];
       const found = plans.find(p => p.week_start === iso);
+      if ( found !== null ) {
+        console.log("week_start: " + found.week_start);
+      }
+      else {
+        console.log("found null");
+      }
+
+      console.log("found: " + found);
 
       setMealPlan(found || await api.createMealPlan({ week_start: iso }));
     } catch (err) {
@@ -133,6 +142,7 @@ export default function MealPlanPage() {
   }
 
   const days = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+  console.log("meal plan: " + mealPlan);
 
   return (
     <div className="meal-plan-container">

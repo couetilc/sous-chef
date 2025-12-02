@@ -17,7 +17,7 @@ Usage in views:
 import os
 import json
 import logging
-import datetime
+from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional
 from enum import Enum
 from django.contrib.auth.models import User
@@ -253,9 +253,17 @@ def create_reset_mealplan_tool(user: User):
         with transaction.atomic():
             mealPlan = MealPlan.objects.filter(user=user, ai_in_progress=True).first()
             if mealPlan: mealPlan.delete()
+            if mealPlan: print("meal plan exists")
+            today = datetime.now()
+            days_since_monday = today.weekday()
+            monday_datetime=today-timedelta(days=days_since_monday)
+            #mealPlan = MealPlan(
+            #    user=user,
+            #    week_start=datetime.datetime(2025, 11, 23, 6, 1, 53, 13941),
+            #    ai_in_progress=True)
             mealPlan = MealPlan(
                 user=user,
-                week_start=datetime.datetime(2025, 11, 23, 6, 1, 53, 13941),
+                week_start=monday_datetime,
                 ai_in_progress=True)
             mealPlan.save()
 

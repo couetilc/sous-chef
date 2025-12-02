@@ -20,7 +20,7 @@ def daily_emails():
     message = 'Hello, user.name!\nHere is your meal plan for the day:\n'
     # breakfast 
     meals = plan.get_recipes_for_day(cur_day_ofweek)
-    #breakfast = meals[0]
+    breakfast = meals[0]
     #lunch = meals[1]
     #dinner = meals[2]
     print('breakfast: ' + breakfast)
