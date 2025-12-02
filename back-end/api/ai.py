@@ -1380,14 +1380,33 @@ def classify_user_intent(message: str, recipe_step: str) -> Intent:
         recipe_step: The current step of the recipe being followed"""
 
     prompt = f"""
-    USER MESSAGE: "{message}"
-    CURRENT RECIPE STEP: "{recipe_step}"
+        You are an intent classifier for a step-by-step cooking assistant.
 
-    CLASSIFY THE USER'S INTENT INTO ONE OF THE FOLLOWING CATEGORIES:
-    {", ".join([intent.value for intent in Intent])}.
+        USER MESSAGE: "{message}"
+        CURRENT RECIPE STEP: "{recipe_step}"
 
-    RETURN ONLY THE INTENT VALUE.
-    """
+        You MUST classify the user's intent into exactly ONE of the following categories:
+        {", ".join([intent.value for intent in Intent])}.
+
+        Definitions:
+        - "next_step": The user clearly wants to move forward in the recipe (e.g., "what's next", "next step", "okay I'm done, keep going").
+        - "previous_step": The user clearly wants to go back (e.g., "go back", "what was the previous step", "can we repeat the last step").
+        - "restart_recipe": The user clearly wants to start over (e.g., "start over", "let's restart", "begin from step one").
+        - "clarify": The user is asking for more detail or explanation about the CURRENT recipe step or something directly related to the recipe (ingredients, tools, timing, temperatures, etc.).
+        - "repair": ANY of the following:
+        * The user message is unrelated to food, cooking, the recipe, or kitchen tools (for example: sports, celebrities, campus buildings, personal life questions).
+        * The user is just chatting or joking and not asking about the recipe.
+        * You are unsure which of the above categories is correct.
+
+        IMPORTANT RULES:
+        - If the message is NOT clearly about cooking, food, or the current recipe, you MUST return "repair".
+        - If you are uncertain which label to choose, you MUST return "repair".
+        - Do NOT try to answer the user's question. Only choose the intent.
+
+        Return ONLY the raw intent value: one of {", ".join([repr(intent.value) for intent in Intent])},
+        with no extra words, punctuation, or explanation.
+        """
+
 
     try:
         raw = souschef_llm_call(prompt).strip().lower()

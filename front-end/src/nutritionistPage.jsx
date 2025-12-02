@@ -38,6 +38,7 @@ function parseRecipeSuggestions(toolCalls) {
   if (!toolCalls || toolCalls.length === 0) return [];
 
   const suggestions = [];
+  const seenIds = new Set();  // Track unique recipe IDs
 
   // Find all suggest_recipe tool calls
   const suggestCalls = toolCalls.filter(tc => tc.tool_name === 'suggest_recipe');
@@ -53,7 +54,12 @@ function parseRecipeSuggestions(toolCalls) {
 
     try {
       const recipe = JSON.parse(call.result);
-      suggestions.push(recipe);
+
+      // Deduplicate by recipe ID, keeping first occurrence
+      if (!seenIds.has(recipe.id)) {
+        seenIds.add(recipe.id);
+        suggestions.push(recipe);
+      }
     } catch (e) {
       console.error('Failed to parse recipe suggestion:', e);
       // Skip malformed results
@@ -417,8 +423,8 @@ export default function Nutritionist() {
             {msg.role === 'assistant' && (
               <>
                 <RecipeOutcome toolCalls={msg.tool_calls} />
-                {parseRecipeSuggestions(msg.tool_calls).map((recipe, idx) => (
-                  <RecipeSuggestion key={`${msg.id}-suggestion-${idx}`} recipe={recipe} />
+                {parseRecipeSuggestions(msg.tool_calls).map((recipe) => (
+                  <RecipeSuggestion key={`${msg.id}-recipe-${recipe.id}`} recipe={recipe} />
                 ))}
               </>
             )}

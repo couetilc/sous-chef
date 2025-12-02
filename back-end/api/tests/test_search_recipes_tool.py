@@ -179,3 +179,87 @@ class TestSearchRecipesToolTimeFiltering:
 
         # Should return recipe even though it takes 500 minutes
         assert 'Any Time Recipe' in result
+
+
+@pytest.mark.django_db
+class TestSearchRecipesToolWebsearch:
+    """Test AI Tool Integration with websearch natural language queries (Category 6)"""
+
+    def test_ai_tool_with_problematic_query(self):
+        """Test search_recipes_tool with the original problem query"""
+        Recipe.objects.create(
+            title="Pork with Fennel and Garlic",
+            ingredients="pork tenderloin | fennel | garlic | onion",
+            instructions="Roast everything together.",
+            calories_per_serving=350,
+            protein_g=30,
+            fat_g=15,
+            carbs_g=20,
+            servings=4
+        ).update_search_vector()
+
+        search_tool = create_search_recipes_tool()
+        result = search_tool.invoke({"search_query": "easy pork recipes with fennel garlic onion"})
+
+        # Should return recipe, not "No recipes found"
+        assert "No recipes found" not in result
+        assert "Pork" in result
+        assert "fennel" in result.lower()
+
+    def test_ai_tool_with_various_natural_queries(self):
+        """Test tool handles different natural language patterns"""
+        Recipe.objects.create(
+            title="Quick Chicken Stir Fry",
+            ingredients="chicken | vegetables | soy sauce",
+            instructions="Stir fry quickly.",
+            calories_per_serving=300,
+            protein_g=35,
+            servings=2
+        ).update_search_vector()
+
+        search_tool = create_search_recipes_tool()
+
+        # Test queries that contain terms that will match the recipe
+        queries = [
+            "healthy chicken dinner",  # Contains "chicken"
+            "quick stir fry with chicken and veggies",  # Contains "quick", "stir", "chicken"
+            "simple chicken recipe",  # Contains "chicken"
+        ]
+
+        for query in queries:
+            result = search_tool.invoke({"search_query": query})
+            # Should find the chicken recipe since query contains matching terms
+            assert "No recipes found" not in result
+            assert "chicken" in result.lower() or "Chicken" in result
+
+    def test_ai_tool_combined_search_and_filters(self):
+        """Test tool with both text search and nutrition filters"""
+        Recipe.objects.create(
+            title="Low Cal Pork Tenderloin",
+            ingredients="pork | vegetables | herbs",
+            instructions="Roast lean pork.",
+            calories_per_serving=250,
+            protein_g=30,
+            fat_g=8,
+            servings=4
+        ).update_search_vector()
+
+        Recipe.objects.create(
+            title="Rich Pork Chops",
+            ingredients="pork chops | butter | cream",
+            instructions="Pan fry in butter.",
+            calories_per_serving=500,
+            protein_g=35,
+            fat_g=30,
+            servings=2
+        ).update_search_vector()
+
+        search_tool = create_search_recipes_tool()
+        result = search_tool.invoke({
+            "search_query": "pork dinner",
+            "max_calories": 300
+        })
+
+        # Should find low-cal pork, not rich pork chops
+        assert "Low Cal" in result or "Tenderloin" in result
+        assert "Rich Pork Chops" not in result
