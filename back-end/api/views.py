@@ -1738,6 +1738,13 @@ class StartCookingSession(APIView):
             is_active=True
         ).update(is_active=False, end_time=timezone.now())
 
+        # Clear any active SousChef conversations to start fresh for this recipe
+        ChatConversation.objects.filter(
+            user=request.user,
+            channel='souschef',
+            is_active=True,
+        ).update(is_active=False)
+
         # Create new session starting at step 0
         session = CookingSession.objects.create(
             user=request.user,
@@ -1768,12 +1775,14 @@ class EndCookingSession(APIView):
                 recipe_id=recipe_id,
                 is_active=True
             )
+            
+            # End the cooking session
             session.is_active = False
             session.end_time = timezone.now()
             session.save(update_fields=['is_active', 'end_time'])
 
             return Response(
-                {'success': True, 'message': 'Cooking session ended'},
+                {'success': True, 'message': 'Cooking session ended and saved to history'},
                 status=status.HTTP_200_OK,
             )
         except CookingSession.DoesNotExist:
@@ -1804,7 +1813,37 @@ class GetCookingSession(APIView):
             serializer = CookingSessionSerializer(session)
             return Response(serializer.data, status=status.HTTP_200_OK)
         except CookingSession.DoesNotExist:
+            # Return 404 instead of 200 with null to make it clearer there's no session
             return Response(
-                {'session': None},
-                status=status.HTTP_200_OK,
+                {'detail': 'No active cooking session found for this recipe'},
+                status=status.HTTP_404_NOT_FOUND,
             )
+
+
+class CookingSessionHistory(APIView):
+    """Get the user's cooking session history (completed sessions)"""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        # Get completed sessions, ordered by most recent first
+        sessions = CookingSession.objects.filter(
+            user=request.user,
+            is_active=False,
+            end_time__isnull=False
+        ).select_related('recipe').order_by('-end_time')[:20]  # Last 20 sessions
+        
+        serializer = CookingSessionSerializer(sessions, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def delete(self, request):
+        """Delete all completed cooking sessions for the user"""
+        deleted_count, _ = CookingSession.objects.filter(
+            user=request.user,
+            is_active=False,
+            end_time__isnull=False
+        ).delete()
+        
+        return Response(
+            {'success': True, 'message': f'Deleted {deleted_count} cooking session(s)'},
+            status=status.HTTP_200_OK,
+        )
