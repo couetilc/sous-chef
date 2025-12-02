@@ -90,4 +90,5 @@ urlpatterns = [
     path('cooking_session/start/', views.StartCookingSession.as_view(), name='cooking-session-start'),
     path('cooking_session/end/', views.EndCookingSession.as_view(), name='cooking-session-end'),
     path('cooking_session/', views.GetCookingSession.as_view(), name='cooking-session-get'),
+    path('cooking_session/history/', views.CookingSessionHistory.as_view(), name='cooking-session-history'),
 ]
