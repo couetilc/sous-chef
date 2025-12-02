@@ -33,6 +33,7 @@ export default function SousChef() {
   const { api } = useApi();
 
   const [cookingSession, setCookingSession] = useState(null);
+  const [sessionHistory, setSessionHistory] = useState([]);
 
   const [currentMessage, setCurrentMessage] = useState('');
   const [messages, setMessages] = useState([]);
@@ -44,6 +45,21 @@ export default function SousChef() {
   const [recipeError, setRecipeError] = useState(null);
 
   console.log('SousChefPage recipe id:', id);
+
+  // Clear messages, conversation, and cooking session when navigating to a different recipe
+  useEffect(() => {
+    setMessages([]);
+    setCookingSession(null); // Reset cooking session state
+    // Clear the backend conversation as well
+    const clearConversation = async () => {
+      try {
+        await api.clearSousChefConversation();
+      } catch (err) {
+        console.error('Failed to clear SousChef conversation on navigation:', err);
+      }
+    };
+    clearConversation();
+  }, [id, api]);
 
   const placeholderRecipe = {
     title: 'Garlic Butter Chicken with Veggies',
@@ -84,32 +100,57 @@ export default function SousChef() {
     };
   }, [api, id]);
 
-  // Always start a fresh cooking session at step 1 (index 0) for each recipe load
+  // Load or start cooking session for the current recipe
   useEffect(() => {
     if (!id) return;
 
     let cancelled = false;
 
-    async function startFreshCookingSession() {
+    async function loadOrStartSession() {
+      console.log('loadOrStartSession called for recipe ID:', id);
+      
       try {
-        const newSession = await api.startCookingSession({
-          recipe_id: Number(id),
-        });
-        if (!cancelled) {
-          setCookingSession(newSession);
+        // First try to get existing active session
+        const existingSession = await api.getCookingSession({ recipe_id: Number(id) });
+        console.log('getCookingSession response:', existingSession);
+        
+        if (!cancelled && existingSession && existingSession.id) {
+          // Resume existing session
+          console.log('Resuming existing cooking session:', existingSession);
+          setCookingSession(existingSession);
+          return; // Exit early
         }
       } catch (err) {
-        console.error('Failed to start cooking session:', err);
+        // If we get a 404, there's no active session - that's expected
+        console.log('getCookingSession error (expected 404):', err.status, err);
+      }
+
+      // If we get here, either there was no session or we got a 404
+      // Start a new session
+      if (!cancelled) {
+        console.log('Starting new cooking session for recipe:', id);
+        try {
+          const newSession = await api.startCookingSession({
+            recipe_id: Number(id),
+          });
+          console.log('startCookingSession response:', newSession);
+          if (!cancelled && newSession) {
+            setCookingSession(newSession);
+            console.log('Session state set to:', newSession);
+          }
+        } catch (startErr) {
+          console.error('Failed to start new cooking session:', startErr);
+        }
       }
     }
 
-    startFreshCookingSession();
+    loadOrStartSession();
     return () => {
       cancelled = true;
     };
   }, [api, id]);
 
-  // Load SousChef conversation
+  // Load SousChef conversation (clear when recipe changes)
   useEffect(() => {
     async function loadConversation() {
       try {
@@ -122,6 +163,19 @@ export default function SousChef() {
       }
     }
     loadConversation();
+  }, [api, id]);
+
+  // Load cooking session history
+  useEffect(() => {
+    async function loadHistory() {
+      try {
+        const history = await api.getCookingSessionHistory();
+        setSessionHistory(history || []);
+      } catch (err) {
+        console.error('Failed to load cooking session history:', err);
+      }
+    }
+    loadHistory();
   }, [api]);
 
   // Auto scroll chat
@@ -173,6 +227,33 @@ export default function SousChef() {
     }
   }
 
+  async function handleEndSession() {
+    if (!id || !cookingSession) return;
+    
+    if (!confirm('End this cooking session? This will be saved to your session history.')) return;
+
+    try {
+      await api.endCookingSession({ recipe_id: Number(id) });
+      
+      // Reload the conversation to show the completion message
+      const response = await api.getSousChefConversation();
+      if (response.messages) {
+        setMessages(response.messages);
+      }
+      
+      // Reload session history
+      const history = await api.getCookingSessionHistory();
+      setSessionHistory(history || []);
+      
+      // Clear the cooking session
+      setCookingSession(null);
+      setError(false);
+    } catch (err) {
+      console.error('Failed to end cooking session:', err);
+      setError(true);
+    }
+  }
+
   // Active recipe (DB if available, else placeholder)
   const activeRecipe = recipe || placeholderRecipe;
   const ingredientList = toList(activeRecipe.ingredients);
@@ -205,6 +286,22 @@ export default function SousChef() {
             {id && (
               <div style={{ fontSize: 13, color: '#777', marginTop: 2 }}>
                 Cooking recipe ID: {id}
+              </div>
+            )}
+            {cookingSession && (
+              <div
+                style={{
+                  display: 'inline-block',
+                  marginTop: 8,
+                  padding: '6px 12px',
+                  borderRadius: 999,
+                  backgroundColor: '#aa0808ff',
+                  color: '#fff',
+                  fontSize: 13,
+                  fontWeight: 600,
+                }}
+              >
+                Cooking Session Active
               </div>
             )}
           </div>
@@ -350,15 +447,39 @@ export default function SousChef() {
               maxHeight: 700,
             }}
           >
-            <h2 style={{ marginTop: 0, marginBottom: 6, fontSize: 20 }}>
-              Ask SousChef
-            </h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+              <h2 style={{ margin: 0, fontSize: 20 }}>
+                Ask SousChef
+              </h2>
+              {cookingSession && (
+                <button
+                  type="button"
+                  onClick={handleEndSession}
+                  disabled={loading}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: 999,
+                    border: '1px solid #a83232',
+                    backgroundColor: '#a83232',
+                    color: '#fff',
+                    cursor: loading ? 'not-allowed' : 'pointer',
+                    fontSize: 14,
+                    fontWeight: 600,
+                    transition: 'all 0.2s ease',
+                  }}
+                  onMouseOver={(e) => !loading && (e.target.style.backgroundColor = '#8b2a2a')}
+                  onMouseOut={(e) => !loading && (e.target.style.backgroundColor = '#a83232')}
+                >
+                  That&apos;s a wrap!
+                </button>
+              )}
+            </div>
             <div style={{ fontSize: 13, color: '#666', marginBottom: 8 }}>
               Prompt suggestions:
               <ul style={{ margin: '4px 0 0 16px', padding: 0 }}>
-                <li>“Can I substitute broccoli for green beans?”</li>
-                <li>“How do I know when the chicken is cooked?”</li>
-                <li>“Let&apos;s move on to the next step.”</li>
+                <li>"Can I substitute broccoli for green beans?"</li>
+                <li>"How do I know when the chicken is cooked?"</li>
+                <li>"Let&apos;s move on to the next step."</li>
               </ul>
             </div>
 
@@ -526,6 +647,135 @@ export default function SousChef() {
             </div>
           </section>
         </div>
+
+        {/* Session History Panel */}
+        {sessionHistory.length > 0 && (
+          <section
+            className="session-history-panel"
+            style={{
+              marginTop: 24,
+              border: '1px solid #e3e3e3',
+              borderRadius: 10,
+              padding: 16,
+              backgroundColor: '#fafafa',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <h2 style={{ margin: 0, fontSize: 18 }}>
+                Previous Cooking Sessions
+              </h2>
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!confirm('Clear all cooking session history? This cannot be undone.')) return;
+                  try {
+                    await api.clearCookingSessionHistory();
+                    setSessionHistory([]);
+                  } catch (err) {
+                    console.error('Failed to clear session history:', err);
+                    alert('Failed to clear session history. Please try again.');
+                  }
+                }}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: 6,
+                  border: '1px solid #dc3545',
+                  backgroundColor: '#fff',
+                  color: '#dc3545',
+                  cursor: 'pointer',
+                  fontSize: 13,
+                  fontWeight: 500,
+                  transition: 'all 0.2s ease',
+                }}
+                onMouseOver={(e) => {
+                  e.target.style.backgroundColor = '#dc3545';
+                  e.target.style.color = '#fff';
+                }}
+                onMouseOut={(e) => {
+                  e.target.style.backgroundColor = '#fff';
+                  e.target.style.color = '#dc3545';
+                }}
+              >
+                Clear All History
+              </button>
+            </div>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+                gap: 12,
+              }}
+            >
+              {sessionHistory.map((session) => {
+                const sessionDate = new Date(session.end_time);
+                const formattedDate = sessionDate.toLocaleDateString('en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric',
+                });
+                const formattedTime = sessionDate.toLocaleTimeString('en-US', {
+                  hour: 'numeric',
+                  minute: '2-digit',
+                  hour12: true,
+                });
+
+                return (
+                  <div
+                    key={session.id}
+                    onClick={() => navigate(`/sous-chef/${session.recipe_id}`)}
+                    style={{
+                      padding: 12,
+                      backgroundColor: '#fff',
+                      border: '1px solid #ddd',
+                      borderRadius: 8,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                    }}
+                    onMouseOver={(e) => {
+                      e.currentTarget.style.borderColor = '#a83232';
+                      e.currentTarget.style.boxShadow = '0 2px 8px rgba(168, 50, 50, 0.1)';
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.borderColor = '#ddd';
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: 14,
+                        fontWeight: 600,
+                        color: '#333',
+                        marginBottom: 6,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {session.recipe_title}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 12,
+                        color: '#666',
+                        marginBottom: 4,
+                      }}
+                    >
+                      Completed: {formattedDate}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 11,
+                        color: '#999',
+                      }}
+                    >
+                      {formattedTime}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
       </div>
     </div>
   );
