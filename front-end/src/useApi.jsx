@@ -467,6 +467,18 @@ export class Api {
       method: 'GET',
     })
   }
+
+  async getCookingSessionHistory() {
+    return this.fetch(`/api/cooking_session/history/`, {
+      method: 'GET',
+    })
+  }
+
+  async clearCookingSessionHistory() {
+    return this.fetch(`/api/cooking_session/history/`, {
+      method: 'DELETE',
+    })
+  }
 }
 
 export function ApiProvider(props) {
