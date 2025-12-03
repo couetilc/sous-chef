@@ -3,7 +3,7 @@ import { useApi } from './useApi.jsx';
 import DailyMealComponent from './dailyMeal.jsx';
 import './style.css';
 
-function WeekMealGrid({ days, mealPlan, curWeek }) {
+function WeekMealGrid({ days, mealPlan, curWeek, highlightToday = true, disableNutrition = false }) {
   const rows = [
     { label: "Breakfast", type: 1 },
     { label: "Lunch", type: 2 },
@@ -13,7 +13,7 @@ function WeekMealGrid({ days, mealPlan, curWeek }) {
   return (
     <div className="week-grid">
 
-      {/* Empty top left cell */}
+      {/* Empty top-left cell */}
       <div className="meal-label-col"></div>
       {days.map(day => (
         <div key={day + "-header"} className="day-header">
@@ -21,7 +21,7 @@ function WeekMealGrid({ days, mealPlan, curWeek }) {
         </div>
       ))}
 
-      {/* Breakfast, Lunch, Dinner rows */}
+      {/* 3 meal rows */}
       {rows.map(row => (
         <React.Fragment key={row.label}>
           <div className="meal-label-col">{row.label}</div>
@@ -33,12 +33,17 @@ function WeekMealGrid({ days, mealPlan, curWeek }) {
               mealType={row.type}
               mealPlan={mealPlan}
               curWeek={curWeek}
+              highlightToday={highlightToday}
             />
           ))}
         </React.Fragment>
       ))}
 
-      <NutritionSummary mealPlan={mealPlan} curWeek={curWeek} />
+      <NutritionSummary
+        mealPlan={mealPlan}
+        curWeek={curWeek}
+        disableNutrition={disableNutrition}
+      />
     </div>
   );
 }
@@ -61,16 +66,10 @@ function getWeekRange(offsetWeeks = 0) {
   };
 }
 
-function NutritionSummary({ mealPlan, curWeek }) {
-  // Nutrition goals
-  const GOALS = {
-    calories: 2747,
-    protein: 123,
-    fat: 80,
-    carbs: 300,
-  };
+function NutritionSummary({ mealPlan, curWeek, disableNutrition = false }) {
+  const GOALS = { calories: 2747, protein: 123, fat: 80, carbs: 300 };
 
-  if (!mealPlan || !mealPlan.entries) {
+  if (disableNutrition || !mealPlan || !mealPlan.entries) {
     return (
       <div className="nutrition-card">
         <h2>Nutrition</h2>
@@ -82,24 +81,19 @@ function NutritionSummary({ mealPlan, curWeek }) {
     );
   }
 
-  // Get today's day index
+  // Nutrition for TODAY only
   const today = new Date();
-  let dow = today.getDay();
-  const todayKey = dow.toString();
+  const todayKey = today.getDay().toString();
 
   const todayMeals = mealPlan.entries.filter(e => e.day_of_week == todayKey);
 
-  console.log("Today's meals:", todayMeals);
-
-  // Add today's meals to calc nutrition
   const totals = todayMeals.reduce(
     (acc, meal) => {
-      const recipe = meal.recipe;
-      acc.calories += recipe.calories_per_serving * meal.servings;
-      acc.protein += recipe.protein_g * meal.servings;
-      acc.fat += recipe.fat_g * meal.servings;
-      acc.carbs += recipe.carbs_g * meal.servings;
-
+      const r = meal.recipe;
+      acc.calories += r.calories_per_serving * meal.servings;
+      acc.protein += r.protein_g * meal.servings;
+      acc.fat += r.fat_g * meal.servings;
+      acc.carbs += r.carbs_g * meal.servings;
       return acc;
     },
     { calories: 0, protein: 0, fat: 0, carbs: 0 }
@@ -119,6 +113,7 @@ function NutritionSummary({ mealPlan, curWeek }) {
 export default function MealPlanPage() {
   const { api } = useApi();
   const [mealPlan, setMealPlan] = useState(null);
+  const [nextMealPlan, setNextMealPlan] = useState(null);
   const [weekStart, setWeekStart] = useState('');
   const [weekEnd, setWeekEnd] = useState('');
   const [nextWeekStart, setNextWeekStart] = useState('');
@@ -128,37 +123,24 @@ export default function MealPlanPage() {
     const thisWeek = getWeekRange(0);
     setWeekStart(thisWeek.startStr);
     setWeekEnd(thisWeek.endStr);
-
-    fetchOrCreateMealPlan(thisWeek.startDate);
+    fetchMealPlanForWeek(thisWeek.startDate, setMealPlan);
 
     const next = getWeekRange(1);
     setNextWeekStart(next.startStr);
     setNextWeekEnd(next.endStr);
+    fetchMealPlanForWeek(next.startDate, setNextMealPlan);
   }, []);
 
-  async function fetchOrCreateMealPlan(startDate) {
-    try {
-      const plans = await api.getMealPlans();
-      console.log("plans: " + plans);
-      const iso = startDate.toISOString().split('T')[0];
-      const found = plans.find(p => p.week_start === iso);
-      if ( found !== null ) {
-        console.log("week_start: " + found.week_start);
-      }
-      else {
-        console.log("found null");
-      }
+  async function fetchMealPlanForWeek(startDate, setter) {
+    const plans = await api.getMealPlans();
+    const iso = startDate.toISOString().split('T')[0];
+    const found = plans.find(p => p.week_start === iso);
 
-      console.log("found: " + found);
-
-      setMealPlan(found || await api.createMealPlan({ week_start: iso }));
-    } catch (err) {
-      console.error('Error:', err);
-    }
+    if (found) setter(found);
+    else setter(await api.createMealPlan({ week_start: iso }));
   }
 
   const days = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
-  console.log("meal plan: " + mealPlan);
 
   return (
     <div className="meal-plan-container">
@@ -172,6 +154,8 @@ export default function MealPlanPage() {
         days={days}
         mealPlan={mealPlan}
         curWeek="1"
+        highlightToday={true}
+        disableNutrition={false}
       />
 
       {/* Next Week */}
@@ -181,8 +165,10 @@ export default function MealPlanPage() {
 
       <WeekMealGrid
         days={days}
-        mealPlan={null}
+        mealPlan={nextMealPlan}
         curWeek="0"
+        highlightToday={false}
+        disableNutrition={true}
       />
     </div>
   );
