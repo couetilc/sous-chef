@@ -2,11 +2,12 @@ from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User
 from django.utils import timezone
 from datetime import datetime, timedelta
+import random
 from api.models import Recipe, MealPlan, MealPlanEntry
 
 
 class Command(BaseCommand):
-    help = 'Create demo meal plan using existing recipes from database'
+    help = 'Create demo meal plan for this week AND next week using existing recipes'
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -27,53 +28,68 @@ class Command(BaseCommand):
         if created:
             user.set_password('password123')
             user.save()
-            self.stdout.write(self.style.SUCCESS(f'Created user: {username} (password set to password123)'))
+            self.stdout.write(self.style.SUCCESS(f'Created user: {username}'))
         else:
             self.stdout.write(self.style.WARNING(f'Using existing user: {username}'))
 
-        # Get available recipes from database
+        # Load recipes
         recipes = list(Recipe.objects.all())
-        
         if not recipes:
-            self.stdout.write(self.style.ERROR('No recipes found in database. Please add recipes first.'))
+            self.stdout.write(self.style.ERROR("No recipes found. Add some first."))
             return
 
-        self.stdout.write(self.style.SUCCESS(f'Found {len(recipes)} recipes in database'))
+        self.stdout.write(self.style.SUCCESS(f"Found {len(recipes)} recipes."))
 
-        # Calculate Monday of current week
+        # Determine current Monday
         today = datetime.now().date()
-        days_since_monday = today.weekday()
-        monday = today - timedelta(days=days_since_monday)
+        monday = today - timedelta(days=today.weekday())
 
-        # Get or create meal plan for this week
-        meal_plan, created = MealPlan.objects.get_or_create(
-            user=user,
-            week_start=monday,
-            defaults={'created_at': timezone.now()}
-        )
+        # Create meal plan
+        def create_plan_for_week(start_date, randomize=False):
+            meal_plan, created = MealPlan.objects.get_or_create(
+                user=user,
+                week_start=start_date,
+                defaults={'created_at': timezone.now()}
+            )
 
-        if created:
-            self.stdout.write(self.style.SUCCESS(f'Created meal plan for week starting {monday}'))
-        else:
-            self.stdout.write(self.style.WARNING(f'Meal plan already exists for week {monday}'))
-            return
-
-        # Add meals to the plan
-        entry_count = 0
-
-        for day in range(7):
-            for meal_index in range(1, 4):
-                # Cycle through available recipes
-                recipe = recipes[(day * 3 + meal_index - 1) % len(recipes)]
-                
-                entry = MealPlanEntry.objects.create(
-                    meal_plan=meal_plan,
-                    day_of_week=day,
-                    meal_index=meal_index,
-                    recipe=recipe,
-                    servings=3.0
+            if not created:
+                self.stdout.write(
+                    self.style.WARNING(f"Meal plan already exists for week starting {start_date}")
                 )
-                entry_count += 1
+                return
 
-        self.stdout.write(self.style.SUCCESS(f'Added {entry_count} meal plan entries'))
-        self.stdout.write(self.style.SUCCESS(f'Meal plan is {"complete" if meal_plan.is_complete else "incomplete"}'))
+            self.stdout.write(
+                self.style.SUCCESS(f"Created meal plan for week starting {start_date}")
+            )
+
+            # Insert entries
+            entry_count = 0
+
+            for day in range(7):
+                for meal_index in range(1, 4):
+                    if randomize:
+                        recipe = random.choice(recipes)
+                    else:
+                        recipe = recipes[(day * 3 + meal_index - 1) % len(recipes)]
+
+                    MealPlanEntry.objects.create(
+                        meal_plan=meal_plan,
+                        day_of_week=day,
+                        meal_index=meal_index,
+                        recipe=recipe,
+                        servings=3.0
+                    )
+                    entry_count += 1
+
+            self.stdout.write(self.style.SUCCESS(
+                f"Added {entry_count} entries to week {start_date}"
+            ))
+
+        # Create current week plan
+        create_plan_for_week(monday, randomize=True)
+
+        # Create next week's plan
+        next_monday = monday + timedelta(days=7)
+        create_plan_for_week(next_monday, randomize=True)
+
+        self.stdout.write(self.style.SUCCESS("Done! Both weeks prepared."))

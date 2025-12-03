@@ -1,33 +1,42 @@
 import React, { useState } from 'react';
 import MealPlanModal from './mealPlanModal.jsx';
-import './style.css';
 
-export default function DailyMealComponent({ dayOfWeek, mealType, mealPlan }) {
-  const [openMeal, setOpenMeal] = useState(null);
+export default function DailyMealComponent({
+  dayOfWeek,
+  mealType,
+  mealPlan,
+  curWeek,
+  highlightToday = true
+}) {
+  const [modalMeal, setModalMeal] = useState(null);
 
-  const meals = mealPlan?.entries?.filter(
-    e => e.day_of_week === Number(dayOfWeek)
-  ) || [];
+  if (!mealPlan || !mealPlan.entries) return <div className="meal-cell empty"></div>;
 
-  const meal = meals.find(m => m.meal_index === mealType);
+  const entry = mealPlan.entries.find(
+    e => e.day_of_week == dayOfWeek && e.meal_index === mealType
+  );
 
-  const name = meal?.recipe?.title || "No meal added";
-  const isToday = new Date().getDay().toString() === dayOfWeek;
+  const today = new Date();
+  const todayKey = today.getDay().toString();
+
+  const isToday =
+    highlightToday &&
+    curWeek === "1" &&
+    dayOfWeek === todayKey;
 
   return (
     <>
       <div
         className={`meal-cell ${isToday ? "today-cell" : ""}`}
-        onClick={() => meal && setOpenMeal(meal)}
-        style={{ cursor: meal ? "pointer" : "default" }}
+        onClick={() => entry && setModalMeal(entry)}
       >
-        {name}
+        {entry ? entry.recipe.title : ""}
       </div>
 
-      {openMeal && (
+      {modalMeal && (
         <MealPlanModal
-          meal={openMeal}
-          onClose={() => setOpenMeal(null)}
+          meal={modalMeal}
+          onClose={() => setModalMeal(null)}
         />
       )}
     </>
