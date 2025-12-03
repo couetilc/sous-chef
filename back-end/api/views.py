@@ -25,14 +25,14 @@ from .models import (
     Ingredient, DietaryIngredient, Diet, UserDiet,
     Recipe, CookedRecipe, Meal, FavoriteRecipe, UserInventory, UserCuratedInventory, OnboardingSubmission, RecipeIngredient, HealthDetails, RecipeTag, TaggedRecipe,
     ChatConversation, ChatMessage, CuratedIngredient, MealPlan, MealPlanEntry, UserRecipe,
-    InProgressRecipe, InProgressRecipeIngredient, CookingSession
+    InProgressRecipe, InProgressRecipeIngredient, CookingSession, ShoppingList, ShoppingListItem
 )
 from .serializers import (
     UserSerializer, GroupSerializer, UserRegistrationSerializer,
     IngredientSerializer, DietSerializer,
     CookedRecipeSerializer, MealSerializer, RecipeSerializer,
     ChatConversationSerializer, ChatMessageSerializer,
-    InProgressRecipeSerializer, CookingSessionSerializer
+    InProgressRecipeSerializer, CookingSessionSerializer, ShoppingListSerializer, ShoppingListItemSerializer
 )
 from .utils.recommended import compute_recommendations
 from zoneinfo import ZoneInfo
@@ -1860,3 +1860,72 @@ class CookingSessionHistory(APIView):
             {'success': True, 'message': f'Deleted {deleted_count} cooking session(s)'},
             status=status.HTTP_200_OK,
         )
+
+class MealPlanShoppingListView(APIView):
+    """
+    Retrieves and generates the shopping list for a specific meal plan.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    @staticmethod
+    def generate_shopping_list_logic(meal_plan):
+        """
+        Generates/updates the shopping list by comparing required ingredients 
+        (from MealPlan) against owned ingredients (from UserCuratedInventory).
+        """
+        user = meal_plan.user
+
+        # 1. Get IDs of ALL curated ingredients needed for this meal plan
+        required_ids = set(CuratedIngredient.objects.filter(
+            recipe_uses__recipe__in_meal_plans__meal_plan=meal_plan
+        ).values_list('id', flat=True))
+
+        # 2. Get IDs of ingredients the user ALREADY has
+        inventory_ids = set(UserCuratedInventory.objects.filter(
+            user=user
+        ).values_list('curated_ingredient_id', flat=True))
+
+        # 3. Calculate missing items (Set Difference: Required - Inventory)
+        missing_ids = required_ids - inventory_ids
+
+        # 4. Get or Create the list container
+        shopping_list, _ = ShoppingList.objects.get_or_create(
+            user=user,
+            meal_plan=meal_plan
+        )
+
+        # A. Delete items that are no longer required by the meal plan
+        ShoppingListItem.objects.filter(shopping_list=shopping_list).exclude(
+            curated_ingredient_id__in=required_ids
+        ).delete()
+        
+        # B. Add new items that are missing and don't exist yet on the list
+        existing_item_ids = set(ShoppingListItem.objects.filter(
+            shopping_list=shopping_list
+        ).values_list('curated_ingredient_id', flat=True))
+
+        new_ids = missing_ids - existing_item_ids
+        
+        new_items = [
+            ShoppingListItem(
+                shopping_list=shopping_list,
+                curated_ingredient_id=ing_id,
+                is_purchased=False
+            )
+            for ing_id in new_ids
+        ]
+        
+        if new_items:
+            ShoppingListItem.objects.bulk_create(new_items)
+
+        return shopping_list
+
+    def get(self, request, pk):
+        """Fetches the latest shopping list, generating it if necessary/stale."""
+        meal_plan = get_object_or_404(MealPlan, pk=pk, user=request.user)
+        
+        # Call the static method within the same class
+        shopping_list = self.generate_shopping_list_logic(meal_plan)
+        
+        serializer = ShoppingListSerializer(shopping_list)
+        return Response(serializer.data, status=status.HTTP_200_OK)
