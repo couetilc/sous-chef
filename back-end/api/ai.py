@@ -33,7 +33,8 @@ from .models import (
     InProgressRecipe,
     InProgressRecipeIngredient,
     MealPlan,
-    MealPlanEntry
+    MealPlanEntry,
+    DietRestrictedCuratedIngredient,
 )
 from .intents import Intent
 from decimal import Decimal
@@ -58,11 +59,12 @@ class Meal(Enum):
 # Tool Factory Functions (with user context in closure)
 # ============================================================================
 
-def create_search_recipes_tool():
+def create_search_recipes_tool(user: User):
     """
     Create a recipe search tool.
 
     Note: This tool doesn't need user context, so it's a simple function.
+    ^^ Added user arg for grabbing diet restrictions
     """
     @tool
     def search_recipes_tool(
@@ -71,12 +73,14 @@ def create_search_recipes_tool():
         min_protein: int = None,
         max_fat: int = None,
         max_carbs: int = None,
-        max_total_time: int = None
+        max_total_time: int = None,
+        filter_diet_restricted: bool = False
     ) -> str:
         """Search for recipes in the recipe library using full-text search.
 
         Use this tool to find recipes by searching across recipe titles, ingredients, and instructions.
         Supports natural language queries and returns results ranked by relevance.
+        Also allows for filtering of recipes based on the user's saved dietary restrictions.
         Returns up to 5 recipes with complete details including ingredients and instructions.
 
         Args:
@@ -89,6 +93,7 @@ def create_search_recipes_tool():
             max_total_time: Maximum total cooking time in minutes (optional)
                            Includes both prep and cook time combined.
                            Examples: 30 for quick meals, 60 for moderate time commitment
+            filter_diet_restricted: If True, remove all recipes containing ingredients conflicting with user dietary restrictions (optional)
 
         Returns:
             A formatted string containing recipe details (id, title, nutrition, ingredients, instructions, link)
@@ -113,6 +118,13 @@ def create_search_recipes_tool():
 
         if max_total_time is not None:
             queryset = queryset.filter(total_time_min__lte=max_total_time)
+        
+        if filter_diet_restricted:
+            for userDiet in user.selected_diets.all():
+                diet = userDiet.diet
+                restricted_diet_ingredients = diet.restricted_ingredients.all()
+                restricted_ingredients = CuratedIngredient.objects.filter(restricted_diets__in=restricted_diet_ingredients)
+                queryset = queryset.exclude(curated_ingredients__curated_ingredient__in=restricted_ingredients)
 
         # Limit to 5 results
         recipes = queryset[:5]
@@ -984,7 +996,7 @@ class NutritionistAgent:
         """Create all tools for the agent with proper context."""
         return [
             # Recipe search and inventory
-            create_search_recipes_tool(),
+            create_search_recipes_tool(self.user),
             create_get_user_inventory_tool(self.user),
             create_reset_mealplan_tool(self.user),
             create_edit_mealplan_tool(self.user),
@@ -1232,7 +1244,7 @@ class SousChefAgent:
 
     def _create_tools(self) -> List:
         return [
-            create_search_recipes_tool(),
+            create_search_recipes_tool(self.user),
             create_get_user_inventory_tool(self.user),
         ]
 
