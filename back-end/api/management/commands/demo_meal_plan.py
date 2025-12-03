@@ -70,7 +70,6 @@ class Command(BaseCommand):
                     if randomize:
                         recipe = random.choice(recipes)
                     else:
-                        # Cycling as before
                         recipe = recipes[(day * 3 + meal_index - 1) % len(recipes)]
 
                     MealPlanEntry.objects.create(
