@@ -6,3 +6,4 @@ class Intent(str, Enum):
     PREVIOUS_STEP = "previous_step"
     RESTART_RECIPE = "restart_recipe"
     REPAIR = "repair"
+    END_SESSION = "end_session"

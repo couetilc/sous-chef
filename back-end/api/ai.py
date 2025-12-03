@@ -17,8 +17,11 @@ Usage in views:
 import os
 import json
 import logging
+from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional
+from enum import Enum
 from django.contrib.auth.models import User
+from django.db import transaction
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import PromptTemplate
 from langchain_core.tools import tool
@@ -28,13 +31,28 @@ from .models import (
     UserCuratedInventory,
     CuratedIngredient,
     InProgressRecipe,
-    InProgressRecipeIngredient
+    InProgressRecipeIngredient,
+    MealPlan,
+    MealPlanEntry
 )
 from .intents import Intent
 from decimal import Decimal
 
 logger = logging.getLogger(__name__)
 
+class Day(Enum):
+    Monday = 1
+    Tuesday = 2
+    Wednesday = 3
+    Thursday = 4
+    Friday = 5
+    Saturday = 6
+    Sunday = 7
+
+class Meal(Enum):
+    Breakfast = 1
+    Lunch = 2
+    Dinner = 3
 
 # ============================================================================
 # Tool Factory Functions (with user context in closure)
@@ -215,6 +233,154 @@ def create_get_user_inventory_tool(user: User):
 
     return get_user_inventory
 
+def create_reset_mealplan_tool(user: User):
+    """
+    Create a reset meal plan tool.
+    """ 
+    @tool
+    def reset_mealplan_tool(
+
+    ) -> str:
+        """Resets the meal plan object which is to be filled with recipes.
+
+        Use this tool to reset or inititalize a meal plan object for this conversation if it does not exist already.
+        Only use this tool at the start of a session, or when the user asks to create an additional meal plan, since calling it will erase all of your edits!
+
+        Returns:
+            A string indicating whether or not the meal plan object was reset.
+        """
+
+        with transaction.atomic():
+            mealPlan = MealPlan.objects.filter(user=user, ai_in_progress=True).first()
+            if mealPlan: mealPlan.delete()
+            if mealPlan: print("meal plan exists")
+            today = datetime.now()
+            days_since_monday = today.weekday()
+            monday_datetime=today-timedelta(days=days_since_monday)
+            #mealPlan = MealPlan(
+            #    user=user,
+            #    week_start=datetime.datetime(2025, 11, 23, 6, 1, 53, 13941),
+            #    ai_in_progress=True)
+            mealPlan = MealPlan(
+                user=user,
+                week_start=monday_datetime,
+                ai_in_progress=True)
+            mealPlan.save()
+
+        return "Successfully created meal plan."
+
+    return reset_mealplan_tool 
+
+def create_edit_mealplan_tool(user: User):
+    """
+    Create an edit meal plan tool.
+    """
+
+    @tool
+    def edit_mealplan_tool(
+        day: Day,
+        meal: Meal,
+        title_query: str
+    ) -> str:
+        """Edit one of the current meal plan object's recipes.
+
+        Use this tool to edit one of the slots in the weekly meal plan.
+        This tool will search for recipes for you, so there is no need to search for recipes yourself.
+
+        Args:
+            day: The day of the week that the meal will be eaten on.
+            meal: The meal (breakfast, lunch, dinner) that the recipe is for.
+            title_query: The title which will be used to search the database for a recipe to insert. Do not be too specific so that there is a better chance of finding a recipe.
+
+        Returns:                
+            A string indicating whether or not the meal plan object was modified.
+        """
+
+        in_progress_mealplan = MealPlan.objects.filter(user=user, ai_in_progress=True).first()
+        if (in_progress_mealplan == None):
+            return "Could not edit meal plan: You should create a meal plan object first with reset_mealplan_tool, then try again."
+
+        queryset = Recipe.objects.filter(title__icontains=title_query)
+        queryset = queryset.filter(calories_per_serving__lt=1000) # TODO redo these bounds
+        recipe = queryset.first()
+        if (recipe == None):
+            return "Could not edit meal plan: No recipes matched the given query. Try searching with a different title."
+
+        with transaction.atomic():
+            entry, created = MealPlanEntry.objects.get_or_create(
+                meal_plan=in_progress_mealplan,
+                day_of_week=day.value,
+                meal_index=meal.value,
+                defaults={'recipe': recipe, 'servings': 1.0}
+            )
+
+            if not created:
+                entry.recipe = recipe
+                entry.servings = 1.0
+                entry.save()
+
+        return f"""
+Successfully inserted {recipe.title} as recipe for {day.name}, {meal.name}.
+""".strip()
+    return edit_mealplan_tool
+
+def create_show_mealplan_tool(user: User):
+    """
+    Create a show meal plan tool.
+    """
+
+    @tool
+    def show_mealplan_tool() -> str:
+        """ Show the current meal plan being created by the user.
+
+        Use this tool to show the in-progress meal plan to the user. This also displays the total nutrition statistics for the entire week.
+        This tool fails if the meal plan object does not yet exist.
+        If the meal plan's recipes are empty, you should ask the user if they want to fill their meal plan with recipes.
+        When showing the meal plan contents to the user, be sure to include the ingredient ID for debugging purposes.
+
+        Returns:                
+            A formatted string containing all the recipes in the in-progress meal plan,
+            or a string stating the meal plan is empty,
+            or an error message if the meal plan object has not been created.
+        """
+
+        in_progress_mealplan = MealPlan.objects.filter(user=user, ai_in_progress=True).first()
+        if (in_progress_mealplan == None):
+            return "Could not display meal plan: You should create a meal plan object first with create_mealplan_tool, then try again."
+
+        results = []
+        total_calories = 0
+        total_protein = 0
+        total_carbs = 0
+        total_fat = 0
+        for day in Day:
+            for meal in Meal:
+                entry = in_progress_mealplan.entries.filter(day_of_week=day.value, meal_index=meal.value).first()
+                if not entry:
+                    recipe_text = f"""
+No meal entry for {day.name}, {meal.name}.
+---"""
+                else:
+                    recipe = entry.recipe
+                    total_calories += recipe.calories_per_serving
+                    total_protein += recipe.protein_g
+                    total_carbs += recipe.carbs_g
+                    total_fat += recipe.fat_g
+                    recipe_text = f"""
+Meal entry for {day.name}, {meal.name}:
+Title: {recipe.title}
+ID: {recipe.id}
+Nutrition (per serving): {recipe.calories_per_serving} calories, {recipe.protein_g}g protein, {recipe.carbs_g}g carbs, {recipe.fat_g}g fat
+---"""
+                results.append(recipe_text.strip())
+
+        total_nutrition_text = f"""
+Total Nutrition Content for the Week: {total_calories} calories, {total_protein}g protein, {total_carbs}g carbs, {total_fat}g fat
+                       """
+        results.append(total_nutrition_text.strip())
+        return "\n\n".join(results)
+
+    return show_mealplan_tool
 
 # ============================================================================
 # Recipe Creation Tools (InProgressRecipe)
@@ -722,6 +888,21 @@ The current customer's name is {username}.
 - At the end of your message, you **MUST** link to recipes from the search recipes tool call.
 - Remember to share the links for **each** recipe.
 
+## Meal Plan Instructions
+The meal plan is an object with 21 recipe slots: 3 recipes for each day of the week.
+
+If a user asks questions about their meal plan, you must use the <tool_name>reset_mealplan_tool</tool_name>, <tool_name>edit_mealplan_tool</tool_name>, and <tool_name>show_mealplan_tool</tool_name>.
+
+The general flow for creating and displaying meal plans is as follows:
+    1. The meal plan object must be created with <tool_name>reset_mealplan_tool</tool_name>. After the meal plan is initially created, ask the user if they want to fill it in with their own options, or if you should fill it for them.
+    2. The meal plan object's meal slots start off empty, and they can be filled with a call to <tool_name>edit_mealplan_tool</tool_name> for each.
+    3. The meal plan can also be shown to the user as a formatted string with <tool_name>show_mealplan_tool</tool_name>. It is not necessary for all recipe slots to be filled.
+
+When showing the user their meal plan, keep the response short; do not include ingredients or instructions.
+When adding entries to the meal plan, do **NOT** use <tool_name>search_recipes_tool</tool_name> to find recipes. The <tool_name>edit_mealplan_tool</tool_name> will find recipes for you.
+If a user asks you to fill all of the recipes for a day or for the entire week, you must use the <tool_name>edit_mealplan_tool</tool_name> for every relevant meal slot.
+For example, if a user you asks to fill Monday's recipes for them, you could call <tool_name>edit_mealplan_tool</tool_name> three times, with "scrambled eggs" as the title_query for breakfast, "fish tacos" as the title_query for lunch, and "beef stew" as the title_query for dinner.
+
 ### Communication Requirements:
 - You MUST always provide a conversational message to the user in addition to any tool calls
 - When calling tools (search_recipes, search_ingredient, etc.), explain what you're doing and/or summarize results
@@ -739,7 +920,6 @@ The current customer's name is {username}.
 
 {message}
 """.strip()
-
 
 def get_nutritionist_llm() -> ChatOpenAI:
     """Get the LLM configured for the nutritionist."""
@@ -813,6 +993,10 @@ class NutritionistAgent:
             # Recipe search and inventory
             create_search_recipes_tool(),
             create_get_user_inventory_tool(self.user),
+            create_reset_mealplan_tool(self.user),
+            create_edit_mealplan_tool(self.user),
+            create_show_mealplan_tool(self.user),
+
             create_suggest_recipe_tool(),
 
             # Recipe creation tools
@@ -943,6 +1127,7 @@ class NutritionistAgent:
                         'tool_call': tool_call,
                     })
 
+            if (iteration_count == max_iterations): logger.warning(f"Max iterations exceeded while generating respoonse.")
             # Get next response from LLM with tool results
             try:
                 response = self.llm_with_tools.invoke(messages)
@@ -1022,7 +1207,7 @@ def get_souschef_llm() -> ChatOpenAI:
     return ChatOpenAI(
         api_key=api_key,
         base_url="https://openrouter.ai/api/v1",
-        model="x-ai/grok-4.1-fast",
+        model="x-ai/grok-4.1-fast:free",
     )
 
 
@@ -1195,14 +1380,35 @@ def classify_user_intent(message: str, recipe_step: str) -> Intent:
         recipe_step: The current step of the recipe being followed"""
 
     prompt = f"""
-    USER MESSAGE: "{message}"
-    CURRENT RECIPE STEP: "{recipe_step}"
+        You are an intent classifier for a step-by-step cooking assistant.
 
-    CLASSIFY THE USER'S INTENT INTO ONE OF THE FOLLOWING CATEGORIES:
-    {", ".join([intent.value for intent in Intent])}.
+        USER MESSAGE: "{message}"
+        CURRENT RECIPE STEP: "{recipe_step}"
 
-    RETURN ONLY THE INTENT VALUE.
-    """
+        You MUST classify the user's intent into exactly ONE of the following categories:
+        {", ".join([intent.value for intent in Intent])}.
+
+        Definitions:
+        - "end_session": The user clearly wants to finish/end the cooking session (e.g., "I'm done", "end session", "that's a wrap", "finish cooking", "I would like to end this session", "let's wrap this up", "I'm finished").
+        - "next_step": The user clearly wants to move forward in the recipe (e.g., "what's next", "next step", "okay I'm done with this step, keep going").
+        - "previous_step": The user clearly wants to go back (e.g., "go back", "what was the previous step", "can we repeat the last step").
+        - "restart_recipe": The user clearly wants to start over (e.g., "start over", "let's restart", "begin from step one").
+        - "clarify": The user is asking for more detail or explanation about the CURRENT recipe step or something directly related to the recipe (ingredients, tools, timing, temperatures, etc.).
+        - "repair": ANY of the following:
+        * The user message is unrelated to food, cooking, the recipe, or kitchen tools (for example: sports, celebrities, campus buildings, personal life questions).
+        * The user is just chatting or joking and not asking about the recipe.
+        * You are unsure which of the above categories is correct.
+
+        IMPORTANT RULES:
+        - If the user wants to END/FINISH the cooking session entirely, you MUST return "end_session".
+        - If the message is NOT clearly about cooking, food, or the current recipe, you MUST return "repair".
+        - If you are uncertain which label to choose, you MUST return "repair".
+        - Do NOT try to answer the user's question. Only choose the intent.
+
+        Return ONLY the raw intent value: one of {", ".join([repr(intent.value) for intent in Intent])},
+        with no extra words, punctuation, or explanation.
+        """
+
 
     try:
         raw = souschef_llm_call(prompt).strip().lower()
@@ -1307,6 +1513,14 @@ def handle_user_intent(
         return {
             "step_index": current_index,
             "message": "I noticed some confusion. Let's go over the current step again carefully.",
+        }
+
+    if intent == Intent.END_SESSION:
+        # Signal to the frontend that the session should be ended
+        return {
+            "step_index": current_index,
+            "message": "Great job! You've finished cooking. I'll end this session for you now.",
+            "should_end_session": True,
         }
 
     # Fallback: don't move the step, just be conservative

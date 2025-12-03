@@ -51,6 +51,9 @@ class RecipeManager(models.Manager):
         Uses PostgreSQL full-text search with relevance ranking. Title matches are weighted
         highest, followed by ingredients, then instructions.
 
+        Splits query into terms and uses OR logic to find recipes matching ANY term,
+        with SearchRank providing relevance scoring (recipes matching more terms rank higher).
+
         Args:
             query_text: Search query string (supports multiple words, phrases with quotes)
 
@@ -60,10 +63,24 @@ class RecipeManager(models.Manager):
         if not query_text or not query_text.strip():
             return self.none()
 
-        # Create search query with proper configuration for English language
-        search_query = SearchQuery(query_text, config='english')
+        # Split query into terms and OR them together for better recall
+        # This allows "easy pork recipes with fennel" to match recipes with pork/fennel
+        # even if "easy" or "recipes" don't appear in the recipe text
+        from functools import reduce
+        import operator
+
+        terms = query_text.strip().split()
+        if not terms:
+            return self.none()
+
+        # Create individual SearchQuery for each term
+        queries = [SearchQuery(term, config='english') for term in terms]
+
+        # Combine with OR operator
+        search_query = reduce(operator.or_, queries)
 
         # Use the pre-computed search_vector field with relevance ranking
+        # SearchRank will score recipes higher if they match more terms
         return self.annotate(
             search_rank=SearchRank('search_vector', search_query)
         ).filter(
@@ -570,12 +587,12 @@ class ChatMessage(models.Model):
     def __str__(self):
         return f"{self.role}: {self.content[:50]}..."
 
-
 class MealPlan(models.Model):
     """User assigned meal plan for a specific week"""
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='meal_plans')
     week_start = models.DateField(help_text="Monday at beginning of meal plan week")
     created_at = models.DateTimeField(auto_now_add=True)
+    ai_in_progress = models.BooleanField(default=False)
 
     class Meta:
         ordering = ['-created_at']
@@ -598,7 +615,6 @@ class MealPlan(models.Model):
         return [
             e.recipe for e in self.entries.filter(day_of_week=day_index).order_by('meal_index')
         ]
-
 
 class MealPlanEntry(models.Model):
     """A single recipe entry in a meal plan"""
@@ -685,3 +701,15 @@ class InProgressRecipeIngredient(models.Model):
 
     def __str__(self):
         return f"{self.quantity} {self.unit} {self.curated_ingredient.name} for {self.recipe}"
+
+class DietRestrictedCuratedIngredient(models.Model):
+    """Ingredient restricted by diet"""
+    diet = models.ForeignKey(Diet, on_delete=models.CASCADE, related_name='restricted_ingredients')
+    ingredient = models.ForeignKey(CuratedIngredient, on_delete=models.CASCADE, related_name='restricted_diets')
+
+    class Meta:
+        ordering = ['ingredient__name']
+        unique_together = ['diet', 'ingredient']
+
+    def __str__(self):
+        return f"(diet:{self.diet.name},ingredient:{self.ingredient.name})"

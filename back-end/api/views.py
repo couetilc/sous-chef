@@ -1408,6 +1408,7 @@ class MealPlanListCreateView(APIView):
     def get(self, request):
         meal_plans = MealPlan.objects.filter(user=request.user).prefetch_related('entries__recipe')
         serializer = MealPlanSerializer(meal_plans, many=True)
+        print(serializer.data)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def post(self, request):
@@ -1612,6 +1613,7 @@ class SousChefChat(APIView):
 
                 # Classify user intent if we have an active cooking session
                 response_content = None
+                should_end_session = False
                 if cooking_session:
                     try:
                         current_step = cooking_session.get_current_step()
@@ -1619,13 +1621,20 @@ class SousChefChat(APIView):
                             intent = classify_user_intent(message, current_step)
 
                             from .intents import Intent
-                            if intent in [Intent.NEXT_STEP, Intent.PREVIOUS_STEP, Intent.RESTART_RECIPE]:
+                            if intent in [Intent.NEXT_STEP, Intent.PREVIOUS_STEP, Intent.RESTART_RECIPE, Intent.END_SESSION]:
                                 result = handle_user_intent(
                                     intent,
                                     cooking_session,
                                     user_message=message,
                                 )
                                 response_content = result['message']
+                                should_end_session = result.get('should_end_session', False)
+                                
+                                # If END_SESSION intent, end the session immediately
+                                if should_end_session:
+                                    cooking_session.is_active = False
+                                    cooking_session.end_time = timezone.now()
+                                    cooking_session.save(update_fields=['is_active', 'end_time'])
                             elif intent == Intent.CLARIFY:
                                 result = handle_user_intent(
                                     intent,
@@ -1685,6 +1694,10 @@ class SousChefChat(APIView):
                     cooking_session.refresh_from_db()
                     response_data['cooking_session'] = CookingSessionSerializer(cooking_session).data
                 
+                # Add flag to signal frontend to end the session
+                if should_end_session:
+                    response_data['should_end_session'] = True
+                
                 return Response(response_data, status=status.HTTP_200_OK)
 
         except Exception as e:
@@ -1738,6 +1751,13 @@ class StartCookingSession(APIView):
             is_active=True
         ).update(is_active=False, end_time=timezone.now())
 
+        # Clear any active SousChef conversations to start fresh for this recipe
+        ChatConversation.objects.filter(
+            user=request.user,
+            channel='souschef',
+            is_active=True,
+        ).update(is_active=False)
+
         # Create new session starting at step 0
         session = CookingSession.objects.create(
             user=request.user,
@@ -1768,12 +1788,14 @@ class EndCookingSession(APIView):
                 recipe_id=recipe_id,
                 is_active=True
             )
+            
+            # End the cooking session
             session.is_active = False
             session.end_time = timezone.now()
             session.save(update_fields=['is_active', 'end_time'])
 
             return Response(
-                {'success': True, 'message': 'Cooking session ended'},
+                {'success': True, 'message': 'Cooking session ended and saved to history'},
                 status=status.HTTP_200_OK,
             )
         except CookingSession.DoesNotExist:
@@ -1804,7 +1826,37 @@ class GetCookingSession(APIView):
             serializer = CookingSessionSerializer(session)
             return Response(serializer.data, status=status.HTTP_200_OK)
         except CookingSession.DoesNotExist:
+            # Return 404 instead of 200 with null to make it clearer there's no session
             return Response(
-                {'session': None},
-                status=status.HTTP_200_OK,
+                {'detail': 'No active cooking session found for this recipe'},
+                status=status.HTTP_404_NOT_FOUND,
             )
+
+
+class CookingSessionHistory(APIView):
+    """Get the user's cooking session history (completed sessions)"""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        # Get completed sessions, ordered by most recent first
+        sessions = CookingSession.objects.filter(
+            user=request.user,
+            is_active=False,
+            end_time__isnull=False
+        ).select_related('recipe').order_by('-end_time')[:20]  # Last 20 sessions
+        
+        serializer = CookingSessionSerializer(sessions, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def delete(self, request):
+        """Delete all completed cooking sessions for the user"""
+        deleted_count, _ = CookingSession.objects.filter(
+            user=request.user,
+            is_active=False,
+            end_time__isnull=False
+        ).delete()
+        
+        return Response(
+            {'success': True, 'message': f'Deleted {deleted_count} cooking session(s)'},
+            status=status.HTTP_200_OK,
+        )

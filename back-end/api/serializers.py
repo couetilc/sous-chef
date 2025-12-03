@@ -239,7 +239,10 @@ class MealPlanEntrySerializer(serializers.ModelSerializer):
 
     def get_day_name(self, obj):
         days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
-        return days[obj.day_of_week]
+        day_index = obj.day_of_week % 7
+        print(day_index)
+        return days[day_index]
+        # return days[obj.day_of_week]
 
 
 class MealPlanSerializer(serializers.ModelSerializer):
