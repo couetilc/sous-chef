@@ -479,6 +479,12 @@ export class Api {
       method: 'DELETE',
     })
   }
+
+  async getShoppingList({ meal_plan_id }) {
+    return this.fetch(`/api/meal_plans/${meal_plan_id}/shopping_list/`, {
+      method: 'GET',
+    })
+  }
 }
 
 export function ApiProvider(props) {

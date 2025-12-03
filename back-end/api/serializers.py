@@ -3,7 +3,7 @@ from django.contrib import admin
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
-from .models import Ingredient, Diet, CookedRecipe, Meal, Recipe, FavoriteRecipe, OnboardingSubmission, UserInventory, UserCuratedInventory, RecipeTag, UserRecipe, ChatConversation, ChatMessage, CuratedIngredient, RecipeCuratedIngredient, MealPlan, MealPlanEntry, InProgressRecipe, InProgressRecipeIngredient, CookingSession
+from .models import Ingredient, Diet, CookedRecipe, Meal, Recipe, FavoriteRecipe, OnboardingSubmission, UserInventory, UserCuratedInventory, RecipeTag, UserRecipe, ChatConversation, ChatMessage, CuratedIngredient, RecipeCuratedIngredient, MealPlan, MealPlanEntry, InProgressRecipe, InProgressRecipeIngredient, CookingSession, ShoppingList, ShoppingListItem
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -242,7 +242,6 @@ class MealPlanEntrySerializer(serializers.ModelSerializer):
         day_index = obj.day_of_week % 7
         print(day_index)
         return days[day_index]
-        # return days[obj.day_of_week]
 
 
 class MealPlanSerializer(serializers.ModelSerializer):
@@ -305,3 +304,18 @@ class CookingSessionSerializer(serializers.ModelSerializer):
     def get_total_steps(self, obj):
         """Get the total number of steps in the recipe"""
         return len(obj.get_steps_list())
+
+class ShoppingListItemSerializer(serializers.ModelSerializer):
+    name = serializers.CharField(source='curated_ingredient.name', read_only=True)
+    
+    class Meta:
+        model = ShoppingListItem
+        fields = ('id', 'name', 'is_purchased', 'curated_ingredient')
+        read_only_fields = ('id', 'name', 'curated_ingredient')
+
+class ShoppingListSerializer(serializers.ModelSerializer):
+    items = ShoppingListItemSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = ShoppingList
+        fields = ('id', 'meal_plan', 'items', 'created_at', 'updated_at')

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useApi } from './useApi.jsx';
 import DailyMealComponent from './dailyMeal.jsx';
 import './style.css';
+import ShoppingList from './shoppingList.jsx';
 
 function WeekMealGrid({ days, mealPlan, curWeek, highlightToday = true, disableNutrition = false }) {
   const rows = [
@@ -114,6 +115,7 @@ export default function MealPlanPage() {
   const { api } = useApi();
   const [mealPlan, setMealPlan] = useState(null);
   const [nextMealPlan, setNextMealPlan] = useState(null);
+  const [shoppingList, setShoppingList] = useState(null);
   const [weekStart, setWeekStart] = useState('');
   const [weekEnd, setWeekEnd] = useState('');
   const [nextWeekStart, setNextWeekStart] = useState('');
@@ -140,6 +142,28 @@ export default function MealPlanPage() {
     else setter(await api.createMealPlan({ week_start: iso }));
   }
 
+   // new: fetch shopping list for the currently-loaded meal plan
+  async function fetchShoppingList(meal_plan) {
+    if (!meal_plan || !meal_plan.id) {
+      setShoppingList(null);
+      return;
+    }
+    try {
+      // adjust api call to match your api client; this uses a generic get
+      const res = await api.getShoppingList({ meal_plan_id: meal_plan.id });
+      // if your client returns { data } adjust accordingly: res.data
+      setShoppingList(res);
+    } catch (err) {
+      console.error("Failed to fetch shopping list", err);
+      setShoppingList(null);
+    }
+  }
+
+  // call shopping list fetch whenever mealPlan changes
+  useEffect(() => {
+    fetchShoppingList(mealPlan);
+  }, [mealPlan]);
+
   const days = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
 
   return (
@@ -156,6 +180,12 @@ export default function MealPlanPage() {
         curWeek="1"
         highlightToday={true}
         disableNutrition={false}
+      />
+
+      {/* Shopping list for the currently-loaded meal plan */}
+      <ShoppingList
+        shoppingList={shoppingList}
+        onRefresh={() => fetchShoppingList(mealPlan)}
       />
 
       {/* Next Week */}

@@ -59,7 +59,6 @@ function Nav(props) {
         <li><Link onClick={onClick} to="/home/">Home</Link></li>
         <li><Link onClick={onClick} to="/sous-chef/">Sous Chef</Link></li>
         <li><Link onClick={onClick} to="/nutritionist/">Nutritionist</Link></li>
-        <li><Link onClick={onClick} to="/meal-plan/">Meal Plan</Link></li>
         <li><Link onClick={onClick} to="/recipes/">Recipes</Link></li>
         <li><Link onClick={onClick} to="/inventory/">Inventory</Link></li>
         <li><Link onClick={onClick} to="/history/">History</Link></li>
