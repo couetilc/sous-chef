@@ -54,6 +54,7 @@ export default function SousChef() {
   const recognitionRef = useRef(null);
   const synthRef = useRef(window.speechSynthesis);
   const autoSendAfterSpeechRef = useRef(true);
+  const lastSpokenMessageIdRef = useRef(null);
 
   console.log('SousChefPage recipe id:', id);
 
@@ -308,7 +309,9 @@ export default function SousChef() {
     // Speak the latest assistant message if autoplay is enabled
     if (autoPlayResponses && messages.length > 0) {
       const lastMessage = messages[messages.length - 1];
-      if (lastMessage.role === 'assistant') {
+      if (lastMessage.role === 'assistant' && lastMessage.id !== lastSpokenMessageIdRef.current) {
+        // Only speak if this is a new message we haven't spoken yet
+        lastSpokenMessageIdRef.current = lastMessage.id;
         speakText(lastMessage.content);
       }
     }
@@ -505,6 +508,9 @@ export default function SousChef() {
     if (!id || !cookingSession) return;
     
     if (!confirm('End this cooking session? This will be saved to your session history.')) return;
+
+    // Stop any ongoing speech
+    stopSpeaking();
 
     try {
       await api.endCookingSession({ recipe_id: Number(id) });
