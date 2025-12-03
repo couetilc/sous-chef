@@ -16,7 +16,7 @@ class Command(BaseCommand):
 
             diet_vegetarian = Diet.objects.get(name="Vegetarian")
             vegetarian_restricted_names = ["pork", "beef", "chicken", "lamb", "turkey", "gelatin", "lard", "tallow", "ham" "bacon", "steak", "chorizo", "sausage", "meat", "salmon", "tilapia", "herring", "trout", "sardine",
-            "fish", "mussel", "clam", "oyster", "shrimp", "crab", "lobster", "scallop", "duck", "squid", "octopus"]
+            "fish", "tuna", "mussel", "clam", "oyster", "shrimp", "crab", "lobster", "scallop", "duck", "squid", "octopus"]
             for name in vegetarian_restricted_names:
                 restricted_ingredients = CuratedIngredient.objects.filter(name__icontains=name)
                 for ingredient in restricted_ingredients.all():
