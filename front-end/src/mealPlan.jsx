@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useApi } from './useApi.jsx';
 import DailyMealComponent from './dailyMeal.jsx';
 import './style.css';
+import ShoppingList from './shoppingList.jsx';
 
 function WeekMealGrid({ days, mealPlan, curWeek, highlightToday = true, disableNutrition = false }) {
   const rows = [
@@ -179,6 +180,12 @@ export default function MealPlanPage() {
         curWeek="1"
         highlightToday={true}
         disableNutrition={false}
+      />
+
+      {/* Shopping list for the currently-loaded meal plan */}
+      <ShoppingList
+        shoppingList={shoppingList}
+        onRefresh={() => fetchShoppingList(mealPlan)}
       />
 
       {/* Next Week */}
