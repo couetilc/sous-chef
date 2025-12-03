@@ -114,6 +114,7 @@ export default function MealPlanPage() {
   const { api } = useApi();
   const [mealPlan, setMealPlan] = useState(null);
   const [nextMealPlan, setNextMealPlan] = useState(null);
+  const [shoppingList, setShoppingList] = useState(null);
   const [weekStart, setWeekStart] = useState('');
   const [weekEnd, setWeekEnd] = useState('');
   const [nextWeekStart, setNextWeekStart] = useState('');
@@ -139,6 +140,28 @@ export default function MealPlanPage() {
     if (found) setter(found);
     else setter(await api.createMealPlan({ week_start: iso }));
   }
+
+   // new: fetch shopping list for the currently-loaded meal plan
+  async function fetchShoppingList(meal_plan) {
+    if (!meal_plan || !meal_plan.id) {
+      setShoppingList(null);
+      return;
+    }
+    try {
+      // adjust api call to match your api client; this uses a generic get
+      const res = await api.getShoppingList({ meal_plan_id: meal_plan.id });
+      // if your client returns { data } adjust accordingly: res.data
+      setShoppingList(res);
+    } catch (err) {
+      console.error("Failed to fetch shopping list", err);
+      setShoppingList(null);
+    }
+  }
+
+  // call shopping list fetch whenever mealPlan changes
+  useEffect(() => {
+    fetchShoppingList(mealPlan);
+  }, [mealPlan]);
 
   const days = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
 

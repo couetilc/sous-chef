@@ -24,7 +24,7 @@ from decimal import Decimal, InvalidOperation
 from .models import (
     Ingredient, DietaryIngredient, Diet, UserDiet,
     Recipe, CookedRecipe, Meal, FavoriteRecipe, UserInventory, UserCuratedInventory, OnboardingSubmission, RecipeIngredient, HealthDetails, RecipeTag, TaggedRecipe,
-    ChatConversation, ChatMessage, CuratedIngredient, MealPlan, MealPlanEntry, UserRecipe,
+    ChatConversation, ChatMessage, CuratedIngredient, RecipeCuratedIngredient, MealPlan, MealPlanEntry, UserRecipe,
     InProgressRecipe, InProgressRecipeIngredient, CookingSession, ShoppingList, ShoppingListItem
 )
 from .serializers import (
@@ -1862,70 +1862,41 @@ class CookingSessionHistory(APIView):
         )
 
 class MealPlanShoppingListView(APIView):
-    """
-    Retrieves and generates the shopping list for a specific meal plan.
-    """
     permission_classes = [permissions.IsAuthenticated]
 
-    @staticmethod
-    def generate_shopping_list_logic(meal_plan):
-        """
-        Generates/updates the shopping list by comparing required ingredients 
-        (from MealPlan) against owned ingredients (from UserCuratedInventory).
-        """
-        user = meal_plan.user
-
-        # 1. Get IDs of ALL curated ingredients needed for this meal plan
-        required_ids = set(CuratedIngredient.objects.filter(
-            recipe_uses__recipe__in_meal_plans__meal_plan=meal_plan
-        ).values_list('id', flat=True))
-
-        # 2. Get IDs of ingredients the user ALREADY has
-        inventory_ids = set(UserCuratedInventory.objects.filter(
-            user=user
-        ).values_list('curated_ingredient_id', flat=True))
-
-        # 3. Calculate missing items (Set Difference: Required - Inventory)
-        missing_ids = required_ids - inventory_ids
-
-        # 4. Get or Create the list container
-        shopping_list, _ = ShoppingList.objects.get_or_create(
-            user=user,
-            meal_plan=meal_plan
-        )
-
-        # A. Delete items that are no longer required by the meal plan
-        ShoppingListItem.objects.filter(shopping_list=shopping_list).exclude(
-            curated_ingredient_id__in=required_ids
-        ).delete()
-        
-        # B. Add new items that are missing and don't exist yet on the list
-        existing_item_ids = set(ShoppingListItem.objects.filter(
-            shopping_list=shopping_list
-        ).values_list('curated_ingredient_id', flat=True))
-
-        new_ids = missing_ids - existing_item_ids
-        
-        new_items = [
-            ShoppingListItem(
-                shopping_list=shopping_list,
-                curated_ingredient_id=ing_id,
-                is_purchased=False
-            )
-            for ing_id in new_ids
-        ]
-        
-        if new_items:
-            ShoppingListItem.objects.bulk_create(new_items)
-
-        return shopping_list
-
     def get(self, request, pk):
-        """Fetches the latest shopping list, generating it if necessary/stale."""
-        meal_plan = get_object_or_404(MealPlan, pk=pk, user=request.user)
-        
-        # Call the static method within the same class
-        shopping_list = self.generate_shopping_list_logic(meal_plan)
-        
-        serializer = ShoppingListSerializer(shopping_list)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        """
+        Return curated ingredients required by all recipes in the meal plan
+        that are NOT present in the user's curated inventory.
+        """
+        try:
+            meal_plan = MealPlan.objects.get(id=pk, user=request.user)
+        except MealPlan.DoesNotExist:
+            return Response({'error': 'Meal plan not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        # recipe IDs referenced by the meal plan
+        recipe_ids = meal_plan.entries.values_list('recipe_id', flat=True)
+
+        # required curated ingredient IDs (distinct)
+        required_qs = RecipeCuratedIngredient.objects.filter(recipe_id__in=recipe_ids)
+        required_ids = set(required_qs.values_list('curated_ingredient_id', flat=True))
+
+        # curated ingredient IDs the user already has
+        owned_ids = set(request.user.curated_inventory_items.values_list('curated_ingredient_id', flat=True))
+
+        # missing curated ingredient IDs
+        missing_ids = required_ids - owned_ids
+
+        # fetch missing CuratedIngredient objects
+        missing_qs = CuratedIngredient.objects.filter(id__in=missing_ids).order_by('-frequency', 'name')
+
+        # serialize and return
+        from .serializers import CuratedIngredientSerializer
+        serializer = CuratedIngredientSerializer(missing_qs, many=True, context={'request': request})
+
+        return Response({
+            'meal_plan_id': meal_plan.id,
+            'week_start': meal_plan.week_start,
+            'missing_count': len(missing_ids),
+            'missing_ingredients': serializer.data
+        }, status=status.HTTP_200_OK)
