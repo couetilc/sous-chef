@@ -1613,6 +1613,7 @@ class SousChefChat(APIView):
 
                 # Classify user intent if we have an active cooking session
                 response_content = None
+                should_end_session = False
                 if cooking_session:
                     try:
                         current_step = cooking_session.get_current_step()
@@ -1620,13 +1621,20 @@ class SousChefChat(APIView):
                             intent = classify_user_intent(message, current_step)
 
                             from .intents import Intent
-                            if intent in [Intent.NEXT_STEP, Intent.PREVIOUS_STEP, Intent.RESTART_RECIPE]:
+                            if intent in [Intent.NEXT_STEP, Intent.PREVIOUS_STEP, Intent.RESTART_RECIPE, Intent.END_SESSION]:
                                 result = handle_user_intent(
                                     intent,
                                     cooking_session,
                                     user_message=message,
                                 )
                                 response_content = result['message']
+                                should_end_session = result.get('should_end_session', False)
+                                
+                                # If END_SESSION intent, end the session immediately
+                                if should_end_session:
+                                    cooking_session.is_active = False
+                                    cooking_session.end_time = timezone.now()
+                                    cooking_session.save(update_fields=['is_active', 'end_time'])
                             elif intent == Intent.CLARIFY:
                                 result = handle_user_intent(
                                     intent,
@@ -1685,6 +1693,10 @@ class SousChefChat(APIView):
                 if cooking_session:
                     cooking_session.refresh_from_db()
                     response_data['cooking_session'] = CookingSessionSerializer(cooking_session).data
+                
+                # Add flag to signal frontend to end the session
+                if should_end_session:
+                    response_data['should_end_session'] = True
                 
                 return Response(response_data, status=status.HTTP_200_OK)
 

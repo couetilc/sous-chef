@@ -1207,7 +1207,7 @@ def get_souschef_llm() -> ChatOpenAI:
     return ChatOpenAI(
         api_key=api_key,
         base_url="https://openrouter.ai/api/v1",
-        model="x-ai/grok-4.1-fast",
+        model="x-ai/grok-4.1-fast:free",
     )
 
 
@@ -1389,7 +1389,8 @@ def classify_user_intent(message: str, recipe_step: str) -> Intent:
         {", ".join([intent.value for intent in Intent])}.
 
         Definitions:
-        - "next_step": The user clearly wants to move forward in the recipe (e.g., "what's next", "next step", "okay I'm done, keep going").
+        - "end_session": The user clearly wants to finish/end the cooking session (e.g., "I'm done", "end session", "that's a wrap", "finish cooking", "I would like to end this session", "let's wrap this up", "I'm finished").
+        - "next_step": The user clearly wants to move forward in the recipe (e.g., "what's next", "next step", "okay I'm done with this step, keep going").
         - "previous_step": The user clearly wants to go back (e.g., "go back", "what was the previous step", "can we repeat the last step").
         - "restart_recipe": The user clearly wants to start over (e.g., "start over", "let's restart", "begin from step one").
         - "clarify": The user is asking for more detail or explanation about the CURRENT recipe step or something directly related to the recipe (ingredients, tools, timing, temperatures, etc.).
@@ -1399,6 +1400,7 @@ def classify_user_intent(message: str, recipe_step: str) -> Intent:
         * You are unsure which of the above categories is correct.
 
         IMPORTANT RULES:
+        - If the user wants to END/FINISH the cooking session entirely, you MUST return "end_session".
         - If the message is NOT clearly about cooking, food, or the current recipe, you MUST return "repair".
         - If you are uncertain which label to choose, you MUST return "repair".
         - Do NOT try to answer the user's question. Only choose the intent.
@@ -1511,6 +1513,14 @@ def handle_user_intent(
         return {
             "step_index": current_index,
             "message": "I noticed some confusion. Let's go over the current step again carefully.",
+        }
+
+    if intent == Intent.END_SESSION:
+        # Signal to the frontend that the session should be ended
+        return {
+            "step_index": current_index,
+            "message": "Great job! You've finished cooking. I'll end this session for you now.",
+            "should_end_session": True,
         }
 
     # Fallback: don't move the step, just be conservative
