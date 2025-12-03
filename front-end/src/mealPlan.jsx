@@ -43,6 +43,24 @@ function WeekMealGrid({ days, mealPlan, curWeek }) {
   );
 }
 
+function getWeekRange(offsetWeeks = 0) {
+  const today = new Date();
+  const day = today.getDay();
+  const mondayOffset = day === 0 ? -6 : 1 - day;
+
+  const start = new Date(today);
+  start.setDate(today.getDate() + mondayOffset + offsetWeeks * 7);
+
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+
+  return {
+    startStr: start.toLocaleDateString(),
+    endStr: end.toLocaleDateString(),
+    startDate: start
+  };
+}
+
 function NutritionSummary({ mealPlan, curWeek }) {
   // Nutrition goals
   const GOALS = {
@@ -103,21 +121,19 @@ export default function MealPlanPage() {
   const [mealPlan, setMealPlan] = useState(null);
   const [weekStart, setWeekStart] = useState('');
   const [weekEnd, setWeekEnd] = useState('');
+  const [nextWeekStart, setNextWeekStart] = useState('');
+  const [nextWeekEnd, setNextWeekEnd] = useState('');
 
   useEffect(() => {
-    const today = new Date();
-    const day = today.getDay();
-    const mondayOffset = day === 0 ? -6 : 1 - day;
+    const thisWeek = getWeekRange(0);
+    setWeekStart(thisWeek.startStr);
+    setWeekEnd(thisWeek.endStr);
 
-    const start = new Date(today);
-    start.setDate(today.getDate() + mondayOffset);
+    fetchOrCreateMealPlan(thisWeek.startDate);
 
-    const end = new Date(start);
-    end.setDate(start.getDate() + 6);
-
-    setWeekStart(start.toLocaleDateString());
-    setWeekEnd(end.toLocaleDateString());
-    fetchOrCreateMealPlan(start);
+    const next = getWeekRange(1);
+    setNextWeekStart(next.startStr);
+    setNextWeekEnd(next.endStr);
   }, []);
 
   async function fetchOrCreateMealPlan(startDate) {
@@ -159,7 +175,9 @@ export default function MealPlanPage() {
       />
 
       {/* Next Week */}
-      <h1 className="section-title">Next Week’s Plan</h1>
+      <h1 className="section-title">
+        Next Week’s Plan: {nextWeekStart} - {nextWeekEnd}
+      </h1>
 
       <WeekMealGrid
         days={days}
