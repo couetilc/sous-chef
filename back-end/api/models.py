@@ -616,6 +616,22 @@ class MealPlan(models.Model):
             e.recipe for e in self.entries.filter(day_of_week=day_index).order_by('meal_index')
         ]
 
+    def get_meals_for_day(self, day_index):
+        return [
+            e for e in self.entries.filter(day_of_week=day_index).order_by('meal_index')
+        ]
+
+    #def get_recipes_for_week(self):
+       # return [
+            #e.recipe for e in self.entries.filter(day_of_week=0).order_by('meal_index'),
+            #e.recipe for e in self.entries.filter(day_of_week=1).order_by('meal_index'),
+            #e.recipe for e in self.entries.filter(day_of_week=2).order_by('meal_index'),
+            #e.recipe for e in self.entries.filter(day_of_week=3).order_by('meal_index'),
+            #e.recipe for e in self.entries.filter(day_of_week=4).order_by('meal_index'),
+            #e.recipe for e in self.entries.filter(day_of_week=5).order_by('meal_index'),
+            #e.recipe for e in self.entries.filter(day_of_week=6).order_by('meal_index')
+        #]
+
 class MealPlanEntry(models.Model):
     """A single recipe entry in a meal plan"""
     DAY_CHOICES = [(i, d) for i, d in enumerate(

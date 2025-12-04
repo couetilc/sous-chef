@@ -1412,7 +1412,6 @@ class MealPlanListCreateView(APIView):
     def get(self, request):
         meal_plans = MealPlan.objects.filter(user=request.user).prefetch_related('entries__recipe')
         serializer = MealPlanSerializer(meal_plans, many=True)
-        print(serializer.data)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def post(self, request):
