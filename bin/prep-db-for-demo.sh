@@ -15,6 +15,7 @@ else
     echo "Use --prod flag to run on production stack"
 fi
 
+docker compose -f "$COMPOSE_FILE" run --rm --remove-orphans backend python manage.py migrate
 docker compose -f "$COMPOSE_FILE" run --rm --remove-orphans backend bash -c "\
 	python manage.py flush --noinput && \
 	python manage.py load_users && \
