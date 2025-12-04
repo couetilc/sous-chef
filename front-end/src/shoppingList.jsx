@@ -27,8 +27,14 @@ export default function ShoppingList({ shoppingList, onRefresh }) {
         {ingredients.length === 0 && <li>No missing ingredients.</li>}
         {ingredients.map((it, i) => {
           const label = it.display_name ?? it.name ?? String(it);
+          const amount = it.amount ?? it.AMOUNT ?? null;
           const key = it.id ?? `${label}-${i}`;
-          return <li key={key} className="shopping-list-item">{label}</li>;
+          return (
+            <li key={key} className="shopping-list-item">
+              <span style={{ fontWeight: 700 }}>{label}</span>
+              {amount ? <span>{` (${amount})`}</span> : null}
+            </li>
+          );
         })}
       </ul>
     </div>
