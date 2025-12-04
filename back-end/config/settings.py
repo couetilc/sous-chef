@@ -27,12 +27,11 @@ CRONJOBS = [
   # FORMAT:
   # minute hour day_of_month month day_of_week, command
   # daily
-  # ('0 6 * * *', 'cron.daily_emails')
+  ('0 6 * * *', 'cron.daily_emails'),
   # weekly
-  # ('0 6 * * 0', 'weekly_emails'),
-  ('*/5 * * * *', 'cron.weekly_emails'),
+  ('0 6 * * 0', 'cron.weekly_emails'),
+  # ('0 6 * * 0', 'cron.weekly_grocery_emails'),
   ('*/5 * * * *', 'cron.weekly_grocery_emails'),
-  ('* * * * *', 'cron.daily_emails')
 
 ]
 
