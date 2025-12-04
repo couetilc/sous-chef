@@ -92,4 +92,8 @@ class Command(BaseCommand):
         next_monday = monday + timedelta(days=7)
         create_plan_for_week(next_monday, randomize=True)
 
+        # Create Grocery plan for 2 weeks out
+        grocery_monday = next_monday + timedelta(days=7)
+        create_plan_for_week(grocery_monday, randomize=True)
+
         self.stdout.write(self.style.SUCCESS("Done! Both weeks prepared."))

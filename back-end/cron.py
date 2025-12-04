@@ -2,22 +2,29 @@ from django.core.mail import send_mail
 from datetime import datetime, timedelta
 import os
 from django.contrib.auth.models import User
-from api.models import MealPlan
+from api.models import MealPlan, RecipeCuratedIngredient, CuratedIngredient
 
 
 def daily_emails():
   print("executed daily!")
   cur_datetime = datetime.now()
   cur_day = cur_datetime.day
-  cur_day_ofweek = cur_datetime.weekday()
+  cur_day_ofweek = cur_datetime.weekday() + 1
   cur_month = cur_datetime.month
+  days_til_mond = (0 - cur_datetime.weekday() + 7) % 7
+  if days_til_mond == 0:
+    days_til_mond = 7
+  days_since_mond = days_til_mond - 7
+
+  this_mond = cur_datetime + timedelta(days=days_since_mond)
   subject = f"Daily Meal Plan: {cur_month}/{cur_day}"
   sender = 'notifications@souschef.life'
 
-  mealplan_users = User.objects.all().filter(meal_plans__isnull=False)
+  mealplan_users = User.objects.all().filter(meal_plans__isnull=False).distinct()
   for user in mealplan_users:
-    plan = user.meal_plans.first()
+    plan = user.meal_plans.filter(week_start=this_mond).first()
     recipient = user.email
+    print(user.email)
     message = f'Hello, {user.username}! Here is your meal plan for the day:\n'
     html_message = f'<p>Hello, {user.username}!</p><p>Here is your meal plan for the day:<p>'
     
@@ -52,7 +59,7 @@ def daily_emails():
     html_message += f'<p>{breakfast.title}</p>'
     #need to display this as a link, not a url
     message += breakfast.image_url + '\n'
-    html_message += f'<img src={breakfast.image_url}\n/>'
+    html_message += f'<img src={breakfast.image_url} width="200"\n/>'
     message += '\nBreakfast Nutrition:\n'
     html_message += '<p>\nBreakfast Nutrition:\n</p>'
     message += f'Calories: {breakfast_cals} kCals\n'
@@ -70,7 +77,7 @@ def daily_emails():
     html_message += f'<p>{lunch.title}</p>'
     #need to display this as a link, not a url
     message += lunch.image_url + '\n'
-    html_message += f'<img src={lunch.image_url}/>'
+    html_message += f'<img src={lunch.image_url} width="200"\n/>'
     message += '\nLunch Nutrition:\n'
     html_message += '<p>\nBreakfast Nutrition:</p>'
     message += f'Calories: {lunch_cals} kCals\n'
@@ -89,7 +96,7 @@ def daily_emails():
     html_message += f'<p>{dinner.title}</p>'
     #need to display this as a link, not a url
     message += dinner.image_url + '\n'
-    html_message += f'<img src={dinner.image_url}\n/>'
+    html_message += f'<img src={dinner.image_url} width="200"\n/>'
     message += '\nDinner Nutrition:\n'
     html_message += '<p>\nBreakfast Nutrition:</p>'
     message += f'Calories: {dinner_cals} kCals\n'
@@ -125,10 +132,10 @@ def weekly_emails():
   subject = f"This Week's Meal Plan: {mond_month}/{mond_day} to {sund_month}/{sund_day}"
   sender = 'notifications@souschef.life'
 
-  mealplan_users = User.objects.all().filter(meal_plans__isnull=False)
+  mealplan_users = User.objects.all().filter(meal_plans__isnull=False).distinct()
   for user in mealplan_users:
     recipient = user.email
-    message = f'Hello, {user.username}! Here is your meal plan for next week: {mond_day}-{sund_month}/{sund_day}\n'
+    message = f'Hello, {user.username}! Here is your meal plan for next week: {mond_month}/{mond_day}-{sund_month}/{sund_day}\n'
     plan = user.meal_plans.filter(week_start=next_mond).first()
     # only send weekly plan email if user has a plan for next week
     if not plan:
@@ -165,6 +172,7 @@ def weekly_emails():
       # breakfast 
       message += 'Breakfast:\n'
       message += breakfast.title + '\n'
+      message += f'Cook Time: {breakfast.total_time_min} minutes\n'
       message += '\nBreakfast Nutrition:\n'
       message += f'Calories: {breakfast_cals} kCals\n'
       message += f'Fat: {breakfast_fat} grams\n'
@@ -174,6 +182,7 @@ def weekly_emails():
       # lunch
       message += 'Lunch:\n'
       message += lunch.title + '\n'
+      message += f'Cook Time: {lunch.total_time_min} minutes\n'
       message += '\nLunch Nutrition:\n'
       message += f'Calories: {lunch_cals} kCals\n'
       message += f'Fat: {lunch_fat} grams\n'
@@ -184,18 +193,13 @@ def weekly_emails():
 
       message += 'Dinner:\n'
       message += dinner.title + '\n'
+      message += f'Cook Time: {dinner.total_time_min} minutes\n'
       message += '\nDinner Nutrition:\n'
       message += f'Calories: {dinner_cals} kCals\n'
       message += f'Fat: {dinner_fat} grams\n'
       message += f'Carbs: {dinner_carbs} grams\n'
       message += f'Protein: {dinner_protein} grams\n\n'
 
-
-
-    # Part 1:
-    # api call to get every active user's meal plan for this week
-    # format it
-    # use send_mail to send it
     message += 'Thank you for using SousChef!\nVisit our website at souschef.life\n'
     send_mail(subject, message, sender, [recipient])
 
@@ -219,7 +223,7 @@ def weekly_grocery_emails():
   sund_day = grocery_sund.day
   subject = f"Next Week's Meal Plan and Grocery List: {mond_month}/{mond_day} to {sund_month}/{sund_day}"
 
-  mealplan_users = User.objects.all().filter(meal_plans__isnull=False)
+  mealplan_users = User.objects.all().filter(meal_plans__isnull=False).distinct()
   for user in mealplan_users:
     recipient = user.email
     message = f'Hello, {user.username}! Here is your meal plan for next week: {mond_month}/{mond_day}-{sund_month}/{sund_day}\n'
@@ -239,26 +243,33 @@ def weekly_grocery_emails():
       dinner = meals[2].recipe
 
       # breakfast 
-      message += 'Breakfast:\n'
-      message += breakfast.title + '\n\n'
+      message += 'Breakfast: '
+      message += breakfast.title + '\n'
 
       # lunch
-      message += 'Lunch:\n'
-      message += lunch.title + '\n\n'
+      message += 'Lunch: '
+      message += lunch.title + '\n'
 
       # dinner
 
-      message += 'Dinner:\n'
+      message += 'Dinner: '
       message += dinner.title + '\n\n'
 
-      message += "Here are the grocery items you need to buy for next week's plan:\n"
-      grocery_list = plan.shopping_list
-      item_index = 1
-      for item in grocery_list.items:
-        ing_name = item.curated_ingredient.name
-        message += f'\t{item_index}) ing_name\n'
-        itedm_index += 1
+    message += "Here are the grocery items you need to buy for next week's plan:\n"
+
+    recipe_ids = list(plan.entries.values_list('recipe_id', flat=True))
+    required_qs = RecipeCuratedIngredient.objects.filter(recipe_id__in=recipe_ids)
+    required_ids = set(required_qs.values_list('curated_ingredient_id', flat=True))
+    owned_ids = set(user.curated_inventory_items.values_list('curated_ingredient_id', flat=True))
+    missing_ids = required_ids - owned_ids
+    missing_qs = CuratedIngredient.objects.filter(id__in=missing_ids).order_by('-frequency', 'name')
+    grocery_list = missing_qs 
+    item_index = 1
+    for item in grocery_list:
+      ing_name = item.name
+      message += f'\t{item_index}) {ing_name}\n'
+      item_index += 1
       
-      message += '\n'
+    message += '\n'
     message += 'Thank you for using SousChef!\nVisit our website at souschef.life\n'
     send_mail(subject, message, sender, [recipient])
