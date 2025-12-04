@@ -201,22 +201,64 @@ def weekly_emails():
 
 
 def weekly_grocery_emails():
-  print('sent grocery lists!')
+  print('Executed grocery lists!')
+  weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
   cur_datetime = datetime.now()
-  cur_day = cur_datetime.day
-  cur_day_ofweek = cur_datetime.weekday()
-  cur_month = cur_datetime.month
-  subject = f"Daily Meal Plan: {cur_month}/{cur_day}"
   sender = 'notifications@souschef.life'
+
+  days_til_mond = (0 - cur_datetime.weekday() + 7) % 7
+  if days_til_mond == 0:
+    days_til_mond = 7
+  # next next week
+  days_til_mond += 7
+  grocery_mond = cur_datetime + timedelta(days=days_til_mond)
+  mond_month = grocery_mond.month
+  mond_day = grocery_mond.day
+  grocery_sund = grocery_mond + timedelta(days=6)
+  sund_month = grocery_sund.month
+  sund_day = grocery_sund.day
+  subject = f"Next Week's Meal Plan and Grocery List: {mond_month}/{mond_day} to {sund_month}/{sund_day}"
 
   mealplan_users = User.objects.all().filter(meal_plans__isnull=False)
   for user in mealplan_users:
     recipient = user.email
-    # iterate over active users {
-    #   api call get next week's meal plan
-    #   api call get shopping list for next week
-    #   format info
-    #   use send mail to send it
-    # }
+    message = f'Hello, {user.username}! Here is your meal plan for next week: {mond_month}/{mond_day}-{sund_month}/{sund_day}\n'
+    plan = user.meal_plans.filter(week_start=grocery_mond).first()
+    # only send weekly plan email if user has a plan for grocery week
+    if not plan:
+      continue
+    
+    # iterate over all days from grocery_mond to grocery_sund
+    for i in range(7):
+      day = grocery_mond + timedelta(days=i)
+      message += f'\n{weekdays[i]}: {day.month}/{day.day}\n'
+
+      meals = plan.get_meals_for_day(day.weekday())
+      breakfast = meals[0].recipe
+      lunch = meals[1].recipe
+      dinner = meals[2].recipe
+
+      # breakfast 
+      message += 'Breakfast:\n'
+      message += breakfast.title + '\n\n'
+
+      # lunch
+      message += 'Lunch:\n'
+      message += lunch.title + '\n\n'
+
+      # dinner
+
+      message += 'Dinner:\n'
+      message += dinner.title + '\n\n'
+
+      message += "Here are the grocery items you need to buy for next week's plan:\n"
+      grocery_list = plan.shopping_list
+      item_index = 1
+      for item in grocery_list.items:
+        ing_name = item.curated_ingredient.name
+        message += f'\t{item_index}) ing_name\n'
+        itedm_index += 1
+      
+      message += '\n'
     message += 'Thank you for using SousChef!\nVisit our website at souschef.life\n'
     send_mail(subject, message, sender, [recipient])
