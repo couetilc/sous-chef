@@ -34,7 +34,9 @@ from .serializers import (
     IngredientSerializer, DietSerializer,
     CookedRecipeSerializer, MealSerializer, RecipeSerializer,
     ChatConversationSerializer, ChatMessageSerializer,
-    InProgressRecipeSerializer, CookingSessionSerializer, ShoppingListSerializer, ShoppingListItemSerializer
+    InProgressRecipeSerializer, CookingSessionSerializer, 
+    ShoppingListSerializer, ShoppingListItemSerializer,
+    CuratedIngredientSerializer
 )
 from .utils.recommended import compute_recommendations
 from zoneinfo import ZoneInfo
@@ -1880,24 +1882,17 @@ class MealPlanShoppingListView(APIView):
         except MealPlan.DoesNotExist:
             return Response({'error': 'Meal plan not found'}, status=status.HTTP_404_NOT_FOUND)
 
-        # recipe IDs referenced by the meal plan
         recipe_ids = list(meal_plan.entries.values_list('recipe_id', flat=True))
 
-        # required curated ingredient IDs (distinct)
         required_qs = RecipeCuratedIngredient.objects.filter(recipe_id__in=recipe_ids)
         required_ids = set(required_qs.values_list('curated_ingredient_id', flat=True))
 
-        # curated ingredient IDs the user already has
         owned_ids = set(request.user.curated_inventory_items.values_list('curated_ingredient_id', flat=True))
 
-        # missing curated ingredient IDs
         missing_ids = required_ids - owned_ids
 
-        # fetch missing CuratedIngredient objects
         missing_qs = CuratedIngredient.objects.filter(id__in=missing_ids).order_by('-frequency', 'name')
 
-        # Basic serializer for curated ingredients
-        from .serializers import CuratedIngredientSerializer
         serializer = CuratedIngredientSerializer(missing_qs, many=True, context={'request': request})
         serialized = serializer.data
 
@@ -1913,12 +1908,11 @@ class MealPlanShoppingListView(APIView):
         # Build lookup of curated name (lowercased) by id
         id_to_name = {ci.id: ci.name.lower() for ci in missing_qs}
 
-        # Best-effort regex to parse leading quantity and optional unit
-        # Supports: "1", "1.5", "1/2", "1 1/2" optionally followed by a unit token(s)
+        # Regex
         qty_unit_re = re.compile(
-            r'^\s*(?P<qty>\d+\s+\d+/\d+|\d+/\d+|\d+(?:\.\d+)?)'          # quantity (mixed, fraction, or decimal)
-            r'(?:\s*(?P<unit>[a-zA-Z]+(?:\s[a-zA-Z]+){0,2}))?'          # optional unit (1-3 words)
-            r'\s+(?P<rest>.+)$'                                         # rest of the ingredient text
+            r'^\s*(?P<qty>\d+\s+\d+/\d+|\d+/\d+|\d+(?:\.\d+)?)'
+            r'(?:\s*(?P<unit>[a-zA-Z]+(?:\s[a-zA-Z]+){0,2}))?'
+            r'\s+(?P<rest>.+)$'
         )
 
         def parse_quantity(qtext):
@@ -1963,7 +1957,6 @@ class MealPlanShoppingListView(APIView):
                             # No leading numeric qty found; keep fragment as a note
                             notes[cid].append(frag)
 
-        # ----- very small, robust assembly: sum per parsed unit and render "<sum> <unit>" joined with " +" -----
         def fmt_number(v):
             if abs(v - round(v)) < 1e-8:
                 return str(int(round(v)))
