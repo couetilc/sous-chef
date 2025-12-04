@@ -24,6 +24,8 @@ EMAIL_HOST = 'smtp4dev'
 EMAIL_PORT = 25
 
 CRONJOBS = [
+  # FORMAT:
+  # minute hour day_of_month month day_of_week, command
   # daily
   # ('0 6 * * *', 'cron.daily_emails')
   # weekly
