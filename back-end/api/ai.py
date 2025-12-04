@@ -274,15 +274,15 @@ def create_reset_mealplan_tool(user: User):
             today = datetime.now()
             days_since_monday = today.weekday()
             monday_datetime=today-timedelta(days=days_since_monday)
-            #mealPlan = MealPlan(
-            #    user=user,
-            #    week_start=datetime.datetime(2025, 11, 23, 6, 1, 53, 13941),
-            #    ai_in_progress=True)
             mealPlan = MealPlan(
                 user=user,
-                week_start=monday_datetime,
+                week_start=datetime.datetime(2025, 11, 23, 6, 1, 53, 13941),
                 ai_in_progress=True)
-            mealPlan.save()
+            #mealPlan = MealPlan(
+            #    user=user,
+            #    week_start=monday_datetime,
+            #    ai_in_progress=True)
+            #mealPlan.save()
 
         return "Successfully created meal plan."
 
@@ -399,6 +399,39 @@ Total Nutrition Content for the Week: {total_calories} calories, {total_protein}
 
     return show_mealplan_tool
 
+def create_save_mealplan_tool(user: User):
+    """
+    Create a save meal plan tool.
+    """
+
+    @tool
+    def save_mealplan_tool() -> str:
+        """ Save the current meal plan being created by the user.
+        
+        This tool saves the current meal plan, scheduling it to start on the Monday of the next week.
+        Saving the meal plan overwrites whatever meal plan was scheduled for the next week, and also resets any edits made to the current meal plan.
+        It is VERY important that you only call this tool when the user explicitly asks to save their current meal plan, 
+        to avoid overwriting any preexisting meal plans that they did not want to delete.
+
+        """
+        in_progress_mealplan = MealPlan.objects.filter(user=user, ai_in_progress=True).first()
+        if (in_progress_mealplan == None):
+            return "Could not save meal plan: No in-progress meal plan exists. You should create a meal plan object first with reset_mealplan_tool, then try again."
+
+        today = datetime.now()
+        days_since_monday = today.weekday()
+        monday_datetime=today-timedelta(days=days_since_monday)
+        monday_mealplan = MealPlan.objects.filter(week_start=monday_datetime).first()
+        
+        with transaction.atomic():
+            if monday_mealplan is not None:
+                monday_mealplan.delete()
+            in_progress_mealplan.week_start = monday_datetime
+            in_progress_mealplan.ai_in_progress = False
+
+        return "Successfully saved the current in-progress meal plan to start on the Monday, next week."
+
+    return save_mealplan_tool
 # ============================================================================
 # Recipe Creation Tools (InProgressRecipe)
 # ============================================================================
@@ -914,6 +947,8 @@ The general flow for creating and displaying meal plans is as follows:
     1. The meal plan object must be created with <tool_name>reset_mealplan_tool</tool_name>. After the meal plan is initially created, ask the user if they want to fill it in with their own options, or if you should fill it for them.
     2. The meal plan object's meal slots start off empty, and they can be filled with a call to <tool_name>edit_mealplan_tool</tool_name> for each.
     3. The meal plan can also be shown to the user as a formatted string with <tool_name>show_mealplan_tool</tool_name>. It is not necessary for all recipe slots to be filled.
+    4. Finally, the user can ask to save the meal plan being created. This can be done with <tool_name>show_mealplan_tool</tool_name>. This operation saves the current meal plan being edited, scheduling it for Monday of next week.
+    Note that saving the meal plan will overwrite whatever meal plan the user had scheduled for next week, and reset the meal plan that was being created during the current session. ONLY save the meal plan if the user EXPLICITLY asks you to.
 
 When showing the user their meal plan, keep the response short; do not include ingredients or instructions.
 When editing entries in the meal plan, do **NOT** use <tool_name>search_recipes_tool</tool_name> to find recipes. The <tool_name>edit_mealplan_tool</tool_name> will find recipes for you.
@@ -1014,6 +1049,7 @@ class NutritionistAgent:
             create_reset_mealplan_tool(self.user),
             create_edit_mealplan_tool(self.user),
             create_show_mealplan_tool(self.user),
+            create_save_mealplan_tool(),
 
             create_suggest_recipe_tool(),
 
