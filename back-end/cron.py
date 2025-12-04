@@ -4,6 +4,108 @@ import os
 from django.contrib.auth.models import User
 from api.models import MealPlan
 
+
+def daily_emails():
+  print("executed daily!")
+  cur_datetime = datetime.now()
+  cur_day = cur_datetime.day
+  cur_day_ofweek = cur_datetime.weekday()
+  cur_month = cur_datetime.month
+  subject = f"Daily Meal Plan: {cur_month}/{cur_day}"
+  sender = 'notifications@souschef.life'
+
+  mealplan_users = User.objects.all().filter(meal_plans__isnull=False)
+  for user in mealplan_users:
+    plan = user.meal_plans.first()
+    recipient = user.email
+    message = f'Hello, {user.username}!Here is your meal plan for the day:\n'
+    html_message = f'<p>Hello, {user.username}!</p><p>Here is your meal plan for the day:<p>'
+    
+
+    meals = plan.get_meals_for_day(cur_day_ofweek)
+    breakfast_servings = meals[0].servings
+    lunch_servings = meals[1].servings
+    dinner_servings= meals[2].servings
+    breakfast = meals[0].recipe
+    lunch = meals[1].recipe
+    dinner = meals[2].recipe
+    # breakfast nutrition
+    breakfast_cals = breakfast.calories_per_serving * breakfast_servings
+    breakfast_fat = breakfast.fat_g * breakfast_servings
+    breakfast_carbs = breakfast.carbs_g * breakfast_servings
+    breakfast_protein = breakfast.protein_g * breakfast_servings
+    # lunch nutrition
+    lunch_cals = lunch.calories_per_serving * lunch_servings
+    lunch_fat = lunch.fat_g * lunch_servings
+    lunch_carbs = lunch.carbs_g * lunch_servings
+    lunch_protein = lunch.protein_g * lunch_servings
+    # dinner nutrition
+    dinner_cals = dinner.calories_per_serving * dinner_servings
+    dinner_fat = dinner.fat_g * dinner_servings
+    dinner_carbs = dinner.carbs_g * dinner_servings
+    dinner_protein = dinner.protein_g * dinner_servings
+
+    # breakfast 
+    message += 'Breakfast:'
+    html_message += '<h1>\nBreakfast:</h1>'
+    message += breakfast.title + '\n'
+    html_message += f'<p>{breakfast.title}</p>'
+    #need to display this as a link, not a url
+    message += breakfast.image_url + '\n'
+    html_message += f'<img src={breakfast.image_url}\n/>'
+    message += '\nBreakfast Nutrition:\n'
+    html_message += '<p>\nBreakfast Nutrition:\n</p>'
+    message += f'Calories: {breakfast_cals} kCals\n'
+    html_message += f'<p>Calories: {breakfast_cals} kCals</p>'
+    message += f'Fat: {breakfast_fat} grams\n'
+    html_message += f'<p>Fat: {breakfast_fat} grams</p>'
+    message += f'Carbs: {breakfast_carbs} grams\n'
+    html_message += f'<p>Carbs: {breakfast_carbs} grams</p>'
+    message += f'Protein: {breakfast_protein} grams\n\n'
+    html_message += f'<p>Protein: {breakfast_protein} grams\n</p>'
+
+    # lunch
+    html_message += '<h1>\nLunch:\n</h1>'
+    message += lunch.title + '\n'
+    html_message += f'<p>{lunch.title}</p>'
+    #need to display this as a link, not a url
+    message += lunch.image_url + '\n'
+    html_message += f'<img src={lunch.image_url}/>'
+    message += '\nBreakfast Nutrition:\n'
+    html_message += '<p>\nBreakfast Nutrition:</p>'
+    message += f'Calories: {lunch_cals} kCals\n'
+    html_message += f'<p>Calories: {lunch_cals} kCals</p>'
+    message += f'Fat: {lunch_fat} grams\n'
+    html_message += f'<p>Fat: {lunch_fat} grams</p>'
+    message += f'Carbs: {lunch_carbs} grams\n'
+    html_message += f'<p>Carbs: {lunch_carbs} grams</p>'
+    message += f'Protein: {lunch_protein} grams\n\n'
+    html_message += f'<p>Protein: {lunch_protein} grams\n</p>'
+
+    # dinner
+
+    html_message += '<h1>\nDinner:\n</h1>'
+    message += dinner.title + '\n'
+    html_message += f'<p>{dinner.title}</p>'
+    #need to display this as a link, not a url
+    message += dinner.image_url + '\n'
+    html_message += f'<img src={dinner.image_url}\n/>'
+    message += '\nBreakfast Nutrition:\n'
+    html_message += '<p>\nBreakfast Nutrition:</p>'
+    message += f'Calories: {dinner_cals} kCals\n'
+    html_message += f'<p>Calories: {dinner_cals} kCals</p>'
+    message += f'Fat: {dinner_fat} grams\n'
+    html_message += f'<p>Fat: {dinner_fat} grams\n</p>'
+    message += f'Carbs: {dinner_carbs} grams\n'
+    html_message += f'<p>Carbs: {dinner_carbs} grams</p>'
+    message += f'Protein: {dinner_protein} grams\n\n'
+    html_message += f'<p>Protein: {dinner_protein} grams</p>'
+
+    message += '\nThank you for using SousChef!\nVisit our website at souschef.life\n</p>'
+    html_message += '<p>\nThank you for using SousChef!\nVisit our website at <a href="www.souschef.life">souschef.life</a><p>'
+    html_message = f'<html>\n<body>\n{html_message}\n</body>\n</html>'
+    send_mail(subject, message, sender, [recipient], fail_silently=True, html_message=html_message)
+'''
 def daily_emails():
   print("executed daily!")
   cur_datetime = datetime.now()
@@ -77,7 +179,7 @@ def daily_emails():
     
     message += '\nThank you for using SousChef!\nVisit our website at souschef.life\n'
     send_mail(subject, message, sender, [recipient])
-
+'''
 def weekly_emails():
   print("executed weekly!")
   cur_datetime = datetime.now()
