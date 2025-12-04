@@ -729,3 +729,45 @@ class DietRestrictedCuratedIngredient(models.Model):
 
     def __str__(self):
         return f"(diet:{self.diet.name},ingredient:{self.ingredient.name})"
+
+class ShoppingList(models.Model):
+    """
+    List of missing ingredients for a specific meal plan.
+    """
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='shopping_lists')
+    meal_plan = models.OneToOneField(
+        'MealPlan', 
+        on_delete=models.CASCADE, 
+        related_name='shopping_list'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Shopping List for {self.meal_plan}"
+
+
+class ShoppingListItem(models.Model):
+    """
+    A specific ingredient needed for the shopping list.
+    """
+    shopping_list = models.ForeignKey(
+        ShoppingList, 
+        on_delete=models.CASCADE, 
+        related_name='items'
+    )
+    curated_ingredient = models.ForeignKey(
+        'CuratedIngredient', 
+        on_delete=models.CASCADE, 
+        related_name='shopping_list_entries'
+    )
+
+    is_purchased = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ['is_purchased', 'curated_ingredient__name']
+        unique_together = ['shopping_list', 'curated_ingredient']
+
+    def __str__(self):
+        status = "[x]" if self.is_purchased else "[ ]"
+        return f"{status} {self.curated_ingredient.name}"

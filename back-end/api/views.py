@@ -24,15 +24,15 @@ from decimal import Decimal, InvalidOperation
 from .models import (
     Ingredient, DietaryIngredient, Diet, UserDiet,
     Recipe, CookedRecipe, Meal, FavoriteRecipe, UserInventory, UserCuratedInventory, OnboardingSubmission, RecipeIngredient, HealthDetails, RecipeTag, TaggedRecipe,
-    ChatConversation, ChatMessage, CuratedIngredient, MealPlan, MealPlanEntry, UserRecipe,
-    InProgressRecipe, InProgressRecipeIngredient, CookingSession
+    ChatConversation, ChatMessage, CuratedIngredient, RecipeCuratedIngredient, MealPlan, MealPlanEntry, UserRecipe,
+    InProgressRecipe, InProgressRecipeIngredient, CookingSession, ShoppingList, ShoppingListItem
 )
 from .serializers import (
     UserSerializer, GroupSerializer, UserRegistrationSerializer,
     IngredientSerializer, DietSerializer,
     CookedRecipeSerializer, MealSerializer, RecipeSerializer,
     ChatConversationSerializer, ChatMessageSerializer,
-    InProgressRecipeSerializer, CookingSessionSerializer
+    InProgressRecipeSerializer, CookingSessionSerializer, ShoppingListSerializer, ShoppingListItemSerializer
 )
 from .utils.recommended import compute_recommendations
 from zoneinfo import ZoneInfo
@@ -1860,3 +1860,43 @@ class CookingSessionHistory(APIView):
             {'success': True, 'message': f'Deleted {deleted_count} cooking session(s)'},
             status=status.HTTP_200_OK,
         )
+
+class MealPlanShoppingListView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, pk):
+        """
+        Return curated ingredients required by all recipes in the meal plan
+        that are NOT present in the user's curated inventory.
+        """
+        try:
+            meal_plan = MealPlan.objects.get(id=pk, user=request.user)
+        except MealPlan.DoesNotExist:
+            return Response({'error': 'Meal plan not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        # recipe IDs referenced by the meal plan
+        recipe_ids = meal_plan.entries.values_list('recipe_id', flat=True)
+
+        # required curated ingredient IDs (distinct)
+        required_qs = RecipeCuratedIngredient.objects.filter(recipe_id__in=recipe_ids)
+        required_ids = set(required_qs.values_list('curated_ingredient_id', flat=True))
+
+        # curated ingredient IDs the user already has
+        owned_ids = set(request.user.curated_inventory_items.values_list('curated_ingredient_id', flat=True))
+
+        # missing curated ingredient IDs
+        missing_ids = required_ids - owned_ids
+
+        # fetch missing CuratedIngredient objects
+        missing_qs = CuratedIngredient.objects.filter(id__in=missing_ids).order_by('-frequency', 'name')
+
+        # serialize and return
+        from .serializers import CuratedIngredientSerializer
+        serializer = CuratedIngredientSerializer(missing_qs, many=True, context={'request': request})
+
+        return Response({
+            'meal_plan_id': meal_plan.id,
+            'week_start': meal_plan.week_start,
+            'missing_count': len(missing_ids),
+            'missing_ingredients': serializer.data
+        }, status=status.HTTP_200_OK)

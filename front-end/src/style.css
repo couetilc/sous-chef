@@ -1866,11 +1866,6 @@ h1 {
   border-radius: 8px;
 }
 
-.nutrition-card h2 {
-  margin-top: 0;
-  color: var(--color-auburn);
-}
-
 /* Modal overlay */
 .modal-overlay {
   position: fixed;
@@ -1978,3 +1973,18 @@ h1 {
 }
 
 /* END MEAL PLAN PAGE */
+
+/* Shopping list card */
+.shopping-list-card {
+  grid-column: 1 / span 8;
+  background: #ffffff;
+  border-left: 4px solid var(--color-auburn);
+  padding: 14px;
+  margin-top: 16px;
+  border-radius: 8px;
+}
+.shopping-list-item {
+  padding: 6px 0;
+  border-bottom: 1px dashed #eee;
+  font-size: 0.98rem;
+}
