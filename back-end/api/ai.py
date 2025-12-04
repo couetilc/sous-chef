@@ -276,13 +276,13 @@ def create_reset_mealplan_tool(user: User):
             monday_datetime=today-timedelta(days=days_since_monday)
             mealPlan = MealPlan(
                 user=user,
-                week_start=datetime.datetime(2025, 11, 23, 6, 1, 53, 13941),
+                week_start=datetime(2025, 11, 23, 6, 1, 53, 13941),
                 ai_in_progress=True)
             #mealPlan = MealPlan(
             #    user=user,
             #    week_start=monday_datetime,
             #    ai_in_progress=True)
-            #mealPlan.save()
+            mealPlan.save()
 
         return "Successfully created meal plan."
 
@@ -420,14 +420,15 @@ def create_save_mealplan_tool(user: User):
 
         today = datetime.now()
         days_since_monday = today.weekday()
-        monday_datetime=today-timedelta(days=days_since_monday)
-        monday_mealplan = MealPlan.objects.filter(week_start=monday_datetime).first()
+        monday_datetime=today-timedelta(days=days_since_monday)+timedelta(days=7)
+        monday_mealplan = MealPlan.objects.filter(user=user, week_start=monday_datetime).first()
         
         with transaction.atomic():
             if monday_mealplan is not None:
                 monday_mealplan.delete()
             in_progress_mealplan.week_start = monday_datetime
             in_progress_mealplan.ai_in_progress = False
+            in_progress_mealplan.save()
 
         return "Successfully saved the current in-progress meal plan to start on the Monday, next week."
 
@@ -1049,7 +1050,7 @@ class NutritionistAgent:
             create_reset_mealplan_tool(self.user),
             create_edit_mealplan_tool(self.user),
             create_show_mealplan_tool(self.user),
-            create_save_mealplan_tool(),
+            create_save_mealplan_tool(self.user),
 
             create_suggest_recipe_tool(),
 
