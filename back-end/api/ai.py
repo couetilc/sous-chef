@@ -74,7 +74,8 @@ def create_search_recipes_tool(user: User):
         max_fat: int = None,
         max_carbs: int = None,
         max_total_time: int = None,
-        filter_diet_restricted: bool = False
+        filter_diet_restricted: bool = False,
+        page: int = 1
     ) -> str:
         """Search for recipes in the recipe library using full-text search.
 
@@ -94,6 +95,9 @@ def create_search_recipes_tool(user: User):
                            Includes both prep and cook time combined.
                            Examples: 30 for quick meals, 60 for moderate time commitment
             filter_diet_restricted: If True, remove all recipes containing ingredients conflicting with user dietary restrictions (optional)
+            page:   Current page of recipes which is being displayed, with default value set to page 1. (optional)
+                    Each page of recipes is 5 recipes long.
+                    If user asks for more recipes with some query to be displayed, you can call this tool again with the next page to get the next 5 recipes to show them.
 
         Returns:
             A formatted string containing recipe details (id, title, nutrition, ingredients, instructions, link)
@@ -127,7 +131,8 @@ def create_search_recipes_tool(user: User):
                 queryset = queryset.exclude(curated_ingredients__curated_ingredient__in=restricted_ingredients)
 
         # Limit to 5 results
-        recipes = queryset[:5]
+        slice_start = (page-1)*5
+        recipes = queryset[slice_start:slice_start+5]
 
         if not recipes:
             return "No recipes found matching the search criteria."
