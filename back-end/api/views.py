@@ -17,6 +17,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.pagination import PageNumberPagination
 from django.contrib.auth.models import User, Group
+import re
+from fractions import Fraction
 
 logger = logging.getLogger(__name__)
 from .serializers import UserSerializer, GroupSerializer, UserRegistrationSerializer, IngredientSerializer, DietSerializer, CookedRecipeSerializer, MealSerializer, OnboardSerializer, SettingsIngredientSerializer, UserInventorySerializer, UserCuratedInventorySerializer, TagSerializer, UserRecipeSerializer, CuratedIngredientSerializer, MealPlanSerializer, MealPlanEntrySerializer
@@ -1720,7 +1722,7 @@ class ClearSousChefConversation(APIView):
 
         return Response(
             {'success': True, 'message': 'SousChef conversation cleared'},
-            status=status.HTTP_200_OK,
+            status=status.HTTP_200_OK
         )
 
 
@@ -1868,6 +1870,10 @@ class MealPlanShoppingListView(APIView):
         """
         Return curated ingredients required by all recipes in the meal plan
         that are NOT present in the user's curated inventory.
+
+        Also attempts to parse quantities from the recipe.ingredients field
+        (pipe '|' separated) and includes a best-effort "amount" string for
+        each missing ingredient in the response.
         """
         try:
             meal_plan = MealPlan.objects.get(id=pk, user=request.user)
@@ -1875,7 +1881,7 @@ class MealPlanShoppingListView(APIView):
             return Response({'error': 'Meal plan not found'}, status=status.HTTP_404_NOT_FOUND)
 
         # recipe IDs referenced by the meal plan
-        recipe_ids = meal_plan.entries.values_list('recipe_id', flat=True)
+        recipe_ids = list(meal_plan.entries.values_list('recipe_id', flat=True))
 
         # required curated ingredient IDs (distinct)
         required_qs = RecipeCuratedIngredient.objects.filter(recipe_id__in=recipe_ids)
@@ -1890,13 +1896,107 @@ class MealPlanShoppingListView(APIView):
         # fetch missing CuratedIngredient objects
         missing_qs = CuratedIngredient.objects.filter(id__in=missing_ids).order_by('-frequency', 'name')
 
-        # serialize and return
+        # Basic serializer for curated ingredients
         from .serializers import CuratedIngredientSerializer
         serializer = CuratedIngredientSerializer(missing_qs, many=True, context={'request': request})
+        serialized = serializer.data
+
+        # Early return if nothing missing
+        if not missing_qs.exists():
+            return Response({
+                'meal_plan_id': meal_plan.id,
+                'week_start': meal_plan.week_start,
+                'missing_count': 0,
+                'missing_ingredients': []
+            }, status=status.HTTP_200_OK)
+
+        # Build lookup of curated name (lowercased) by id
+        id_to_name = {ci.id: ci.name.lower() for ci in missing_qs}
+
+        # Best-effort regex to parse leading quantity and optional unit
+        # Supports: "1", "1.5", "1/2", "1 1/2" optionally followed by a unit token(s)
+        qty_unit_re = re.compile(
+            r'^\s*(?P<qty>\d+\s+\d+/\d+|\d+/\d+|\d+(?:\.\d+)?)'          # quantity (mixed, fraction, or decimal)
+            r'(?:\s*(?P<unit>[a-zA-Z]+(?:\s[a-zA-Z]+){0,2}))?'          # optional unit (1-3 words)
+            r'\s+(?P<rest>.+)$'                                         # rest of the ingredient text
+        )
+
+        def parse_quantity(qtext):
+            qtext = qtext.strip()
+            # mixed number like "1 1/2"
+            if ' ' in qtext and '/' in qtext:
+                whole, frac = qtext.split(' ', 1)
+                return float(int(whole) + Fraction(frac))
+            if '/' in qtext:
+                return float(Fraction(qtext))
+            return float(qtext)
+
+        # Prepare accumulators: amounts[cid][unit] = numeric sum, notes[cid] = list of raw fragments
+        amounts = {cid: {} for cid in missing_ids}
+        notes = {cid: [] for cid in missing_ids}
+
+        # Load all referenced recipes and parse their ingredients fields
+        recipes = Recipe.objects.filter(id__in=recipe_ids).only('id', 'ingredients', 'title')
+        for recipe in recipes:
+            ingredients_field = recipe.ingredients or ''
+            # Split by pipe '|' and strip fragments
+            fragments = [f.strip() for f in ingredients_field.split('|') if f.strip()]
+            for frag in fragments:
+                frag_lc = frag.lower()
+                # Check each missing curated ingredient name for a substring match
+                for cid, cname in id_to_name.items():
+                    if cname in frag_lc:
+                        m = qty_unit_re.match(frag)
+                        if m:
+                            qty_raw = m.group('qty')
+                            unit_raw = (m.group('unit') or '').strip()  # keep the parsed unit text
+                            try:
+                                qty_val = parse_quantity(qty_raw)
+                                # Use the parsed unit string as the key (lowercased); if empty -> 'count'
+                                unit_key = unit_raw.lower() if unit_raw else 'count'
+                                amounts[cid].setdefault(unit_key, 0.0)
+                                amounts[cid][unit_key] += float(qty_val)
+                            except Exception:
+                                # parsing failed; keep the fragment as a note
+                                notes[cid].append(frag)
+                        else:
+                            # No leading numeric qty found; keep fragment as a note
+                            notes[cid].append(frag)
+
+        # ----- very small, robust assembly: sum per parsed unit and render "<sum> <unit>" joined with " +" -----
+        def fmt_number(v):
+            if abs(v - round(v)) < 1e-8:
+                return str(int(round(v)))
+            s = f"{round(v,2):.2f}"
+            return s.rstrip('0').rstrip('.') if '.' in s else s
+
+        missing_list = []
+        for item in serialized:
+            cid = item.get('id')
+            unit_map = amounts.get(cid, {}) or {}
+            parts = []
+
+            # For each parsed unit (use the exact unit string captured), format sum + unit.
+            for unit, total in unit_map.items():
+                if unit == 'count':
+                    parts.append(fmt_number(total))  # plain number if no unit
+                else:
+                    parts.append(f"{fmt_number(total)} {unit}")
+
+            # If nothing parsed, show first raw fragment note
+            if not parts:
+                note_list = notes.get(cid, []) or []
+                amount_str = note_list[0] if note_list else None
+            else:
+                amount_str = " + ".join(parts)
+
+            new_item = dict(item)
+            new_item['amount'] = amount_str
+            missing_list.append(new_item)
 
         return Response({
             'meal_plan_id': meal_plan.id,
             'week_start': meal_plan.week_start,
-            'missing_count': len(missing_ids),
-            'missing_ingredients': serializer.data
+            'missing_count': len(missing_list),
+            'missing_ingredients': missing_list
         }, status=status.HTTP_200_OK)
