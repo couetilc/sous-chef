@@ -51,6 +51,9 @@ class RecipeManager(models.Manager):
         Uses PostgreSQL full-text search with relevance ranking. Title matches are weighted
         highest, followed by ingredients, then instructions.
 
+        Splits query into terms and uses OR logic to find recipes matching ANY term,
+        with SearchRank providing relevance scoring (recipes matching more terms rank higher).
+
         Args:
             query_text: Search query string (supports multiple words, phrases with quotes)
 
@@ -60,10 +63,24 @@ class RecipeManager(models.Manager):
         if not query_text or not query_text.strip():
             return self.none()
 
-        # Create search query with proper configuration for English language
-        search_query = SearchQuery(query_text, config='english')
+        # Split query into terms and OR them together for better recall
+        # This allows "easy pork recipes with fennel" to match recipes with pork/fennel
+        # even if "easy" or "recipes" don't appear in the recipe text
+        from functools import reduce
+        import operator
+
+        terms = query_text.strip().split()
+        if not terms:
+            return self.none()
+
+        # Create individual SearchQuery for each term
+        queries = [SearchQuery(term, config='english') for term in terms]
+
+        # Combine with OR operator
+        search_query = reduce(operator.or_, queries)
 
         # Use the pre-computed search_vector field with relevance ranking
+        # SearchRank will score recipes higher if they match more terms
         return self.annotate(
             search_rank=SearchRank('search_vector', search_query)
         ).filter(
@@ -696,3 +713,45 @@ class DietRestrictedCuratedIngredient(models.Model):
 
     def __str__(self):
         return f"(diet:{self.diet.name},ingredient:{self.ingredient.name})"
+
+class ShoppingList(models.Model):
+    """
+    List of missing ingredients for a specific meal plan.
+    """
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='shopping_lists')
+    meal_plan = models.OneToOneField(
+        'MealPlan', 
+        on_delete=models.CASCADE, 
+        related_name='shopping_list'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Shopping List for {self.meal_plan}"
+
+
+class ShoppingListItem(models.Model):
+    """
+    A specific ingredient needed for the shopping list.
+    """
+    shopping_list = models.ForeignKey(
+        ShoppingList, 
+        on_delete=models.CASCADE, 
+        related_name='items'
+    )
+    curated_ingredient = models.ForeignKey(
+        'CuratedIngredient', 
+        on_delete=models.CASCADE, 
+        related_name='shopping_list_entries'
+    )
+
+    is_purchased = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ['is_purchased', 'curated_ingredient__name']
+        unique_together = ['shopping_list', 'curated_ingredient']
+
+    def __str__(self):
+        status = "[x]" if self.is_purchased else "[ ]"
+        return f"{status} {self.curated_ingredient.name}"

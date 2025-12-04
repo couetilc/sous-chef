@@ -467,6 +467,24 @@ export class Api {
       method: 'GET',
     })
   }
+
+  async getCookingSessionHistory() {
+    return this.fetch(`/api/cooking_session/history/`, {
+      method: 'GET',
+    })
+  }
+
+  async clearCookingSessionHistory() {
+    return this.fetch(`/api/cooking_session/history/`, {
+      method: 'DELETE',
+    })
+  }
+
+  async getShoppingList({ meal_plan_id }) {
+    return this.fetch(`/api/meal_plans/${meal_plan_id}/shopping_list/`, {
+      method: 'GET',
+    })
+  }
 }
 
 export function ApiProvider(props) {

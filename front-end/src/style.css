@@ -1842,7 +1842,6 @@ h1 {
   min-height: 40px;
   border-bottom: 1px solid #ddd3cf;
   line-height: 1.25;
-  transition: background 0.15s ease, transform 0.15s ease;
 }
 
 .meal-cell:hover {
@@ -1865,11 +1864,6 @@ h1 {
   padding: 18px;
   margin-top: 15px;
   border-radius: 8px;
-}
-
-.nutrition-card h2 {
-  margin-top: 0;
-  color: var(--color-auburn);
 }
 
 /* Modal overlay */
@@ -1925,7 +1919,6 @@ h1 {
   justify-content: center;
   cursor: pointer;
   color: #444;
-  transition: background 0.2s, color 0.2s;
 }
 
 .modal-close:hover {
@@ -1953,6 +1946,26 @@ h1 {
   line-height: 1.6;
 }
 
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.modal-btn {
+  background: var(--color-auburn);
+  color: white;
+  text-decoration: none;
+  padding: 10px 16px;
+  font-weight: 600;
+  border-radius: 8px;
+  margin-bottom: 14px;
+}
+
+.modal-btn:hover {
+  background: #802a1c;
+  transform: translateY(-1px);
+}
+
 /* Fade in animation */
 @keyframes fadeIn {
   from { opacity: 0; transform: scale(0.95); }
@@ -1960,3 +1973,18 @@ h1 {
 }
 
 /* END MEAL PLAN PAGE */
+
+/* Shopping list card */
+.shopping-list-card {
+  grid-column: 1 / span 8;
+  background: #ffffff;
+  border-left: 4px solid var(--color-auburn);
+  padding: 14px;
+  margin-top: 16px;
+  border-radius: 8px;
+}
+.shopping-list-item {
+  padding: 6px 0;
+  border-bottom: 1px dashed #eee;
+  font-size: 0.98rem;
+}

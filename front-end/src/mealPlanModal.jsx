@@ -8,7 +8,7 @@ export default function MealPlanModal({ meal, onClose }) {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={e => e.stopPropagation()}>
+      <div className="modal-content modal-layout" onClick={e => e.stopPropagation()}>
         
         <button className="modal-close" onClick={onClose}>×</button>
 
@@ -27,6 +27,15 @@ export default function MealPlanModal({ meal, onClose }) {
           <li>Fat: {recipe.fat_g * meal.servings}g</li>
           <li>Carbs: {recipe.carbs_g * meal.servings}g</li>
         </ul>
+
+        <div className="modal-footer">
+          <a
+            href={"/sous-chef/" + recipe.id}
+            className="modal-btn"
+          >
+            Cook Now →
+          </a>
+        </div>
       </div>
     </div>
   );

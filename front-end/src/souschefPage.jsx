@@ -33,6 +33,7 @@ export default function SousChef() {
   const { api } = useApi();
 
   const [cookingSession, setCookingSession] = useState(null);
+  const [sessionHistory, setSessionHistory] = useState([]);
 
   const [currentMessage, setCurrentMessage] = useState('');
   const [messages, setMessages] = useState([]);
@@ -43,7 +44,146 @@ export default function SousChef() {
   const [recipe, setRecipe] = useState(null);
   const [recipeError, setRecipeError] = useState(null);
 
+  // Voice communication state
+  const [isListening, setIsListening] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [speechSupported, setSpeechSupported] = useState(true);
+  const [autoPlayResponses, setAutoPlayResponses] = useState(true);
+  const [availableVoices, setAvailableVoices] = useState([]);
+  const [selectedVoice, setSelectedVoice] = useState(null);
+  const recognitionRef = useRef(null);
+  const synthRef = useRef(window.speechSynthesis);
+  const autoSendAfterSpeechRef = useRef(true);
+  const lastSpokenMessageIdRef = useRef(null);
+
   console.log('SousChefPage recipe id:', id);
+
+  // Initialize speech recognition
+  useEffect(() => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    
+    if (!SpeechRecognition) {
+      console.warn('Speech recognition not supported in this browser');
+      setSpeechSupported(false);
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = 'en-US';
+
+    recognition.onstart = () => {
+      console.log('Speech recognition started');
+      setIsListening(true);
+    };
+
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      console.log('Speech recognized:', transcript);
+      setCurrentMessage(transcript);
+      setIsListening(false);
+      
+      // Auto-send the message after voice input
+      if (autoSendAfterSpeechRef.current && transcript.trim()) {
+        // Need to wait for state update, then trigger chat
+        setTimeout(() => {
+          handleVoiceAutoSend(transcript);
+        }, 150);
+      }
+    };
+
+    recognition.onerror = (event) => {
+      console.error('Speech recognition error:', event.error);
+      setIsListening(false);
+      if (event.error === 'not-allowed') {
+        alert('Microphone access denied. Please enable microphone permissions.');
+      }
+    };
+
+    recognition.onend = () => {
+      console.log('Speech recognition ended');
+      setIsListening(false);
+    };
+
+    recognitionRef.current = recognition;
+
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.abort();
+      }
+    };
+  }, []);
+
+  // Load available voices and select a good default
+  useEffect(() => {
+    const loadVoices = () => {
+      const voices = synthRef.current.getVoices();
+      setAvailableVoices(voices);
+      
+      if (voices.length > 0 && !selectedVoice) {
+        // Try to find a good male English voice for a chef
+        // Prefer voices with these characteristics for a chef persona
+        const preferredVoices = [
+          voices.find(v => v.name.includes('Daniel') && v.lang.startsWith('en')),
+          voices.find(v => v.name.includes('Fred') && v.lang.startsWith('en')),
+          voices.find(v => v.name.includes('Thomas') && v.lang.startsWith('en')),
+          voices.find(v => v.name.includes('Male') && v.lang.startsWith('en')),
+          voices.find(v => v.name.includes('Gordon') && v.lang.startsWith('en')),
+          voices.find(v => v.lang.startsWith('en-GB')), // British accent works well for cooking
+          voices.find(v => v.lang.startsWith('en-US')),
+          voices.find(v => v.lang.startsWith('en')),
+        ].filter(Boolean);
+        
+        const defaultVoice = preferredVoices[0] || voices[0];
+        setSelectedVoice(defaultVoice);
+        console.log('Selected voice:', defaultVoice?.name);
+      }
+    };
+
+    // Load voices immediately
+    loadVoices();
+    
+    // Some browsers load voices asynchronously
+    if (synthRef.current.onvoiceschanged !== undefined) {
+      synthRef.current.onvoiceschanged = loadVoices;
+    }
+    
+    return () => {
+      if (synthRef.current) {
+        synthRef.current.onvoiceschanged = null;
+      }
+    };
+  }, [selectedVoice]);
+
+  // Cleanup speech synthesis on unmount
+  useEffect(() => {
+    return () => {
+      if (synthRef.current) {
+        synthRef.current.cancel();
+      }
+    };
+  }, []);
+
+  // Clear messages, conversation, and cooking session when navigating to a different recipe
+  useEffect(() => {
+    setMessages([]);
+    setCookingSession(null); // Reset cooking session state
+    // Stop any ongoing speech
+    if (synthRef.current) {
+      synthRef.current.cancel();
+      setIsSpeaking(false);
+    }
+    // Clear the backend conversation as well
+    const clearConversation = async () => {
+      try {
+        await api.clearSousChefConversation();
+      } catch (err) {
+        console.error('Failed to clear SousChef conversation on navigation:', err);
+      }
+    };
+    clearConversation();
+  }, [id, api]);
 
   const placeholderRecipe = {
     title: 'Garlic Butter Chicken with Veggies',
@@ -84,41 +224,57 @@ export default function SousChef() {
     };
   }, [api, id]);
 
-  // Load or start cooking session (always active)
+  // Load or start cooking session for the current recipe
   useEffect(() => {
     if (!id) return;
 
     let cancelled = false;
 
-    async function ensureCookingSession() {
+    async function loadOrStartSession() {
+      console.log('loadOrStartSession called for recipe ID:', id);
+      
       try {
-        const data = await api.getCookingSession({ recipe_id: Number(id) });
-
-        // If a session exists, use it
-        if (!cancelled && data && data.id) {
-          setCookingSession(data);
+        // First try to get existing active session
+        const existingSession = await api.getCookingSession({ recipe_id: Number(id) });
+        console.log('getCookingSession response:', existingSession);
+        
+        if (!cancelled && existingSession && existingSession.id) {
+          // Resume existing session
+          console.log('Resuming existing cooking session:', existingSession);
+          setCookingSession(existingSession);
+          return; // Exit early
         }
-        // If no session, start a new one so highlighting always works
-        else if (!cancelled) {
+      } catch (err) {
+        // If we get a 404, there's no active session - that's expected
+        console.log('getCookingSession error (expected 404):', err.status, err);
+      }
+
+      // If we get here, either there was no session or we got a 404
+      // Start a new session
+      if (!cancelled) {
+        console.log('Starting new cooking session for recipe:', id);
+        try {
           const newSession = await api.startCookingSession({
             recipe_id: Number(id),
           });
-          if (!cancelled) {
+          console.log('startCookingSession response:', newSession);
+          if (!cancelled && newSession) {
             setCookingSession(newSession);
+            console.log('Session state set to:', newSession);
           }
+        } catch (startErr) {
+          console.error('Failed to start new cooking session:', startErr);
         }
-      } catch (err) {
-        console.error('Failed to load or start cooking session:', err);
       }
     }
 
-    ensureCookingSession();
+    loadOrStartSession();
     return () => {
       cancelled = true;
     };
   }, [api, id]);
 
-  // Load SousChef conversation
+  // Load SousChef conversation (clear when recipe changes)
   useEffect(() => {
     async function loadConversation() {
       try {
@@ -131,18 +287,170 @@ export default function SousChef() {
       }
     }
     loadConversation();
+  }, [api, id]);
+
+  // Load cooking session history
+  useEffect(() => {
+    async function loadHistory() {
+      try {
+        const history = await api.getCookingSessionHistory();
+        setSessionHistory(history || []);
+      } catch (err) {
+        console.error('Failed to load cooking session history:', err);
+      }
+    }
+    loadHistory();
   }, [api]);
 
-  // Auto scroll chat
+  // Auto scroll chat and speak assistant responses
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    
+    // Speak the latest assistant message if autoplay is enabled
+    if (autoPlayResponses && messages.length > 0) {
+      const lastMessage = messages[messages.length - 1];
+      if (lastMessage.role === 'assistant' && lastMessage.id !== lastSpokenMessageIdRef.current) {
+        // Only speak if this is a new message we haven't spoken yet
+        lastSpokenMessageIdRef.current = lastMessage.id;
+        speakText(lastMessage.content);
+      }
+    }
+  }, [messages, autoPlayResponses]);
+
+  // Voice input functions
+  function startListening() {
+    if (!recognitionRef.current || isListening) return;
+    
+    try {
+      // Stop any ongoing speech
+      if (synthRef.current) {
+        synthRef.current.cancel();
+        setIsSpeaking(false);
+      }
+      
+      recognitionRef.current.start();
+    } catch (err) {
+      console.error('Failed to start speech recognition:', err);
+    }
+  }
+
+  function stopListening() {
+    if (!recognitionRef.current || !isListening) return;
+    
+    try {
+      recognitionRef.current.stop();
+    } catch (err) {
+      console.error('Failed to stop speech recognition:', err);
+    }
+  }
+
+  // Text-to-speech function
+  function speakText(text) {
+    if (!synthRef.current) return;
+    
+    // Cancel any ongoing speech
+    synthRef.current.cancel();
+    
+    // Remove markdown formatting for better speech
+    const cleanText = text
+      .replace(/[*_~`]/g, '') // Remove markdown formatting
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Convert links to just text
+      .replace(/#+\s/g, '') // Remove heading markers
+      .replace(/\n+/g, '. '); // Convert newlines to pauses
+    
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    
+    // Use selected voice if available
+    if (selectedVoice) {
+      utterance.voice = selectedVoice;
+      utterance.lang = selectedVoice.lang;
+    } else {
+      utterance.lang = 'en-US';
+    }
+    
+    utterance.rate = 0.95; // Slightly slower for clarity
+    utterance.pitch = 1.0;
+    
+    utterance.onstart = () => {
+      setIsSpeaking(true);
+    };
+    
+    utterance.onend = () => {
+      setIsSpeaking(false);
+    };
+    
+    utterance.onerror = (event) => {
+      console.error('Speech synthesis error:', event);
+      setIsSpeaking(false);
+    };
+    
+    synthRef.current.speak(utterance);
+  }
+
+  function stopSpeaking() {
+    if (synthRef.current) {
+      synthRef.current.cancel();
+      setIsSpeaking(false);
+    }
+  }
+
+  // Handle auto-send after voice input
+  async function handleVoiceAutoSend(transcript) {
+    if (!transcript?.trim()) return;
+
+    setLoading(true);
+    setError(false);
+    
+    // Stop any ongoing speech
+    stopSpeaking();
+
+    try {
+      const payload = {
+        message: transcript,
+      };
+      if (id) {
+        payload.recipe_id = Number(id);
+      }
+
+      const response = await api.sousChefChat(payload);
+      setMessages(response.messages);
+
+      // Update cooking session if included in response
+      if (response.cooking_session) {
+        setCookingSession(response.cooking_session);
+      }
+
+      // Check if backend signaled to end the session
+      if (response.should_end_session) {
+        // Clear the cooking session state
+        setCookingSession(null);
+        
+        // Reload session history to show the newly completed session
+        try {
+          const history = await api.getCookingSessionHistory();
+          setSessionHistory(history || []);
+        } catch (err) {
+          console.error('Failed to reload session history:', err);
+        }
+      }
+
+      setCurrentMessage('');
+    } catch (err) {
+      console.error('SousChef chat error:', err);
+      setError(true);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   async function chat() {
     if (!currentMessage?.trim()) return;
 
     setLoading(true);
     setError(false);
+    
+    // Stop any ongoing speech when user sends a message
+    stopSpeaking();
 
     try {
       const payload = {
@@ -158,6 +466,20 @@ export default function SousChef() {
       // Update cooking session if included in response
       if (response.cooking_session) {
         setCookingSession(response.cooking_session);
+      }
+
+      // Check if backend signaled to end the session
+      if (response.should_end_session) {
+        // Clear the cooking session state
+        setCookingSession(null);
+        
+        // Reload session history to show the newly completed session
+        try {
+          const history = await api.getCookingSessionHistory();
+          setSessionHistory(history || []);
+        } catch (err) {
+          console.error('Failed to reload session history:', err);
+        }
       }
 
       setCurrentMessage('');
@@ -178,6 +500,36 @@ export default function SousChef() {
       setError(false);
     } catch (err) {
       console.error('SousChef clear error:', err);
+      setError(true);
+    }
+  }
+
+  async function handleEndSession() {
+    if (!id || !cookingSession) return;
+    
+    if (!confirm('End this cooking session? This will be saved to your session history.')) return;
+
+    // Stop any ongoing speech
+    stopSpeaking();
+
+    try {
+      await api.endCookingSession({ recipe_id: Number(id) });
+      
+      // Reload the conversation to show the completion message
+      const response = await api.getSousChefConversation();
+      if (response.messages) {
+        setMessages(response.messages);
+      }
+      
+      // Reload session history
+      const history = await api.getCookingSessionHistory();
+      setSessionHistory(history || []);
+      
+      // Clear the cooking session
+      setCookingSession(null);
+      setError(false);
+    } catch (err) {
+      console.error('Failed to end cooking session:', err);
       setError(true);
     }
   }
@@ -214,6 +566,22 @@ export default function SousChef() {
             {id && (
               <div style={{ fontSize: 13, color: '#777', marginTop: 2 }}>
                 Cooking recipe ID: {id}
+              </div>
+            )}
+            {cookingSession && (
+              <div
+                style={{
+                  display: 'inline-block',
+                  marginTop: 8,
+                  padding: '6px 12px',
+                  borderRadius: 999,
+                  backgroundColor: '#aa0808ff',
+                  color: '#fff',
+                  fontSize: 13,
+                  fontWeight: 600,
+                }}
+              >
+                Cooking Session Active
               </div>
             )}
           </div>
@@ -359,15 +727,39 @@ export default function SousChef() {
               maxHeight: 700,
             }}
           >
-            <h2 style={{ marginTop: 0, marginBottom: 6, fontSize: 20 }}>
-              Ask SousChef
-            </h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+              <h2 style={{ margin: 0, fontSize: 20 }}>
+                Ask SousChef
+              </h2>
+              {cookingSession && (
+                <button
+                  type="button"
+                  onClick={handleEndSession}
+                  disabled={loading}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: 999,
+                    border: '1px solid #a83232',
+                    backgroundColor: '#a83232',
+                    color: '#fff',
+                    cursor: loading ? 'not-allowed' : 'pointer',
+                    fontSize: 14,
+                    fontWeight: 600,
+                    transition: 'all 0.2s ease',
+                  }}
+                  onMouseOver={(e) => !loading && (e.target.style.backgroundColor = '#8b2a2a')}
+                  onMouseOut={(e) => !loading && (e.target.style.backgroundColor = '#a83232')}
+                >
+                  That&apos;s a wrap!
+                </button>
+              )}
+            </div>
             <div style={{ fontSize: 13, color: '#666', marginBottom: 8 }}>
               Prompt suggestions:
               <ul style={{ margin: '4px 0 0 16px', padding: 0 }}>
-                <li>“Can I substitute broccoli for green beans?”</li>
-                <li>“How do I know when the chicken is cooked?”</li>
-                <li>“Let&apos;s move on to the next step.”</li>
+                <li>"Can I substitute broccoli for green beans?"</li>
+                <li>"How do I know when the chicken is cooked?"</li>
+                <li>"Let&apos;s move on to the next step."</li>
               </ul>
             </div>
 
@@ -444,6 +836,130 @@ export default function SousChef() {
             </div>
 
             <div className="chat-input" style={{ marginTop: 'auto' }}>
+              {/* Voice controls */}
+              {speechSupported && (
+                <div
+                  className="voice-controls"
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: 8,
+                    padding: '8px 12px',
+                    backgroundColor: '#f9f9f9',
+                    borderRadius: 6,
+                    border: '1px solid #e5e5e5',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <button
+                      type="button"
+                      onClick={isListening ? stopListening : startListening}
+                      disabled={loading}
+                      title={isListening ? 'Stop listening' : 'Start voice input'}
+                      style={{
+                        padding: '8px 16px',
+                        borderRadius: 999,
+                        border: isListening ? '2px solid #dc3545' : '2px solid #a83232',
+                        backgroundColor: isListening ? '#dc3545' : '#fff',
+                        color: isListening ? '#fff' : '#a83232',
+                        cursor: loading ? 'not-allowed' : 'pointer',
+                        fontSize: 14,
+                        fontWeight: 600,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        transition: 'all 0.2s ease',
+                      }}
+                    >
+                      <span style={{ fontSize: 16 }}>🎤</span>
+                      {isListening ? 'Listening...' : 'Voice Input'}
+                    </button>
+                    
+                    {isSpeaking && (
+                      <button
+                        type="button"
+                        onClick={stopSpeaking}
+                        title="Stop speaking"
+                        style={{
+                          padding: '8px 16px',
+                          borderRadius: 999,
+                          border: '2px solid #ff6b6b',
+                          backgroundColor: '#ff6b6b',
+                          color: '#fff',
+                          cursor: 'pointer',
+                          fontSize: 14,
+                          fontWeight: 600,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          transition: 'all 0.2s ease',
+                        }}
+                      >
+                        <span style={{ fontSize: 16 }}>🔊</span>
+                        Stop Speaking
+                      </button>
+                    )}
+                  </div>
+                  
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    {availableVoices.length > 0 && (
+                      <select
+                        value={selectedVoice?.name || ''}
+                        onChange={(e) => {
+                          const voice = availableVoices.find(v => v.name === e.target.value);
+                          setSelectedVoice(voice);
+                          console.log('Voice changed to:', voice?.name);
+                        }}
+                        style={{
+                          padding: '4px 8px',
+                          borderRadius: 4,
+                          border: '1px solid #ddd',
+                          fontSize: 12,
+                          cursor: 'pointer',
+                          backgroundColor: '#fff',
+                          maxWidth: 180,
+                        }}
+                        title="Select voice for Sous Chef"
+                      >
+                        {availableVoices
+                          .filter(v => v.lang.startsWith('en'))
+                          .map((voice) => (
+                            <option key={voice.name} value={voice.name}>
+                              {voice.name.split(' ').slice(0, 2).join(' ')}
+                            </option>
+                          ))}
+                      </select>
+                    )}
+                    
+                    <label
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        fontSize: 13,
+                        color: '#666',
+                        cursor: 'pointer',
+                        userSelect: 'none',
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={autoPlayResponses}
+                        onChange={(e) => {
+                          setAutoPlayResponses(e.target.checked);
+                          if (!e.target.checked) {
+                            stopSpeaking();
+                          }
+                        }}
+                        style={{ cursor: 'pointer' }}
+                      />
+                      Auto-play
+                    </label>
+                  </div>
+                </div>
+              )}
+              
               <textarea
                 value={currentMessage}
                 onChange={(e) => setCurrentMessage(e.target.value)}
@@ -455,8 +971,8 @@ export default function SousChef() {
                     }
                   }
                 }}
-                disabled={loading}
-                placeholder="Ask SousChef to clarify an instruction, give cooking tips, or move on to the next step..."
+                disabled={loading || isListening}
+                placeholder={isListening ? "Listening... speak now" : "Ask SousChef to clarify an instruction, give cooking tips, or move on to the next step..."}
                 style={{
                   width: '100%',
                   minHeight: 80,
@@ -465,9 +981,10 @@ export default function SousChef() {
                   marginBottom: 8,
                   padding: 8,
                   borderRadius: 6,
-                  border: '1px solid #ddd',
+                  border: isListening ? '2px solid #dc3545' : '1px solid #ddd',
                   fontSize: 14,
                   boxSizing: 'border-box',
+                  backgroundColor: isListening ? '#fff5f5' : '#fff',
                 }}
               />
               <div
@@ -514,7 +1031,7 @@ export default function SousChef() {
                     type="button"
                     className="button"
                     onClick={chat}
-                    disabled={loading || !currentMessage?.trim()}
+                    disabled={loading || !currentMessage?.trim() || isListening}
                     style={{
                       padding: '6px 18px',
                       borderRadius: 999,
@@ -522,7 +1039,7 @@ export default function SousChef() {
                       backgroundColor: loading ? '#f3a3a3' : '#a83232',
                       color: '#fff',
                       cursor:
-                        loading || !currentMessage?.trim()
+                        loading || !currentMessage?.trim() || isListening
                           ? 'not-allowed'
                           : 'pointer',
                       fontSize: 14,
@@ -535,6 +1052,135 @@ export default function SousChef() {
             </div>
           </section>
         </div>
+
+        {/* Session History Panel */}
+        {sessionHistory.length > 0 && (
+          <section
+            className="session-history-panel"
+            style={{
+              marginTop: 24,
+              border: '1px solid #e3e3e3',
+              borderRadius: 10,
+              padding: 16,
+              backgroundColor: '#fafafa',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <h2 style={{ margin: 0, fontSize: 18 }}>
+                Previous Cooking Sessions
+              </h2>
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!confirm('Clear all cooking session history? This cannot be undone.')) return;
+                  try {
+                    await api.clearCookingSessionHistory();
+                    setSessionHistory([]);
+                  } catch (err) {
+                    console.error('Failed to clear session history:', err);
+                    alert('Failed to clear session history. Please try again.');
+                  }
+                }}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: 6,
+                  border: '1px solid #dc3545',
+                  backgroundColor: '#fff',
+                  color: '#dc3545',
+                  cursor: 'pointer',
+                  fontSize: 13,
+                  fontWeight: 500,
+                  transition: 'all 0.2s ease',
+                }}
+                onMouseOver={(e) => {
+                  e.target.style.backgroundColor = '#dc3545';
+                  e.target.style.color = '#fff';
+                }}
+                onMouseOut={(e) => {
+                  e.target.style.backgroundColor = '#fff';
+                  e.target.style.color = '#dc3545';
+                }}
+              >
+                Clear All History
+              </button>
+            </div>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+                gap: 12,
+              }}
+            >
+              {sessionHistory.map((session) => {
+                const sessionDate = new Date(session.end_time);
+                const formattedDate = sessionDate.toLocaleDateString('en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric',
+                });
+                const formattedTime = sessionDate.toLocaleTimeString('en-US', {
+                  hour: 'numeric',
+                  minute: '2-digit',
+                  hour12: true,
+                });
+
+                return (
+                  <div
+                    key={session.id}
+                    onClick={() => navigate(`/sous-chef/${session.recipe_id}`)}
+                    style={{
+                      padding: 12,
+                      backgroundColor: '#fff',
+                      border: '1px solid #ddd',
+                      borderRadius: 8,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                    }}
+                    onMouseOver={(e) => {
+                      e.currentTarget.style.borderColor = '#a83232';
+                      e.currentTarget.style.boxShadow = '0 2px 8px rgba(168, 50, 50, 0.1)';
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.borderColor = '#ddd';
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: 14,
+                        fontWeight: 600,
+                        color: '#333',
+                        marginBottom: 6,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {session.recipe_title}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 12,
+                        color: '#666',
+                        marginBottom: 4,
+                      }}
+                    >
+                      Completed: {formattedDate}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 11,
+                        color: '#999',
+                      }}
+                    >
+                      {formattedTime}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
       </div>
     </div>
   );

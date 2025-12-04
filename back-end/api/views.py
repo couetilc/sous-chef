@@ -17,6 +17,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.pagination import PageNumberPagination
 from django.contrib.auth.models import User, Group
+import re
+from fractions import Fraction
 
 logger = logging.getLogger(__name__)
 from .serializers import UserSerializer, GroupSerializer, UserRegistrationSerializer, IngredientSerializer, DietSerializer, CookedRecipeSerializer, MealSerializer, OnboardSerializer, SettingsIngredientSerializer, UserInventorySerializer, UserCuratedInventorySerializer, TagSerializer, UserRecipeSerializer, CuratedIngredientSerializer, MealPlanSerializer, MealPlanEntrySerializer
@@ -24,15 +26,15 @@ from decimal import Decimal, InvalidOperation
 from .models import (
     Ingredient, DietaryIngredient, Diet, UserDiet,
     Recipe, CookedRecipe, Meal, FavoriteRecipe, UserInventory, UserCuratedInventory, OnboardingSubmission, RecipeIngredient, HealthDetails, RecipeTag, TaggedRecipe,
-    ChatConversation, ChatMessage, CuratedIngredient, MealPlan, MealPlanEntry, UserRecipe,
-    InProgressRecipe, InProgressRecipeIngredient, CookingSession
+    ChatConversation, ChatMessage, CuratedIngredient, RecipeCuratedIngredient, MealPlan, MealPlanEntry, UserRecipe,
+    InProgressRecipe, InProgressRecipeIngredient, CookingSession, ShoppingList, ShoppingListItem
 )
 from .serializers import (
     UserSerializer, GroupSerializer, UserRegistrationSerializer,
     IngredientSerializer, DietSerializer,
     CookedRecipeSerializer, MealSerializer, RecipeSerializer,
     ChatConversationSerializer, ChatMessageSerializer,
-    InProgressRecipeSerializer, CookingSessionSerializer
+    InProgressRecipeSerializer, CookingSessionSerializer, ShoppingListSerializer, ShoppingListItemSerializer
 )
 from .utils.recommended import compute_recommendations
 from zoneinfo import ZoneInfo
@@ -1408,6 +1410,7 @@ class MealPlanListCreateView(APIView):
     def get(self, request):
         meal_plans = MealPlan.objects.filter(user=request.user).prefetch_related('entries__recipe')
         serializer = MealPlanSerializer(meal_plans, many=True)
+        print(serializer.data)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def post(self, request):
@@ -1612,6 +1615,7 @@ class SousChefChat(APIView):
 
                 # Classify user intent if we have an active cooking session
                 response_content = None
+                should_end_session = False
                 if cooking_session:
                     try:
                         current_step = cooking_session.get_current_step()
@@ -1619,13 +1623,20 @@ class SousChefChat(APIView):
                             intent = classify_user_intent(message, current_step)
 
                             from .intents import Intent
-                            if intent in [Intent.NEXT_STEP, Intent.PREVIOUS_STEP, Intent.RESTART_RECIPE]:
+                            if intent in [Intent.NEXT_STEP, Intent.PREVIOUS_STEP, Intent.RESTART_RECIPE, Intent.END_SESSION]:
                                 result = handle_user_intent(
                                     intent,
                                     cooking_session,
                                     user_message=message,
                                 )
                                 response_content = result['message']
+                                should_end_session = result.get('should_end_session', False)
+                                
+                                # If END_SESSION intent, end the session immediately
+                                if should_end_session:
+                                    cooking_session.is_active = False
+                                    cooking_session.end_time = timezone.now()
+                                    cooking_session.save(update_fields=['is_active', 'end_time'])
                             elif intent == Intent.CLARIFY:
                                 result = handle_user_intent(
                                     intent,
@@ -1685,6 +1696,10 @@ class SousChefChat(APIView):
                     cooking_session.refresh_from_db()
                     response_data['cooking_session'] = CookingSessionSerializer(cooking_session).data
                 
+                # Add flag to signal frontend to end the session
+                if should_end_session:
+                    response_data['should_end_session'] = True
+                
                 return Response(response_data, status=status.HTTP_200_OK)
 
         except Exception as e:
@@ -1707,7 +1722,7 @@ class ClearSousChefConversation(APIView):
 
         return Response(
             {'success': True, 'message': 'SousChef conversation cleared'},
-            status=status.HTTP_200_OK,
+            status=status.HTTP_200_OK
         )
 
 
@@ -1737,6 +1752,13 @@ class StartCookingSession(APIView):
             recipe=recipe,
             is_active=True
         ).update(is_active=False, end_time=timezone.now())
+
+        # Clear any active SousChef conversations to start fresh for this recipe
+        ChatConversation.objects.filter(
+            user=request.user,
+            channel='souschef',
+            is_active=True,
+        ).update(is_active=False)
 
         # Create new session starting at step 0
         session = CookingSession.objects.create(
@@ -1768,12 +1790,14 @@ class EndCookingSession(APIView):
                 recipe_id=recipe_id,
                 is_active=True
             )
+            
+            # End the cooking session
             session.is_active = False
             session.end_time = timezone.now()
             session.save(update_fields=['is_active', 'end_time'])
 
             return Response(
-                {'success': True, 'message': 'Cooking session ended'},
+                {'success': True, 'message': 'Cooking session ended and saved to history'},
                 status=status.HTTP_200_OK,
             )
         except CookingSession.DoesNotExist:
@@ -1804,7 +1828,175 @@ class GetCookingSession(APIView):
             serializer = CookingSessionSerializer(session)
             return Response(serializer.data, status=status.HTTP_200_OK)
         except CookingSession.DoesNotExist:
+            # Return 404 instead of 200 with null to make it clearer there's no session
             return Response(
-                {'session': None},
-                status=status.HTTP_200_OK,
+                {'detail': 'No active cooking session found for this recipe'},
+                status=status.HTTP_404_NOT_FOUND,
             )
+
+
+class CookingSessionHistory(APIView):
+    """Get the user's cooking session history (completed sessions)"""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        # Get completed sessions, ordered by most recent first
+        sessions = CookingSession.objects.filter(
+            user=request.user,
+            is_active=False,
+            end_time__isnull=False
+        ).select_related('recipe').order_by('-end_time')[:20]  # Last 20 sessions
+        
+        serializer = CookingSessionSerializer(sessions, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def delete(self, request):
+        """Delete all completed cooking sessions for the user"""
+        deleted_count, _ = CookingSession.objects.filter(
+            user=request.user,
+            is_active=False,
+            end_time__isnull=False
+        ).delete()
+        
+        return Response(
+            {'success': True, 'message': f'Deleted {deleted_count} cooking session(s)'},
+            status=status.HTTP_200_OK,
+        )
+
+class MealPlanShoppingListView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, pk):
+        """
+        Return curated ingredients required by all recipes in the meal plan
+        that are NOT present in the user's curated inventory.
+
+        Also attempts to parse quantities from the recipe.ingredients field
+        (pipe '|' separated) and includes a best-effort "amount" string for
+        each missing ingredient in the response.
+        """
+        try:
+            meal_plan = MealPlan.objects.get(id=pk, user=request.user)
+        except MealPlan.DoesNotExist:
+            return Response({'error': 'Meal plan not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        # recipe IDs referenced by the meal plan
+        recipe_ids = list(meal_plan.entries.values_list('recipe_id', flat=True))
+
+        # required curated ingredient IDs (distinct)
+        required_qs = RecipeCuratedIngredient.objects.filter(recipe_id__in=recipe_ids)
+        required_ids = set(required_qs.values_list('curated_ingredient_id', flat=True))
+
+        # curated ingredient IDs the user already has
+        owned_ids = set(request.user.curated_inventory_items.values_list('curated_ingredient_id', flat=True))
+
+        # missing curated ingredient IDs
+        missing_ids = required_ids - owned_ids
+
+        # fetch missing CuratedIngredient objects
+        missing_qs = CuratedIngredient.objects.filter(id__in=missing_ids).order_by('-frequency', 'name')
+
+        # Basic serializer for curated ingredients
+        from .serializers import CuratedIngredientSerializer
+        serializer = CuratedIngredientSerializer(missing_qs, many=True, context={'request': request})
+        serialized = serializer.data
+
+        # Early return if nothing missing
+        if not missing_qs.exists():
+            return Response({
+                'meal_plan_id': meal_plan.id,
+                'week_start': meal_plan.week_start,
+                'missing_count': 0,
+                'missing_ingredients': []
+            }, status=status.HTTP_200_OK)
+
+        # Build lookup of curated name (lowercased) by id
+        id_to_name = {ci.id: ci.name.lower() for ci in missing_qs}
+
+        # Best-effort regex to parse leading quantity and optional unit
+        # Supports: "1", "1.5", "1/2", "1 1/2" optionally followed by a unit token(s)
+        qty_unit_re = re.compile(
+            r'^\s*(?P<qty>\d+\s+\d+/\d+|\d+/\d+|\d+(?:\.\d+)?)'          # quantity (mixed, fraction, or decimal)
+            r'(?:\s*(?P<unit>[a-zA-Z]+(?:\s[a-zA-Z]+){0,2}))?'          # optional unit (1-3 words)
+            r'\s+(?P<rest>.+)$'                                         # rest of the ingredient text
+        )
+
+        def parse_quantity(qtext):
+            qtext = qtext.strip()
+            # mixed number like "1 1/2"
+            if ' ' in qtext and '/' in qtext:
+                whole, frac = qtext.split(' ', 1)
+                return float(int(whole) + Fraction(frac))
+            if '/' in qtext:
+                return float(Fraction(qtext))
+            return float(qtext)
+
+        # Prepare accumulators: amounts[cid][unit] = numeric sum, notes[cid] = list of raw fragments
+        amounts = {cid: {} for cid in missing_ids}
+        notes = {cid: [] for cid in missing_ids}
+
+        # Load all referenced recipes and parse their ingredients fields
+        recipes = Recipe.objects.filter(id__in=recipe_ids).only('id', 'ingredients', 'title')
+        for recipe in recipes:
+            ingredients_field = recipe.ingredients or ''
+            # Split by pipe '|' and strip fragments
+            fragments = [f.strip() for f in ingredients_field.split('|') if f.strip()]
+            for frag in fragments:
+                frag_lc = frag.lower()
+                # Check each missing curated ingredient name for a substring match
+                for cid, cname in id_to_name.items():
+                    if cname in frag_lc:
+                        m = qty_unit_re.match(frag)
+                        if m:
+                            qty_raw = m.group('qty')
+                            unit_raw = (m.group('unit') or '').strip()  # keep the parsed unit text
+                            try:
+                                qty_val = parse_quantity(qty_raw)
+                                # Use the parsed unit string as the key (lowercased); if empty -> 'count'
+                                unit_key = unit_raw.lower() if unit_raw else 'count'
+                                amounts[cid].setdefault(unit_key, 0.0)
+                                amounts[cid][unit_key] += float(qty_val)
+                            except Exception:
+                                # parsing failed; keep the fragment as a note
+                                notes[cid].append(frag)
+                        else:
+                            # No leading numeric qty found; keep fragment as a note
+                            notes[cid].append(frag)
+
+        # ----- very small, robust assembly: sum per parsed unit and render "<sum> <unit>" joined with " +" -----
+        def fmt_number(v):
+            if abs(v - round(v)) < 1e-8:
+                return str(int(round(v)))
+            s = f"{round(v,2):.2f}"
+            return s.rstrip('0').rstrip('.') if '.' in s else s
+
+        missing_list = []
+        for item in serialized:
+            cid = item.get('id')
+            unit_map = amounts.get(cid, {}) or {}
+            parts = []
+
+            # For each parsed unit (use the exact unit string captured), format sum + unit.
+            for unit, total in unit_map.items():
+                if unit == 'count':
+                    parts.append(fmt_number(total))  # plain number if no unit
+                else:
+                    parts.append(f"{fmt_number(total)} {unit}")
+
+            # If nothing parsed, show first raw fragment note
+            if not parts:
+                note_list = notes.get(cid, []) or []
+                amount_str = note_list[0] if note_list else None
+            else:
+                amount_str = " + ".join(parts)
+
+            new_item = dict(item)
+            new_item['amount'] = amount_str
+            missing_list.append(new_item)
+
+        return Response({
+            'meal_plan_id': meal_plan.id,
+            'week_start': meal_plan.week_start,
+            'missing_count': len(missing_list),
+            'missing_ingredients': missing_list
+        }, status=status.HTTP_200_OK)
