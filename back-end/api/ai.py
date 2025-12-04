@@ -33,7 +33,8 @@ from .models import (
     InProgressRecipe,
     InProgressRecipeIngredient,
     MealPlan,
-    MealPlanEntry
+    MealPlanEntry,
+    DietRestrictedCuratedIngredient,
 )
 from .intents import Intent
 from decimal import Decimal
@@ -58,11 +59,12 @@ class Meal(Enum):
 # Tool Factory Functions (with user context in closure)
 # ============================================================================
 
-def create_search_recipes_tool():
+def create_search_recipes_tool(user: User):
     """
     Create a recipe search tool.
 
     Note: This tool doesn't need user context, so it's a simple function.
+    ^^ Added user arg for grabbing diet restrictions
     """
     @tool
     def search_recipes_tool(
@@ -71,12 +73,15 @@ def create_search_recipes_tool():
         min_protein: int = None,
         max_fat: int = None,
         max_carbs: int = None,
-        max_total_time: int = None
+        max_total_time: int = None,
+        filter_diet_restricted: bool = False,
+        page: int = 1
     ) -> str:
         """Search for recipes in the recipe library using full-text search.
 
         Use this tool to find recipes by searching across recipe titles, ingredients, and instructions.
         Supports natural language queries and returns results ranked by relevance.
+        Also allows for filtering of recipes based on the user's saved dietary restrictions.
         Returns up to 5 recipes with complete details including ingredients and instructions.
 
         Args:
@@ -89,6 +94,10 @@ def create_search_recipes_tool():
             max_total_time: Maximum total cooking time in minutes (optional)
                            Includes both prep and cook time combined.
                            Examples: 30 for quick meals, 60 for moderate time commitment
+            filter_diet_restricted: If True, remove all recipes containing ingredients conflicting with user dietary restrictions (optional)
+            page:   Current page of recipes which is being displayed, with default value set to page 1. (optional)
+                    Each page of recipes is 5 recipes long.
+                    If user asks for more recipes with some query to be displayed, you can call this tool again with the next page to get the next 5 recipes to show them.
 
         Returns:
             A formatted string containing recipe details (id, title, nutrition, ingredients, instructions, link)
@@ -113,9 +122,17 @@ def create_search_recipes_tool():
 
         if max_total_time is not None:
             queryset = queryset.filter(total_time_min__lte=max_total_time)
+        
+        if filter_diet_restricted:
+            for userDiet in user.selected_diets.all():
+                diet = userDiet.diet
+                restricted_diet_ingredients = diet.restricted_ingredients.all()
+                restricted_ingredients = CuratedIngredient.objects.filter(restricted_diets__in=restricted_diet_ingredients)
+                queryset = queryset.exclude(curated_ingredients__curated_ingredient__in=restricted_ingredients)
 
         # Limit to 5 results
-        recipes = queryset[:5]
+        slice_start = (page-1)*5
+        recipes = queryset[slice_start:slice_start+5]
 
         if not recipes:
             return "No recipes found matching the search criteria."
@@ -257,14 +274,14 @@ def create_reset_mealplan_tool(user: User):
             today = datetime.now()
             days_since_monday = today.weekday()
             monday_datetime=today-timedelta(days=days_since_monday)
-            #mealPlan = MealPlan(
-            #    user=user,
-            #    week_start=datetime.datetime(2025, 11, 23, 6, 1, 53, 13941),
-            #    ai_in_progress=True)
             mealPlan = MealPlan(
                 user=user,
-                week_start=monday_datetime,
+                week_start=datetime(2025, 11, 23, 6, 1, 53, 13941),
                 ai_in_progress=True)
+            #mealPlan = MealPlan(
+            #    user=user,
+            #    week_start=monday_datetime,
+            #    ai_in_progress=True)
             mealPlan.save()
 
         return "Successfully created meal plan."
@@ -382,6 +399,40 @@ Total Nutrition Content for the Week: {total_calories} calories, {total_protein}
 
     return show_mealplan_tool
 
+def create_save_mealplan_tool(user: User):
+    """
+    Create a save meal plan tool.
+    """
+
+    @tool
+    def save_mealplan_tool() -> str:
+        """ Save the current meal plan being created by the user.
+        
+        This tool saves the current meal plan, scheduling it to start on the Monday of the next week.
+        Saving the meal plan overwrites whatever meal plan was scheduled for the next week, and also resets any edits made to the current meal plan.
+        It is VERY important that you only call this tool when the user explicitly asks to save their current meal plan, 
+        to avoid overwriting any preexisting meal plans that they did not want to delete.
+
+        """
+        in_progress_mealplan = MealPlan.objects.filter(user=user, ai_in_progress=True).first()
+        if (in_progress_mealplan == None):
+            return "Could not save meal plan: No in-progress meal plan exists. You should create a meal plan object first with reset_mealplan_tool, then try again."
+
+        today = datetime.now()
+        days_since_monday = today.weekday()
+        monday_datetime=today-timedelta(days=days_since_monday)+timedelta(days=7)
+        monday_mealplan = MealPlan.objects.filter(user=user, week_start=monday_datetime).first()
+        
+        with transaction.atomic():
+            if monday_mealplan is not None:
+                monday_mealplan.delete()
+            in_progress_mealplan.week_start = monday_datetime
+            in_progress_mealplan.ai_in_progress = False
+            in_progress_mealplan.save()
+
+        return "Successfully saved the current in-progress meal plan to start on the Monday, next week."
+
+    return save_mealplan_tool
 # ============================================================================
 # Recipe Creation Tools (InProgressRecipe)
 # ============================================================================
@@ -897,9 +948,12 @@ The general flow for creating and displaying meal plans is as follows:
     1. The meal plan object must be created with <tool_name>reset_mealplan_tool</tool_name>. After the meal plan is initially created, ask the user if they want to fill it in with their own options, or if you should fill it for them.
     2. The meal plan object's meal slots start off empty, and they can be filled with a call to <tool_name>edit_mealplan_tool</tool_name> for each.
     3. The meal plan can also be shown to the user as a formatted string with <tool_name>show_mealplan_tool</tool_name>. It is not necessary for all recipe slots to be filled.
+    4. Finally, the user can ask to save the meal plan being created. This can be done with <tool_name>show_mealplan_tool</tool_name>. This operation saves the current meal plan being edited, scheduling it for Monday of next week.
+    Note that saving the meal plan will overwrite whatever meal plan the user had scheduled for next week, and reset the meal plan that was being created during the current session. ONLY save the meal plan if the user EXPLICITLY asks you to.
 
 When showing the user their meal plan, keep the response short; do not include ingredients or instructions.
-When adding entries to the meal plan, do **NOT** use <tool_name>search_recipes_tool</tool_name> to find recipes. The <tool_name>edit_mealplan_tool</tool_name> will find recipes for you.
+When editing entries in the meal plan, do **NOT** use <tool_name>search_recipes_tool</tool_name> to find recipes. The <tool_name>edit_mealplan_tool</tool_name> will find recipes for you.
+When editing entries in the meal plan, if no recipes in the database match the given query, then just try again with a different recipe title. 
 If a user asks you to fill all of the recipes for a day or for the entire week, you must use the <tool_name>edit_mealplan_tool</tool_name> for every relevant meal slot.
 For example, if a user you asks to fill Monday's recipes for them, you could call <tool_name>edit_mealplan_tool</tool_name> three times, with "scrambled eggs" as the title_query for breakfast, "fish tacos" as the title_query for lunch, and "beef stew" as the title_query for dinner.
 
@@ -991,11 +1045,12 @@ class NutritionistAgent:
         """Create all tools for the agent with proper context."""
         return [
             # Recipe search and inventory
-            create_search_recipes_tool(),
+            create_search_recipes_tool(self.user),
             create_get_user_inventory_tool(self.user),
             create_reset_mealplan_tool(self.user),
             create_edit_mealplan_tool(self.user),
             create_show_mealplan_tool(self.user),
+            create_save_mealplan_tool(self.user),
 
             create_suggest_recipe_tool(),
 
@@ -1239,7 +1294,7 @@ class SousChefAgent:
 
     def _create_tools(self) -> List:
         return [
-            create_search_recipes_tool(),
+            create_search_recipes_tool(self.user),
             create_get_user_inventory_tool(self.user),
         ]
 
