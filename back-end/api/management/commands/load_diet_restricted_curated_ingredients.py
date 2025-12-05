@@ -1,7 +1,7 @@
 from pathlib import Path
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
-from api.models import Diet, CuratedIngredient, DietRestrictedCuratedIngredient
+from api.models import Diet, CuratedIngredient, DietRestrictedCuratedIngredient, RecipeCuratedIngredient, Recipe
 
 diet_names = ["Vegetarian", "Vegan", "Gluten-Free", "Kosher", "Halal"]
 
@@ -65,6 +65,14 @@ class Command(BaseCommand):
                         diet=diet_halal,
                         ingredient=ingredient
                     )
+            
+            # Fix Recipe for test
+            cabbagerolls = Recipe.objects.get(id=16822)
+            groundbeef = CuratedIngredient.objects.get(id=55)
+            RecipeCuratedIngredient.objects.get_or_create(
+                recipe=cabbagerolls,
+                curated_ingredient=groundbeef
+            )
 
 
         # Report results
