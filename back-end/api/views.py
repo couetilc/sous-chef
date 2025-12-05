@@ -132,8 +132,6 @@ class OnboardedView(APIView):
     permission_classes = [permissions.IsAuthenticated]
     def get(self, request):
         user = request.user
-        print("onboard: ", user.onboarded.first().has_onboarded)
-        print("skip: ", user.onboarded.first().skipped)
         return Response({
             'onboarded': user.onboarded.first().has_onboarded,
             'skipped': user.onboarded.first().skipped
@@ -146,8 +144,6 @@ class UpdateOnboardedView(APIView):
         user = request.user
         user.onboarded.first().has_onboarded=request.data['new_onboarded']
         user.onboarded.first().skipped=request.data['new_skipped']
-        print("new onboard: ", user.onboarded.first().has_onboarded)
-        print("new skip: ", user.onboarded.first().skipped)
         return Response({ 'message': 'Successfully completed onboarding'}, status=status.HTTP_200_OK)
 
 class HealthView(APIView):
@@ -180,7 +176,6 @@ class UpdateHealthView(APIView):
     permission_classes = [permissions.IsAuthenticated]
     def post(self, request):
         user = request.user
-        print(user)
         if user.health.first() is None:
             HealthDetails.objects.create(
               user = user,
@@ -195,7 +190,6 @@ class UpdateHealthView(APIView):
         user.refresh_from_db()
         health = user.health.first()
 
-        print(request.data)
 
         health.age = request.data['age']
         health.height_ft = request.data['height_ft']

@@ -24,7 +24,6 @@ def daily_emails():
   for user in mealplan_users:
     plan = user.meal_plans.filter(week_start=this_mond).first()
     recipient = user.email
-    print(user.email)
     message = f'Hello, {user.username}! Here is your meal plan for the day:\n'
     html_message = f'<p>Hello, {user.username}!</p><p>Here is your meal plan for the day:<p>'
     
@@ -115,8 +114,7 @@ def daily_emails():
 
 
 def weekly_emails():
-  print("executed weekly!")
-  weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+  weekdays = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY']
   cur_datetime = datetime.now()
   cur_day = cur_datetime.day
   days_til_mond = (0 - cur_datetime.weekday() + 7) % 7
