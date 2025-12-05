@@ -124,10 +124,10 @@ def create_search_recipes_tool(user: User):
 
         if max_total_time is not None:
             queryset = queryset.filter(total_time_min__lte=max_total_time)
-        
+
         if max_cost_per_serving is not None:
             queryset = queryset.filter(price_per_serving_usd__lte=max_cost_per_serving)
-        
+
         if filter_diet_restricted:
             for userDiet in user.selected_diets.all():
                 diet = userDiet.diet
@@ -149,7 +149,7 @@ def create_search_recipes_tool(user: User):
 Title: {recipe.title}
 Link: [{recipe.title}](/recipes/{recipe.id}/)
 Nutrition (per serving): {recipe.calories_per_serving} calories, {recipe.protein_g}g protein, {recipe.carbs_g}g carbs, {recipe.fat_g}g fat
-Price per serving (USD): \${recipe.price_per_serving_usd}
+Price per serving (USD): ${recipe.price_per_serving_usd}
 Servings: {recipe.servings}
 Ingredients: {recipe.ingredients}
 Instructions: {recipe.instructions}
@@ -259,7 +259,7 @@ def create_get_user_inventory_tool(user: User):
 def create_reset_mealplan_tool(user: User):
     """
     Create a reset meal plan tool.
-    """ 
+    """
     @tool
     def reset_mealplan_tool(
 
@@ -292,7 +292,7 @@ def create_reset_mealplan_tool(user: User):
 
         return "Successfully created meal plan."
 
-    return reset_mealplan_tool 
+    return reset_mealplan_tool
 
 def create_edit_mealplan_tool(user: User):
     """
@@ -315,7 +315,7 @@ def create_edit_mealplan_tool(user: User):
             meal: The meal (breakfast, lunch, dinner) that the recipe is for.
             title_query: The title which will be used to search the database for a recipe to insert. Do not be too specific so that there is a better chance of finding a recipe.
 
-        Returns:                
+        Returns:
             A string indicating whether or not the meal plan object was modified.
         """
 
@@ -361,7 +361,7 @@ def create_show_mealplan_tool(user: User):
         If the meal plan's recipes are empty, you should ask the user if they want to fill their meal plan with recipes.
         When showing the meal plan contents to the user, be sure to include the ingredient ID for debugging purposes.
 
-        Returns:                
+        Returns:
             A formatted string containing all the recipes in the in-progress meal plan,
             or a string stating the meal plan is empty,
             or an error message if the meal plan object has not been created.
@@ -413,10 +413,10 @@ def create_save_mealplan_tool(user: User):
     @tool
     def save_mealplan_tool() -> str:
         """ Save the current meal plan being created by the user.
-        
+
         This tool saves the current meal plan, scheduling it to start on the Monday of the next week.
         Saving the meal plan overwrites whatever meal plan was scheduled for the next week, and also resets any edits made to the current meal plan.
-        It is VERY important that you only call this tool when the user explicitly asks to save their current meal plan, 
+        It is VERY important that you only call this tool when the user explicitly asks to save their current meal plan,
         to avoid overwriting any preexisting meal plans that they did not want to delete.
 
         """
@@ -428,7 +428,7 @@ def create_save_mealplan_tool(user: User):
         days_since_monday = today.weekday()
         monday_datetime=today-timedelta(days=days_since_monday)+timedelta(days=7)
         monday_mealplan = MealPlan.objects.filter(user=user, week_start=monday_datetime).first()
-        
+
         with transaction.atomic():
             if monday_mealplan is not None:
                 monday_mealplan.delete()
@@ -959,7 +959,7 @@ The general flow for creating and displaying meal plans is as follows:
 
 When showing the user their meal plan, keep the response short; do not include ingredients or instructions.
 When editing entries in the meal plan, do **NOT** use <tool_name>search_recipes_tool</tool_name> to find recipes. The <tool_name>edit_mealplan_tool</tool_name> will find recipes for you.
-When editing entries in the meal plan, if no recipes in the database match the given query, then just try again with a different recipe title. 
+When editing entries in the meal plan, if no recipes in the database match the given query, then just try again with a different recipe title.
 If a user asks you to fill all of the recipes for a day or for the entire week, you must use the <tool_name>edit_mealplan_tool</tool_name> for every relevant meal slot.
 For example, if a user you asks to fill Monday's recipes for them, you could call <tool_name>edit_mealplan_tool</tool_name> three times, with "scrambled eggs" as the title_query for breakfast, "fish tacos" as the title_query for lunch, and "beef stew" as the title_query for dinner.
 
