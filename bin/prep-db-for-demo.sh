@@ -29,5 +29,6 @@ docker compose -f "$COMPOSE_FILE" run --rm --remove-orphans backend bash -c "\
 	python manage.py load_recipe_curated_ingredients && \
 	python manage.py load_recipe_scores && \
 	python manage.py load_turkey_scores && \
+	python manage.py load_diet_restricted_curated_ingredients && \
 	echo 'Done!'
 	"
