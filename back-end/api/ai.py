@@ -149,7 +149,7 @@ def create_search_recipes_tool(user: User):
 Title: {recipe.title}
 Link: [{recipe.title}](/recipes/{recipe.id}/)
 Nutrition (per serving): {recipe.calories_per_serving} calories, {recipe.protein_g}g protein, {recipe.carbs_g}g carbs, {recipe.fat_g}g fat
-Price per serving (USD): ${recipe.price_per_serving_usd}
+Price per serving (USD): \${recipe.price_per_serving_usd}
 Servings: {recipe.servings}
 Ingredients: {recipe.ingredients}
 Instructions: {recipe.instructions}
