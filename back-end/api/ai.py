@@ -1268,7 +1268,7 @@ def get_souschef_llm() -> ChatOpenAI:
     return ChatOpenAI(
         api_key=api_key,
         base_url="https://openrouter.ai/api/v1",
-        model="x-ai/grok-4.1-fast:free",
+        model=os.getenv('AI_NUTRITIONIST_MODEL'),
     )
 
 
