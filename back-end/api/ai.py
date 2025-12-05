@@ -74,6 +74,7 @@ def create_search_recipes_tool(user: User):
         max_fat: int = None,
         max_carbs: int = None,
         max_total_time: int = None,
+        max_cost_per_serving: int = None,
         filter_diet_restricted: bool = False,
         page: int = 1
     ) -> str:
@@ -94,6 +95,7 @@ def create_search_recipes_tool(user: User):
             max_total_time: Maximum total cooking time in minutes (optional)
                            Includes both prep and cook time combined.
                            Examples: 30 for quick meals, 60 for moderate time commitment
+            max_cost_per_serving: Maximum cost per serving in US dollars (optional)
             filter_diet_restricted: If True, remove all recipes containing ingredients conflicting with user dietary restrictions (optional)
             page:   Current page of recipes which is being displayed, with default value set to page 1. (optional)
                     Each page of recipes is 5 recipes long.
@@ -123,6 +125,9 @@ def create_search_recipes_tool(user: User):
         if max_total_time is not None:
             queryset = queryset.filter(total_time_min__lte=max_total_time)
         
+        if max_cost_per_serving is not None:
+            queryset = queryset.filter(price_per_serving_usd__lte=max_cost_per_serving)
+        
         if filter_diet_restricted:
             for userDiet in user.selected_diets.all():
                 diet = userDiet.diet
@@ -144,6 +149,7 @@ def create_search_recipes_tool(user: User):
 Title: {recipe.title}
 Link: [{recipe.title}](/recipes/{recipe.id}/)
 Nutrition (per serving): {recipe.calories_per_serving} calories, {recipe.protein_g}g protein, {recipe.carbs_g}g carbs, {recipe.fat_g}g fat
+Price per serving (USD): ${recipe.price_per_serving_usd}
 Servings: {recipe.servings}
 Ingredients: {recipe.ingredients}
 Instructions: {recipe.instructions}
