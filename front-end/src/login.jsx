@@ -17,12 +17,15 @@ export default function Login(props) {
   async function navAfterLogin() {
     //check if user is onboarded already
     const response = await api.getOnboardingStatus();
+    navigate("/home/");
+    /*
     if ( response.onboarded == true || response.skipped == true ) {
       navigate("/home/");
     }
     else {
       navigate("/welcome/");
     }
+    */
   }
 
   async function checkLogin() {
