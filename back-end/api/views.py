@@ -46,18 +46,20 @@ from .ai import NutritionistAgent, SousChefAgent, classify_user_intent, handle_u
 
 def create_recipe_history_from_session(cooking_session):
     """
-    Create recipe history (CookedRecipe + initial Meal) when a cooking session ends.
+    Create recipe history (CookedRecipe only) when a cooking session ends.
 
     This function:
     1. Creates a CookedRecipe with total_servings_cooked from recipe.servings
-    2. Creates an initial Meal entry with 1.0 serving consumed
-    3. Handles everything atomically within a transaction
+    2. Handles everything atomically within a transaction
+
+    Note: Meals are no longer automatically created. Users must manually add meals
+    after the cooking session ends.
 
     Args:
         cooking_session: The CookingSession instance that is ending
 
     Returns:
-        tuple: (CookedRecipe, Meal) if successful, (None, None) if failed
+        CookedRecipe if successful, None if failed
     """
     try:
         with transaction.atomic():
@@ -73,29 +75,23 @@ def create_recipe_history_from_session(cooking_session):
                 total_servings_cooked=Decimal(str(recipe_servings))
             )
 
-            # Create initial Meal entry (1 serving consumed)
-            meal = Meal.objects.create(
-                cooked_recipe=cooked_recipe,
-                servings=Decimal('1.0')
-            )
-
             logger.info(
                 f"Created recipe history for session {cooking_session.id}: "
-                f"CookedRecipe {cooked_recipe.id}, Meal {meal.id}"
+                f"CookedRecipe {cooked_recipe.id}"
             )
 
-            return (cooked_recipe, meal)
+            return cooked_recipe
 
     except ValidationError as e:
         logger.error(
             f"Validation error creating recipe history for session {cooking_session.id}: {e}"
         )
-        return (None, None)
+        return None
     except Exception as e:
         logger.error(
             f"Unexpected error creating recipe history for session {cooking_session.id}: {e}"
         )
-        return (None, None)
+        return None
 
 
 class Paginator(PageNumberPagination):
@@ -1689,7 +1685,7 @@ class SousChefChat(APIView):
                                     cooking_session.end_time = timezone.now()
                                     cooking_session.save(update_fields=['is_active', 'end_time'])
 
-                                    # Create recipe history (CookedRecipe + initial Meal)
+                                    # Create recipe history (CookedRecipe only, no automatic meal)
                                     create_recipe_history_from_session(cooking_session)
                             elif intent == Intent.CLARIFY:
                                 result = handle_user_intent(
@@ -1850,8 +1846,8 @@ class EndCookingSession(APIView):
             session.end_time = timezone.now()
             session.save(update_fields=['is_active', 'end_time'])
 
-            # Create recipe history (CookedRecipe + initial Meal)
-            cooked_recipe, meal = create_recipe_history_from_session(session)
+            # Create recipe history (CookedRecipe only, no automatic meal)
+            cooked_recipe = create_recipe_history_from_session(session)
 
             # Build response
             response_data = {

@@ -2,7 +2,7 @@
 Tests for cooking session endpoints and recipe history integration.
 
 Tests verify that when a cooking session ends (either manually or via AI),
-it automatically creates a CookedRecipe and initial Meal entry.
+it automatically creates a CookedRecipe entry (but no automatic Meal).
 """
 import pytest
 from decimal import Decimal
@@ -49,8 +49,8 @@ class TestEndCookingSessionWithHistory:
         cooked_recipe = cooked_recipes.first()
         assert cooked_recipe.total_servings_cooked == Decimal(str(test_recipe.servings))
 
-    def test_end_session_creates_initial_meal(self, authenticated_client, test_user, test_recipe):
-        """Ending session creates initial Meal entry with 1 serving"""
+    def test_end_session_does_not_create_initial_meal(self, authenticated_client, test_user, test_recipe):
+        """Ending session does NOT create an initial Meal entry"""
         # Create active cooking session
         session = CookingSession.objects.create(
             user=test_user,
@@ -68,12 +68,11 @@ class TestEndCookingSessionWithHistory:
 
         assert response.status_code == status.HTTP_200_OK
 
-        # Verify CookedRecipe and Meal were created
+        # Verify CookedRecipe was created but NO Meal was created
         cooked_recipe = CookedRecipe.objects.get(user=test_user, recipe=test_recipe)
         meals = Meal.objects.filter(cooked_recipe=cooked_recipe)
 
-        assert meals.count() == 1
-        assert meals.first().servings == Decimal('1.0')
+        assert meals.count() == 0
 
     def test_multiple_sessions_create_separate_history(self, authenticated_client, test_user, test_recipe):
         """Multiple cooking sessions for same recipe create separate history entries"""
@@ -212,8 +211,8 @@ class TestEndCookingSessionWithHistory:
 class TestHelperFunction:
     """Test the create_recipe_history_from_session helper function directly"""
 
-    def test_helper_creates_cooked_recipe_and_meal(self, test_user, test_recipe):
-        """Helper function creates both CookedRecipe and Meal"""
+    def test_helper_creates_cooked_recipe_only(self, test_user, test_recipe):
+        """Helper function creates CookedRecipe only (no automatic meal)"""
         from api.views import create_recipe_history_from_session
 
         session = CookingSession.objects.create(
@@ -223,16 +222,16 @@ class TestHelperFunction:
             current_step_index=0
         )
 
-        cooked_recipe, meal = create_recipe_history_from_session(session)
+        cooked_recipe = create_recipe_history_from_session(session)
 
-        # Verify both were created
+        # Verify CookedRecipe was created
         assert cooked_recipe is not None
-        assert meal is not None
         assert cooked_recipe.user == test_user
         assert cooked_recipe.recipe == test_recipe
         assert cooked_recipe.total_servings_cooked == Decimal('4')  # test_recipe has 4 servings
-        assert meal.cooked_recipe == cooked_recipe
-        assert meal.servings == Decimal('1.0')
+
+        # Verify no meals were created
+        assert Meal.objects.filter(cooked_recipe=cooked_recipe).count() == 0
 
     def test_helper_handles_zero_servings(self, test_user, db):
         """Helper function defaults to 1 serving when recipe has 0 servings"""
@@ -252,13 +251,13 @@ class TestHelperFunction:
             current_step_index=0
         )
 
-        cooked_recipe, meal = create_recipe_history_from_session(session)
+        cooked_recipe = create_recipe_history_from_session(session)
 
         assert cooked_recipe is not None
         assert cooked_recipe.total_servings_cooked == Decimal('1')  # Defaulted to 1
 
     def test_helper_atomic_transaction(self, test_user, test_recipe):
-        """Helper function creates both records atomically"""
+        """Helper function creates CookedRecipe atomically"""
         from api.views import create_recipe_history_from_session
 
         session = CookingSession.objects.create(
@@ -269,11 +268,10 @@ class TestHelperFunction:
         )
 
         # Call helper
-        cooked_recipe, meal = create_recipe_history_from_session(session)
+        cooked_recipe = create_recipe_history_from_session(session)
 
-        # Verify both exist in database
+        # Verify CookedRecipe exists in database
         assert CookedRecipe.objects.filter(id=cooked_recipe.id).exists()
-        assert Meal.objects.filter(id=meal.id).exists()
 
 
 @pytest.mark.django_db
@@ -302,8 +300,8 @@ class TestRecipeHistoryIntegration:
         assert history_response.status_code == status.HTTP_200_OK
         assert len(history_response.data) == 1
         assert history_response.data[0]['recipe']['id'] == test_recipe.id
-        assert len(history_response.data[0]['meals']) == 1
-        assert history_response.data[0]['meals'][0]['servings'] == '1.00'
+        # No automatic meal created
+        assert len(history_response.data[0]['meals']) == 0
 
     def test_multiple_sessions_show_in_history(self, authenticated_client, test_user, test_recipe):
         """Multiple ended sessions all appear in recipe history"""
@@ -328,7 +326,6 @@ class TestRecipeHistoryIntegration:
         assert history_response.status_code == status.HTTP_200_OK
         assert len(history_response.data) == 3
 
-        # Each should have 1 initial meal
+        # No automatic meals should be created
         for entry in history_response.data:
-            assert len(entry['meals']) == 1
-            assert entry['meals'][0]['servings'] == '1.00'
+            assert len(entry['meals']) == 0
