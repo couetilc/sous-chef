@@ -479,9 +479,10 @@ export default function Nutritionist() {
       <h1>NUTRITIONIST</h1>
 
       <div className="chat-messages">
-        {messages.length === 0 ? (
+        {messages.length === 0  && !loading ? (
           <EmptyStateSuggestions
             onSelectSuggestion={(prompt) => {
+              setCurrentMessage(prompt);
               chat(prompt);
             }}
           />
