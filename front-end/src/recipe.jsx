@@ -76,7 +76,8 @@ export default function Recipe(props) {
             padding: '6px 12px',
             borderRadius: '20px',
             fontSize: '14px',
-            fontWeight: 'bold'
+            fontWeight: 'bold',
+            height: 'fit-content',
           }}>
             ⭐ Easy to Make: {Math.round(recipe.accessibility_score)}/100
           </div>
@@ -234,8 +235,8 @@ export default function Recipe(props) {
         {recipe.is_favorited ? '★ Unfavorite this recipe' : '☆ Favorite this recipe'}
       </button>
 
- 
-    
+
+
       {recipe.source_url &&
         <a className="source-url" href={recipe.source_url} target="_blank" rel="noreferrer">source</a>}
     </div>
