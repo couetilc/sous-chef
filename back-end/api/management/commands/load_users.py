@@ -8,8 +8,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         users = [
             # username, password, is_superuser
-            ('Dalbert', 'Password', False),
-            ('Andrew', 'Password', False),
+            ('demo', 'cs307team21', False),
             ('purdue', 'cs307team21', True),
         ]
         # Step 1: Delete existing demo user if exists
@@ -20,7 +19,10 @@ class Command(BaseCommand):
                 )
             else:
                 # create, optionally set superuser status
-                User.objects.create(username=username, password=password, is_superuser=is_superuser, is_staff=is_superuser)
+                if is_superuser:
+                    User.objects.create_superuser(username = username, password = password)
+                else:
+                    User.objects.create_user(username=username, password=password)
                 self.stdout.write(
                     f'Created user "{username}".'
                 )

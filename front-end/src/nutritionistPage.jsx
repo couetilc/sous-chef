@@ -294,6 +294,9 @@ function EmptyStateSuggestions({ onSelectSuggestion }) {
       "Meal plan for next week",
       "Shopping list suggestions",
       "Balanced meal planning"
+    ],
+    "Demo": [
+      "Make me an empty meal plan, and fill up Monday and Tuesday’s meals (breakfast, lunch, dinner) with six recipes you think are appropriate. For Monday’s breakfast, make sure that you include “Best Blueberry Scones”. Then make sure to save the meal plan after you've added the meals. Finally, recommend me the scones recipe after you create the meal plan."
     ]
   };
 
@@ -399,7 +402,7 @@ export default function Nutritionist() {
     }
   }, [loading]);
 
-  async function chat(messageOverride) {
+  async function chat(messageOverride, clearCurrentMessage = false) {
     // If messageOverride is not a string (e.g., click event), ignore it
     const messageToSend = typeof messageOverride === 'string' ? messageOverride : currentMessage;
     if (!messageToSend?.trim()) return;
@@ -412,7 +415,7 @@ export default function Nutritionist() {
       const response = await api.nutritionistChat({ message: messageToSend });
       setMessages(response.messages);
       // Only clear input if we used the state value (not a programmatic string override)
-      if (typeof messageOverride !== 'string') {
+      if (typeof messageOverride !== 'string' || clearCurrentMessage) {
         setCurrentMessage('');
       }
       // Refresh in-progress recipe in case AI called mark_recipe_ready
@@ -483,7 +486,7 @@ export default function Nutritionist() {
           <EmptyStateSuggestions
             onSelectSuggestion={(prompt) => {
               setCurrentMessage(prompt);
-              chat(prompt);
+              chat(prompt, true);
             }}
           />
         ) : (
