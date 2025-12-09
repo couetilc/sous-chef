@@ -289,6 +289,8 @@ export default function Nutritionist() {
   const [savedRecipeId, setSavedRecipeId] = useState(null);
   const [pendingRecipe, setPendingRecipe] = useState(null);
   const messagesEndRef = useRef(null);
+  const [thinkingText, setThinkingText] = useState('Thinking');
+  const loadingStartTimeRef = useRef(null);
 
   // Fetch conversation and in-progress recipe from API
   async function refreshInProgressRecipe() {
@@ -325,6 +327,34 @@ export default function Nutritionist() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
+
+  // Update thinking text with progressive dots and timer
+  useEffect(() => {
+    if (loading) {
+      loadingStartTimeRef.current = Date.now();
+      setThinkingText('Thinking');
+
+      const interval = setInterval(() => {
+        const elapsedSeconds = Math.floor((Date.now() - loadingStartTimeRef.current) / 1000);
+
+        if (elapsedSeconds <= 10) {
+          // 0-10 seconds: add dots
+          setThinkingText('Thinking' + '.'.repeat(elapsedSeconds));
+        } else {
+          // After 10 seconds: keep 10 dots and show timer
+          const minutes = Math.floor(elapsedSeconds / 60);
+          const seconds = elapsedSeconds % 60;
+          const formattedSeconds = seconds.toString().padStart(2, '0');
+          setThinkingText(`Thinking..........${minutes}m${formattedSeconds}s`);
+        }
+      }, 1000);
+
+      return () => clearInterval(interval);
+    } else {
+      loadingStartTimeRef.current = null;
+      setThinkingText('Thinking');
+    }
+  }, [loading]);
 
   async function chat(messageOverride) {
     // If messageOverride is not a string (e.g., click event), ignore it
@@ -432,7 +462,7 @@ export default function Nutritionist() {
           </div>
         ))}
         {loading && (
-          <div className="loading-indicator">Thinking...</div>
+          <div className="loading-indicator">{thinkingText}</div>
         )}
         {pendingRecipe && !savedRecipeId && (
           <RecipePreview
