@@ -71,7 +71,7 @@ services:
       - sous-chef
 
   cloudflared:
-    image: cloudflare/cloudflared:2024.4.0
+    image: cloudflare/cloudflared:1800-17533b124c22
     container_name: cloudflared-tunnel
     command: tunnel --config /etc/cloudflared/config.yml run
     depends_on:
