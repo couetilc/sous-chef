@@ -14,8 +14,9 @@ class RecipeManager(models.Manager):
         """
         Order recipes by how accessible their ingredients are.
 
-        Uses square root normalization: accessibility_score = avg_frequency * sqrt(curated_count)
+        Uses square root normalization: accessibility_score = (avg_frequency * sqrt(curated_count)) / 300
         This penalizes recipes with very few ingredients while still rewarding common ingredients.
+        The score is normalized to 0-100 scale by dividing by 300.
 
         The sqrt penalty means a 1-ingredient recipe needs ingredients 9x more common than a
         9-ingredient recipe to rank equally (since sqrt(9) = 3, and 3^2 = 9).
@@ -29,15 +30,19 @@ class RecipeManager(models.Manager):
         from django.db.models import Count, Avg, FloatField, F, ExpressionWrapper, Case, When, Value
         from django.db.models.functions import Sqrt, Coalesce
 
+        # Normalization constant to scale scores to 0-100
+        # Based on max observed score of ~30,000 (30,000 / 100 = 300)
+        NORMALIZATION_CONSTANT = 300.0
+
         return self.annotate(
             curated_count=Count('curated_ingredients'),
             frequency_avg=Avg('curated_ingredients__curated_ingredient__frequency', output_field=FloatField()),
             accessibility_score=Case(
                 # If recipe has no curated ingredients, score is 0
                 When(curated_count=0, then=Value(0.0)),
-                # Otherwise, calculate: avg_frequency * sqrt(count)
+                # Otherwise, calculate: (avg_frequency * sqrt(count)) / normalization_constant
                 default=ExpressionWrapper(
-                    Coalesce(F('frequency_avg'), Value(0.0)) * Sqrt(F('curated_count')),
+                    (Coalesce(F('frequency_avg'), Value(0.0)) * Sqrt(F('curated_count'))) / Value(NORMALIZATION_CONSTANT),
                     output_field=FloatField()
                 ),
                 output_field=FloatField()
