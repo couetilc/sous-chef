@@ -51,6 +51,12 @@ export default function Login(props) {
     }
   }
 
+  function handleKeyDown(event) {
+    if (event.key === 'Enter') {
+      checkLogin();
+    }
+  }
+
   return (
     <div className="login-page">
       <img className="sous-chef-logo" src={SousChefLogo} width="150px"/>
@@ -58,11 +64,11 @@ export default function Login(props) {
         <h1>Log In</h1>
         <div className="username-field">
           <label>Username: </label>
-          <input name="userIn" id="userId" />
+          <input name="userIn" id="userId" onKeyDown={handleKeyDown} />
         </div>
         <div className="password-field">
           <label>Password: </label>
-          <input type="password" name="passIn" id="pwId"/>
+          <input type="password" name="passIn" id="pwId" onKeyDown={handleKeyDown} />
         </div>
         <div className="submission-btns">
           <button
