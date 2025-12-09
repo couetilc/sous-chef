@@ -211,13 +211,6 @@ export default function Recipes() {
         </button>
         <button
           type="button"
-          className={sortBy === 'turkey' ? 'button' : 'button-gray'}
-          onClick={() => handleSortChange('turkey')}
-        >
-          🦃 Turkey Score
-        </button>
-        <button
-          type="button"
           className={sortBy === 'combined' ? 'button' : 'button-gray'}
           onClick={() => handleSortChange('combined')}
         >
