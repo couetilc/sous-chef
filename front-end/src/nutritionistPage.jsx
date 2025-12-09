@@ -296,7 +296,7 @@ function EmptyStateSuggestions({ onSelectSuggestion }) {
       "Balanced meal planning"
     ],
     "Demo": [
-      "Make me an empty meal plan, and fill up Monday and Tuesday’s meals (breakfast, lunch, dinner) with six recipes you think are appropriate. For Monday’s breakfast, make sure that you include “Best Blueberry Scones”. Then make sure to save the meal plan after you've added the meals. Finally, recommend me the scones recipe after you create the meal plan."
+      "Make me an empty meal plan, and fill up Monday and Tuesday’s meals (breakfast, lunch, dinner) with six recipes you think are appropriate. For Monday’s breakfast, make sure that you include “Best Blueberry Scones”. Then make sure to save the meal plan after you've added the meals. Finally, suggest the recipe \"best blueberry scones\".",
     ]
   };
 
