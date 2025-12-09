@@ -59,12 +59,13 @@ class Meal(Enum):
 # Tool Factory Functions (with user context in closure)
 # ============================================================================
 
-def create_search_recipes_tool(user: User):
+def create_search_recipes_tool(user: User = None):
     """
     Create a recipe search tool.
 
-    Note: This tool doesn't need user context, so it's a simple function.
-    ^^ Added user arg for grabbing diet restrictions
+    Args:
+        user: User object for dietary restriction filtering (optional).
+              Required only when filter_diet_restricted=True is used.
     """
     @tool
     def search_recipes_tool(
@@ -129,6 +130,8 @@ def create_search_recipes_tool(user: User):
             queryset = queryset.filter(price_per_serving_usd__lte=max_cost_per_serving)
 
         if filter_diet_restricted:
+            if user is None:
+                return "Error: User context required for dietary restriction filtering."
             for userDiet in user.selected_diets.all():
                 diet = userDiet.diet
                 restricted_diet_ingredients = diet.restricted_ingredients.all()
