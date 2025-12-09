@@ -3,6 +3,7 @@ import logging
 from django.shortcuts import render, redirect
 from rest_framework.filters import SearchFilter, OrderingFilter
 from django.db import transaction
+from django.core.exceptions import ValidationError
 from django.http import HttpResponse
 from django.contrib.auth import authenticate, login, logout
 from django.middleware.csrf import get_token
@@ -41,6 +42,61 @@ from .serializers import (
 from .utils.recommended import compute_recommendations
 from zoneinfo import ZoneInfo
 from .ai import NutritionistAgent, SousChefAgent, classify_user_intent, handle_user_intent
+
+
+def create_recipe_history_from_session(cooking_session):
+    """
+    Create recipe history (CookedRecipe + initial Meal) when a cooking session ends.
+
+    This function:
+    1. Creates a CookedRecipe with total_servings_cooked from recipe.servings
+    2. Creates an initial Meal entry with 1.0 serving consumed
+    3. Handles everything atomically within a transaction
+
+    Args:
+        cooking_session: The CookingSession instance that is ending
+
+    Returns:
+        tuple: (CookedRecipe, Meal) if successful, (None, None) if failed
+    """
+    try:
+        with transaction.atomic():
+            # Get recipe servings, default to 1 if not set or zero
+            recipe_servings = cooking_session.recipe.servings
+            if not recipe_servings or recipe_servings <= 0:
+                recipe_servings = 1
+
+            # Create CookedRecipe with servings snapshot
+            cooked_recipe = CookedRecipe.objects.create(
+                user=cooking_session.user,
+                recipe=cooking_session.recipe,
+                total_servings_cooked=Decimal(str(recipe_servings))
+            )
+
+            # Create initial Meal entry (1 serving consumed)
+            meal = Meal.objects.create(
+                cooked_recipe=cooked_recipe,
+                servings=Decimal('1.0')
+            )
+
+            logger.info(
+                f"Created recipe history for session {cooking_session.id}: "
+                f"CookedRecipe {cooked_recipe.id}, Meal {meal.id}"
+            )
+
+            return (cooked_recipe, meal)
+
+    except ValidationError as e:
+        logger.error(
+            f"Validation error creating recipe history for session {cooking_session.id}: {e}"
+        )
+        return (None, None)
+    except Exception as e:
+        logger.error(
+            f"Unexpected error creating recipe history for session {cooking_session.id}: {e}"
+        )
+        return (None, None)
+
 
 class Paginator(PageNumberPagination):
     page_size = 100
@@ -1632,6 +1688,9 @@ class SousChefChat(APIView):
                                     cooking_session.is_active = False
                                     cooking_session.end_time = timezone.now()
                                     cooking_session.save(update_fields=['is_active', 'end_time'])
+
+                                    # Create recipe history (CookedRecipe + initial Meal)
+                                    create_recipe_history_from_session(cooking_session)
                             elif intent == Intent.CLARIFY:
                                 result = handle_user_intent(
                                     intent,
@@ -1791,10 +1850,20 @@ class EndCookingSession(APIView):
             session.end_time = timezone.now()
             session.save(update_fields=['is_active', 'end_time'])
 
-            return Response(
-                {'success': True, 'message': 'Cooking session ended and saved to history'},
-                status=status.HTTP_200_OK,
-            )
+            # Create recipe history (CookedRecipe + initial Meal)
+            cooked_recipe, meal = create_recipe_history_from_session(session)
+
+            # Build response
+            response_data = {
+                'success': True,
+                'message': 'Cooking session ended and saved to history',
+                'history_created': cooked_recipe is not None
+            }
+
+            if cooked_recipe:
+                response_data['cooked_recipe_id'] = cooked_recipe.id
+
+            return Response(response_data, status=status.HTTP_200_OK)
         except CookingSession.DoesNotExist:
             return Response(
                 {'error': 'No active cooking session found for this recipe'},
