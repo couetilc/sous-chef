@@ -1796,6 +1796,103 @@ h1 {
   }
 }
 
+/* Empty State Suggestions */
+.empty-state-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6em;
+  padding: 0.5em;
+  max-width: 650px;
+  margin: 0 auto;
+  animation: fadeIn 0.25s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.suggestion-category {
+  background: linear-gradient(135deg, #fff8f0 0%, #ffffff 100%);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 6px;
+  padding: 0.6em;
+  box-shadow: 0 1px 3px rgba(16, 20, 25, 0.04);
+  transition: box-shadow 0.15s ease;
+}
+
+.suggestion-category:hover {
+  box-shadow: 0 2px 6px rgba(165, 36, 34, 0.08);
+}
+
+.suggestion-category h3 {
+  color: var(--color-auburn);
+  font-size: 1em;
+  margin: 0 0 0.45em 0;
+  font-family: var(--font-serif);
+  font-weight: 600;
+}
+
+.suggestion-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4em;
+}
+
+.suggestion-pill {
+  background: white;
+  border: 1.5px solid var(--color-auburn);
+  color: var(--color-auburn);
+  padding: 0.3em 0.6em;
+  border-radius: 12px;
+  font-size: 0.85em;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  box-shadow: 0 1px 2px rgba(165, 36, 34, 0.06);
+  font-family: var(--font-ui);
+  text-align: left;
+}
+
+.suggestion-pill:hover {
+  background: var(--color-auburn);
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(165, 36, 34, 0.18);
+}
+
+.suggestion-pill:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(165, 36, 34, 0.1);
+}
+
+/* Responsive Design */
+@media (max-width: 600px) {
+  .empty-state-container {
+    padding: 0.4em;
+    gap: 0.5em;
+  }
+
+  .suggestion-category {
+    padding: 0.5em;
+  }
+
+  .suggestion-pills {
+    gap: 0.35em;
+  }
+
+  .suggestion-pill {
+    font-size: 0.8em;
+    padding: 0.28em 0.55em;
+  }
+}
+
 /* END NUTRITIONIST PAGE */
 
 /* START MEAL PLAN PAGE */

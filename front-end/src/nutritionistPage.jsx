@@ -277,6 +277,49 @@ function ToolCallsIndicator({ toolCalls }) {
   );
 }
 
+function EmptyStateSuggestions({ onSelectSuggestion }) {
+  const suggestions = {
+    "Find Recipes 🔍": [
+      "What can I make with my pantry?",
+      "Quick meals under 30 min",
+      "High-protein dinners",
+      "Healthy and cheap recipes"
+    ],
+    "Get Creative ✨": [
+      "Create a custom recipe",
+      "I have chicken and broccoli",
+      "Vegetarian meal for 4"
+    ],
+    "Plan Ahead 📅": [
+      "Meal plan for next week",
+      "Shopping list suggestions",
+      "Balanced meal planning"
+    ]
+  };
+
+  return (
+    <div className="empty-state-container">
+      {Object.entries(suggestions).map(([category, prompts]) => (
+        <div key={category} className="suggestion-category">
+          <h3>{category}</h3>
+          <div className="suggestion-pills">
+            {prompts.map((prompt) => (
+              <button
+                key={prompt}
+                type="button"
+                className="suggestion-pill"
+                onClick={() => onSelectSuggestion(prompt)}
+              >
+                {prompt}
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function Nutritionist() {
   const navigate = useNavigate();
   const { api } = useApi();
@@ -436,48 +479,58 @@ export default function Nutritionist() {
       <h1>NUTRITIONIST</h1>
 
       <div className="chat-messages">
-        {messages.map((msg) => (
-          <div key={msg.id} className={`message ${msg.role}`}>
-            {msg.role === 'assistant' && (
-              <ToolCallsIndicator toolCalls={msg.tool_calls} />
-            )}
-            <div className="message-content">
-              {msg.role === 'assistant' ? (
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                  {msg.content}
-                </ReactMarkdown>
-              ) : (
-                msg.content
-              )}
-            </div>
-            {msg.role === 'assistant' && (
-              <>
-                <RecipeOutcome toolCalls={msg.tool_calls} />
-                {parseRecipeSuggestions(msg.tool_calls).map((recipe) => (
-                  <RecipeSuggestion key={`${msg.id}-recipe-${recipe.id}`} recipe={recipe} />
-                ))}
-              </>
-            )}
-            <div className="message-time">{formatTime(msg.created_at)}</div>
-          </div>
-        ))}
-        {loading && (
-          <div className="loading-indicator">{thinkingText}</div>
-        )}
-        {pendingRecipe && !savedRecipeId && (
-          <RecipePreview
-            recipe={pendingRecipe}
-            onSave={handleSaveRecipe}
-            onDiscard={handleDiscardRecipe}
-            saving={saving}
-            discarding={discarding}
+        {messages.length === 0 ? (
+          <EmptyStateSuggestions
+            onSelectSuggestion={(prompt) => {
+              chat(prompt);
+            }}
           />
-        )}
-        {savedRecipeId && (
-          <div className="recipe-saved-notice">
-            Recipe saved successfully!{' '}
-            <a href={`/recipes/${savedRecipeId}/`}>View Recipe</a>
-          </div>
+        ) : (
+          <>
+            {messages.map((msg) => (
+              <div key={msg.id} className={`message ${msg.role}`}>
+                {msg.role === 'assistant' && (
+                  <ToolCallsIndicator toolCalls={msg.tool_calls} />
+                )}
+                <div className="message-content">
+                  {msg.role === 'assistant' ? (
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {msg.content}
+                    </ReactMarkdown>
+                  ) : (
+                    msg.content
+                  )}
+                </div>
+                {msg.role === 'assistant' && (
+                  <>
+                    <RecipeOutcome toolCalls={msg.tool_calls} />
+                    {parseRecipeSuggestions(msg.tool_calls).map((recipe) => (
+                      <RecipeSuggestion key={`${msg.id}-recipe-${recipe.id}`} recipe={recipe} />
+                    ))}
+                  </>
+                )}
+                <div className="message-time">{formatTime(msg.created_at)}</div>
+              </div>
+            ))}
+            {loading && (
+              <div className="loading-indicator">{thinkingText}</div>
+            )}
+            {pendingRecipe && !savedRecipeId && (
+              <RecipePreview
+                recipe={pendingRecipe}
+                onSave={handleSaveRecipe}
+                onDiscard={handleDiscardRecipe}
+                saving={saving}
+                discarding={discarding}
+              />
+            )}
+            {savedRecipeId && (
+              <div className="recipe-saved-notice">
+                Recipe saved successfully!{' '}
+                <a href={`/recipes/${savedRecipeId}/`}>View Recipe</a>
+              </div>
+            )}
+          </>
         )}
         <div ref={messagesEndRef} />
       </div>
