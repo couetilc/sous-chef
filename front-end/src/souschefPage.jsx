@@ -874,129 +874,100 @@ export default function SousChef() {
             </div>
 
             <div className="chat-input" style={{ marginTop: 'auto' }}>
-              {/* Voice controls */}
-              {speechSupported && (
-                <div
-                  className="voice-controls"
+              {/* Voice output settings */}
+              <div
+                className="voice-settings"
+                style={{
+                  display: 'flex',
+                  justifyContent: 'flex-end',
+                  alignItems: 'center',
+                  gap: 12,
+                  marginBottom: 8,
+                  padding: '8px 12px',
+                  backgroundColor: '#f9f9f9',
+                  borderRadius: 6,
+                  border: '1px solid #e5e5e5',
+                }}
+              >
+                {availableVoices.length > 0 && (
+                  <select
+                    value={selectedVoice?.name || ''}
+                    onChange={(e) => {
+                      const voice = availableVoices.find(v => v.name === e.target.value);
+                      setSelectedVoice(voice);
+                      console.log('Voice changed to:', voice?.name);
+                    }}
+                    style={{
+                      padding: '4px 8px',
+                      borderRadius: 4,
+                      border: '1px solid #ddd',
+                      fontSize: 12,
+                      cursor: 'pointer',
+                      backgroundColor: '#fff',
+                      maxWidth: 180,
+                    }}
+                    title="Select voice for Sous Chef"
+                  >
+                    {availableVoices
+                      .filter(v => v.lang.startsWith('en'))
+                      .map((voice) => (
+                        <option key={voice.name} value={voice.name}>
+                          {voice.name.split(' ').slice(0, 2).join(' ')}
+                        </option>
+                      ))}
+                  </select>
+                )}
+                
+                <label
                   style={{
                     display: 'flex',
-                    justifyContent: 'space-between',
                     alignItems: 'center',
-                    marginBottom: 8,
-                    padding: '8px 12px',
-                    backgroundColor: '#f9f9f9',
-                    borderRadius: 6,
-                    border: '1px solid #e5e5e5',
+                    gap: 6,
+                    fontSize: 13,
+                    color: '#666',
+                    cursor: 'pointer',
+                    userSelect: 'none',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <button
-                      type="button"
-                      onClick={isListening ? stopListening : startListening}
-                      disabled={loading}
-                      title={isListening ? 'Stop listening' : 'Start voice input'}
-                      style={{
-                        padding: '8px 16px',
-                        borderRadius: 999,
-                        border: isListening ? '2px solid #dc3545' : '2px solid #a83232',
-                        backgroundColor: isListening ? '#dc3545' : '#fff',
-                        color: isListening ? '#fff' : '#a83232',
-                        cursor: loading ? 'not-allowed' : 'pointer',
-                        fontSize: 14,
-                        fontWeight: 600,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 6,
-                        transition: 'all 0.2s ease',
-                      }}
-                    >
-                      <span style={{ fontSize: 16 }}>🎤</span>
-                      {isListening ? 'Listening...' : 'Voice Input'}
-                    </button>
-                    
-                    {isSpeaking && (
-                      <button
-                        type="button"
-                        onClick={stopSpeaking}
-                        title="Stop speaking"
-                        style={{
-                          padding: '8px 16px',
-                          borderRadius: 999,
-                          border: '2px solid #ff6b6b',
-                          backgroundColor: '#ff6b6b',
-                          color: '#fff',
-                          cursor: 'pointer',
-                          fontSize: 14,
-                          fontWeight: 600,
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 6,
-                          transition: 'all 0.2s ease',
-                        }}
-                      >
-                        <span style={{ fontSize: 16 }}>🔊</span>
-                        Stop Speaking
-                      </button>
-                    )}
-                  </div>
-                  
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    {availableVoices.length > 0 && (
-                      <select
-                        value={selectedVoice?.name || ''}
-                        onChange={(e) => {
-                          const voice = availableVoices.find(v => v.name === e.target.value);
-                          setSelectedVoice(voice);
-                          console.log('Voice changed to:', voice?.name);
-                        }}
-                        style={{
-                          padding: '4px 8px',
-                          borderRadius: 4,
-                          border: '1px solid #ddd',
-                          fontSize: 12,
-                          cursor: 'pointer',
-                          backgroundColor: '#fff',
-                          maxWidth: 180,
-                        }}
-                        title="Select voice for Sous Chef"
-                      >
-                        {availableVoices
-                          .filter(v => v.lang.startsWith('en'))
-                          .map((voice) => (
-                            <option key={voice.name} value={voice.name}>
-                              {voice.name.split(' ').slice(0, 2).join(' ')}
-                            </option>
-                          ))}
-                      </select>
-                    )}
-                    
-                    <label
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 6,
-                        fontSize: 13,
-                        color: '#666',
-                        cursor: 'pointer',
-                        userSelect: 'none',
-                      }}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={autoPlayResponses}
-                        onChange={(e) => {
-                          setAutoPlayResponses(e.target.checked);
-                          if (!e.target.checked) {
-                            stopSpeaking();
-                          }
-                        }}
-                        style={{ cursor: 'pointer' }}
-                      />
-                      Auto-play
-                    </label>
-                  </div>
-                </div>
-              )}
+                  <input
+                    type="checkbox"
+                    checked={autoPlayResponses}
+                    onChange={(e) => {
+                      setAutoPlayResponses(e.target.checked);
+                      if (!e.target.checked) {
+                        stopSpeaking();
+                      }
+                    }}
+                    style={{ cursor: 'pointer' }}
+                  />
+                  Auto-play
+                </label>
+
+                {isSpeaking && (
+                  <button
+                    type="button"
+                    onClick={stopSpeaking}
+                    title="Stop speaking"
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: 999,
+                      border: '2px solid #ff6b6b',
+                      backgroundColor: '#ff6b6b',
+                      color: '#fff',
+                      cursor: 'pointer',
+                      fontSize: 12,
+                      fontWeight: 600,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      transition: 'all 0.2s ease',
+                    }}
+                  >
+                    <span style={{ fontSize: 14 }}>🔊</span>
+                    Stop
+                  </button>
+                )}
+              </div>
               
               <textarea
                 value={currentMessage}
@@ -1057,6 +1028,31 @@ export default function SousChef() {
                     gap: 8,
                   }}
                 >
+                  {speechSupported && (
+                    <button
+                      type="button"
+                      onClick={isListening ? stopListening : startListening}
+                      disabled={loading}
+                      title={isListening ? 'Stop listening' : 'Start voice input'}
+                      style={{
+                        padding: '6px 14px',
+                        borderRadius: 999,
+                        border: isListening ? '2px solid #dc3545' : '2px solid #a83232',
+                        backgroundColor: isListening ? '#dc3545' : '#fff',
+                        color: isListening ? '#fff' : '#a83232',
+                        cursor: loading ? 'not-allowed' : 'pointer',
+                        fontSize: 13,
+                        fontWeight: 600,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        transition: 'all 0.2s ease',
+                      }}
+                    >
+                      <span style={{ fontSize: 14 }}>🎤</span>
+                      {isListening ? 'Listening...' : 'Voice'}
+                    </button>
+                  )}
                   {error && (
                     <span
                       className="error-indicator"

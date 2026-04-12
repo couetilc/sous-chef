@@ -1271,7 +1271,7 @@ def get_souschef_llm() -> ChatOpenAI:
     return ChatOpenAI(
         api_key=api_key,
         base_url="https://openrouter.ai/api/v1",
-        model=os.getenv('AI_NUTRITIONIST_MODEL'),
+        model=os.getenv('AI_NUTRITIONIST_MODEL', "openai/gpt-oss-20b:free"),
     )
 
 
@@ -1540,7 +1540,7 @@ def handle_user_intent(
             session.save(update_fields=['current_step_index'])
         return {
             "step_index": new_index,
-            "message": f"Moving to the next step {new_index + 1}."
+            "message": f"Proceeding to step {new_index + 1}."
         }
 
     if intent == Intent.PREVIOUS_STEP:
@@ -1550,7 +1550,7 @@ def handle_user_intent(
             session.save(update_fields=['current_step_index'])
         return {
             "step_index": new_index,
-            "message": f"Returning to the previous step {new_index + 1}."
+            "message": f"Returning to step {new_index + 1}."
         }
 
     if intent == Intent.RESTART_RECIPE:
