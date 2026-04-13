@@ -4,6 +4,7 @@ import { useApi } from './useApi';
 import { useEffect, useState, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { useConfirmModal } from './ConfirmModal';
 
 import SousChefLogo from './souschef-logo.png';
 
@@ -326,6 +327,7 @@ function EmptyStateSuggestions({ onSelectSuggestion }) {
 export default function Nutritionist() {
   const navigate = useNavigate();
   const { api } = useApi();
+  const { confirm, Modal } = useConfirmModal();
   const [currentMessage, setCurrentMessage] = useState('');
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -429,7 +431,8 @@ export default function Nutritionist() {
   }
 
   async function handleClear() {
-    if (!confirm('Clear conversation history?')) return;
+    const confirmed = await confirm('Clear conversation history?');
+    if (!confirmed) return;
 
     try {
       await api.clearConversation();
@@ -461,7 +464,8 @@ export default function Nutritionist() {
   }
 
   async function handleDiscardRecipe() {
-    if (!confirm('Discard this recipe? This cannot be undone.')) return;
+    const confirmed = await confirm('Discard this recipe? This cannot be undone.');
+    if (!confirmed) return;
 
     setDiscarding(true);
     try {
@@ -568,6 +572,7 @@ export default function Nutritionist() {
           </div>
         </div>
       </div>
+      <Modal />
     </div>
   )
 }

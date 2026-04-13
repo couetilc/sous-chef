@@ -5,6 +5,7 @@ import ReactMarkdown from 'react-markdown';
 
 import SousChefLogo from './souschef-logo2.png';
 import { useApi } from './useApi';
+import { useConfirmModal } from './ConfirmModal';
 
 function formatTime(timestamp) {
   const date = new Date(timestamp);
@@ -69,6 +70,7 @@ export default function SousChef() {
   const navigate = useNavigate();
   const { id } = useParams();
   const { api } = useApi();
+  const { confirm, Modal } = useConfirmModal();
 
   const [cookingSession, setCookingSession] = useState(null);
   const [sessionHistory, setSessionHistory] = useState([]);
@@ -555,7 +557,8 @@ export default function SousChef() {
   }
 
   async function handleClear() {
-    if (!confirm('Clear SousChef conversation history?')) return;
+    const confirmed = await confirm('Clear SousChef conversation history?');
+    if (!confirmed) return;
 
     try {
       await api.clearSousChefConversation();
@@ -567,10 +570,24 @@ export default function SousChef() {
     }
   }
 
+  async function handleClearSessionHistory() {
+    const confirmed = await confirm('Clear all cooking session history? This cannot be undone.');
+    if (!confirmed) return;
+
+    try {
+      await api.clearCookingSessionHistory();
+      setSessionHistory([]);
+    } catch (err) {
+      console.error('Failed to clear session history:', err);
+      alert('Failed to clear session history. Please try again.');
+    }
+  }
+
   async function handleEndSession() {
     if (!id || !cookingSession) return;
     
-    if (!confirm('End this cooking session? This will be saved to your session history.')) return;
+    const confirmed = await confirm('End this cooking session? This will be saved to your session history.');
+    if (!confirmed) return;
 
     // Stop any ongoing speech
     stopSpeaking();
@@ -1129,16 +1146,7 @@ export default function SousChef() {
               </h2>
               <button
                 type="button"
-                onClick={async () => {
-                  if (!confirm('Clear all cooking session history? This cannot be undone.')) return;
-                  try {
-                    await api.clearCookingSessionHistory();
-                    setSessionHistory([]);
-                  } catch (err) {
-                    console.error('Failed to clear session history:', err);
-                    alert('Failed to clear session history. Please try again.');
-                  }
-                }}
+                onClick={handleClearSessionHistory}
                 style={{
                   padding: '6px 12px',
                   borderRadius: 6,
@@ -1239,6 +1247,7 @@ export default function SousChef() {
             </div>
           </section>
         )}
+        <Modal />
       </div>
     </div>
   );
