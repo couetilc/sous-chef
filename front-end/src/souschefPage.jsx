@@ -262,6 +262,31 @@ export default function SousChef() {
     };
   }, [api, id]);
 
+  // Check if we should restore an active session on mount (no recipe ID in URL)
+  useEffect(() => {
+    if (id) return; // Already have a recipe ID, don't need to restore
+
+    let cancelled = false;
+
+    async function checkForActiveSession() {
+      try {
+        const session = await api.getActiveCookingSession();
+        if (!cancelled && session && session.recipe_id) {
+          console.log('Found active cooking session, navigating to recipe:', session.recipe_id);
+          navigate(`/sous-chef/${session.recipe_id}`);
+        }
+      } catch (err) {
+        // 404 or other error means no active session - that's expected
+        console.log('No active cooking session found');
+      }
+    }
+
+    checkForActiveSession();
+    return () => {
+      cancelled = true;
+    };
+  }, [id, navigate, api]);
+
   // Load or start cooking session for the current recipe
   useEffect(() => {
     if (!id) return;

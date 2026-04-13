@@ -1895,6 +1895,25 @@ class GetCookingSession(APIView):
             )
 
 
+class GetActiveCookingSession(APIView):
+    """Get the user's current active cooking session (if any exists)"""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        try:
+            session = CookingSession.objects.get(
+                user=request.user,
+                is_active=True
+            )
+            serializer = CookingSessionSerializer(session)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except CookingSession.DoesNotExist:
+            return Response(
+                {'detail': 'No active cooking session found'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+
 class CookingSessionHistory(APIView):
     """Get the user's cooking session history (completed sessions)"""
     permission_classes = [permissions.IsAuthenticated]
