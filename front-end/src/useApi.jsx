@@ -468,6 +468,12 @@ export class Api {
     })
   }
 
+  async getActiveCookingSession() {
+    return this.fetch(`/api/cooking_session/active/`, {
+      method: 'GET',
+    })
+  }
+
   async getCookingSessionHistory() {
     return this.fetch(`/api/cooking_session/history/`, {
       method: 'GET',
