@@ -598,12 +598,11 @@ export default function SousChef() {
         }}
       >
         <header style={{ textAlign: 'center', marginBottom: 12 }}>
-          <h1 style={{ margin: 0, letterSpacing: 1 }}>AI SOUS CHEF</h1>
+          <h1 style={{ margin: 0, letterSpacing: 1 }}>SOUS CHEF</h1>
 
           <div style={{ marginTop: 10 }}>
             {id && (
               <div style={{ fontSize: 13, color: '#777', marginTop: 2 }}>
-                Cooking recipe ID: {id}
               </div>
             )}
             {cookingSession && (
@@ -690,7 +689,7 @@ export default function SousChef() {
                 {(activeRecipe.prep_time_min != null ||
                   activeRecipe.cook_time_min != null) && (
                   <span>
-                    Time{' '}
+                    Time: {' '}
                     {(activeRecipe.prep_time_min || 0) +
                       (activeRecipe.cook_time_min || 0)}{' '}
                     min
@@ -767,7 +766,7 @@ export default function SousChef() {
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
               <h2 style={{ margin: 0, fontSize: 20 }}>
-                Ask SousChef
+                Ask Sous Chef
               </h2>
               {cookingSession && (
                 <button
