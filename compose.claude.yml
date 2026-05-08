@@ -1,0 +1,22 @@
+services:
+  claude:
+    image: node:20-alpine
+    working_dir: /workspace
+    network_mode: "service:backend"
+    depends_on:
+      - backend
+    volumes:
+      - .:/workspace
+      - claude-home:/root/.claude
+      - ${HOME}/.gitconfig:/root/.gitconfig:ro
+      - ${HOME}/.ssh:/root/.ssh:ro
+    environment:
+      HOME: /root
+      TERM: xterm-256color
+      IS_SANDBOX: "1"
+    stdin_open: true
+    tty: true
+    command: sh -c "command -v claude >/dev/null 2>&1 || (apk add --no-cache git openssh ca-certificates && npm install -g @anthropic-ai/claude-code && git config --system --add safe.directory /workspace); exec sleep infinity"
+
+volumes:
+  claude-home:
